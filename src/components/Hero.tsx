@@ -41,11 +41,11 @@ const Hero: React.FC = () => {
                 className="inline-block px-3 py-1 text-xs font-medium bg-burgundy/20 text-burgundy rounded-full"
                 variants={fadeInUp}
               >
-                Traditional Craftsmanship. Modern Style.
+                Est. 2015
               </motion.span>
               
               <motion.h1 
-                className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground"
+                className="text-4xl md:text-5xl lg:text-6xl font-playfair font-bold tracking-tight text-foreground"
                 variants={fadeInUp}
               >
                 Queens Dock
@@ -53,7 +53,7 @@ const Hero: React.FC = () => {
               </motion.h1>
               
               <motion.p 
-                className="max-w-xl text-lg text-muted-foreground"
+                className="max-w-xl text-lg text-muted-foreground font-playfair"
                 variants={fadeInUp}
               >
                 Premium grooming services in Rossendale. Experience traditional barbering with a modern touch.
@@ -66,10 +66,10 @@ const Hero: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: staggerDelay * 4, duration: 0.5 }}
             >
-              <Button asChild size="lg" className="rounded-full bg-burgundy hover:bg-burgundy-light">
+              <Button asChild size="lg" className="rounded-none bg-burgundy hover:bg-burgundy-light">
                 <Link to="/book">Book Appointment</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full border-burgundy hover:bg-burgundy/10">
+              <Button asChild variant="outline" size="lg" className="rounded-none border-burgundy hover:bg-burgundy/10">
                 <Link to="/services">Our Services</Link>
               </Button>
             </motion.div>
@@ -99,17 +99,17 @@ const Hero: React.FC = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="relative aspect-square md:aspect-[4/3] shadow-elevated rounded-xl overflow-hidden">
+            <div className="relative aspect-square md:aspect-[4/3] shadow-elevated rounded-none overflow-hidden">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80')] bg-cover bg-center opacity-90"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-background/70 to-transparent"></div>
               
               <div className="absolute bottom-6 left-6 right-6">
-                <div className="glass rounded-lg p-4 shadow-glass border border-white/5">
+                <div className="glass rounded-none p-4 shadow-glass border border-white/5">
                   <div className="flex items-center text-white">
                     <Scissors className="w-4 h-4 mr-2 text-burgundy" />
-                    <div className="text-sm font-medium">Est. 2015</div>
+                    <div className="text-sm font-playfair font-medium">Est. 2015</div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">Traditional barbering in Rossendale</div>
+                  <div className="text-xs text-muted-foreground mt-1 font-playfair">Traditional barbering in Rossendale</div>
                 </div>
               </div>
             </div>

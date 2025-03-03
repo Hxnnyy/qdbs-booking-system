@@ -128,6 +128,7 @@ export default {
 			},
 			fontFamily: {
 				sans: ['Inter', 'SF Pro Display', 'system-ui', 'sans-serif'],
+				playfair: ['Playfair Display', 'serif'],
 			},
 			boxShadow: {
 				'subtle': '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',

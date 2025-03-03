@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -204,4 +205,32 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* Custom font utility classes */
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+
+.text-edge {
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+
+/* Edgy border utility */
+.border-edgy {
+  @apply border-white/10;
+  position: relative;
+}
+
+.border-edgy::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
 }
