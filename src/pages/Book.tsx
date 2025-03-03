@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -24,8 +23,23 @@ const services = [
   { id: 4, name: 'Hot Towel Shave', price: '£35', duration: '45 min' },
 ];
 
-// Opening hours configuration
-const openingHours = {
+// Define types for the opening hours
+type ClosedDay = {
+  isOpen: false;
+  name: string;
+};
+
+type OpenDay = {
+  isOpen: true;
+  name: string;
+  start: number;
+  end: number;
+};
+
+type DayConfig = ClosedDay | OpenDay;
+
+// Opening hours configuration with proper typing
+const openingHours: Record<number, DayConfig> = {
   0: { isOpen: false, name: 'Sunday' }, // Sunday - closed
   1: { isOpen: false, name: 'Monday' }, // Monday - closed
   2: { isOpen: true, name: 'Tuesday', start: 9, end: 18 }, // Tuesday 9am-6pm
@@ -57,10 +71,11 @@ const Book = () => {
     if (!date) return [];
     
     const dayOfWeek = date.getDay();
-    const dayConfig = openingHours[dayOfWeek as keyof typeof openingHours];
+    const dayConfig = openingHours[dayOfWeek];
     
     if (!dayConfig.isOpen) return [];
     
+    // TypeScript now knows that dayConfig has start and end because we've checked isOpen
     const slots = [];
     for (let hour = dayConfig.start; hour < dayConfig.end; hour++) {
       slots.push(`${hour}:00 ${hour < 12 ? 'AM' : 'PM'}`);
@@ -101,7 +116,7 @@ const Book = () => {
           </span>
           <h1 className="text-3xl md:text-4xl font-bold mb-4">Book Your Appointment</h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Follow the steps below to schedule your next appointment at Queen&apos;s Dock Barbershop
+            Follow the steps below to schedule your next appointment at Queens Dock Barbershop
           </p>
         </motion.div>
 
@@ -260,15 +275,15 @@ const Book = () => {
                           today.setHours(0, 0, 0, 0);
                           // Disable dates in the past, Mondays and Sundays
                           const dayOfWeek = date.getDay();
-                          return date < today || !openingHours[dayOfWeek as keyof typeof openingHours].isOpen;
+                          return date < today || !openingHours[dayOfWeek].isOpen;
                         }}
                       />
                     </div>
                     {date && (
                       <div className="mt-2 text-sm text-muted-foreground font-playfair">
                         <p>
-                          {openingHours[date.getDay() as keyof typeof openingHours].isOpen ? (
-                            `Opening hours on ${format(date, 'EEEE')}: ${openingHours[date.getDay() as keyof typeof openingHours].start}:00 AM - ${openingHours[date.getDay() as keyof typeof openingHours].end > 12 ? `${openingHours[date.getDay() as keyof typeof openingHours].end - 12}:00 PM` : `${openingHours[date.getDay() as keyof typeof openingHours].end}:00 AM`}`
+                          {openingHours[date.getDay()].isOpen ? (
+                            `Opening hours on ${format(date, 'EEEE')}: ${(openingHours[date.getDay()] as OpenDay).start}:00 AM - ${(openingHours[date.getDay()] as OpenDay).end > 12 ? `${(openingHours[date.getDay()] as OpenDay).end - 12}:00 PM` : `${(openingHours[date.getDay()] as OpenDay).end}:00 AM`}`
                           ) : (
                             `We're closed on ${format(date, 'EEEE')}. Please select another day.`
                           )}
@@ -279,7 +294,7 @@ const Book = () => {
                   
                   <div>
                     <Label className="mb-2 block">Available time slots</Label>
-                    {date && openingHours[date.getDay() as keyof typeof openingHours].isOpen ? (
+                    {date && openingHours[date.getDay()].isOpen ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {getAvailableTimeSlots().map((time) => (
                           <button
