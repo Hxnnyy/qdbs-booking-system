@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -14,7 +13,7 @@ const ServicesPage = () => {
       name: 'Haircut',
       description: 'A traditional barber cut with precision and attention to detail. Includes consultation and styling.',
       price: '£25',
-      duration: '30 min',
+      duration: '45 min',
       icon: <Scissors className="h-6 w-6" />
     },
     {
@@ -22,7 +21,7 @@ const ServicesPage = () => {
       name: 'Beard Trim',
       description: 'Professional beard shaping and trimming to create or maintain your ideal facial hair style.',
       price: '£10',
-      duration: '20 min',
+      duration: '30 min',
       icon: <Brush className="h-6 w-6" />
     },
     {
@@ -30,7 +29,7 @@ const ServicesPage = () => {
       name: 'Buzz Cut',
       description: 'Quick and efficient all-over short cut using clippers, perfect for a low-maintenance style.',
       price: '£15',
-      duration: '20 min',
+      duration: '30 min',
       icon: <Scissors className="h-6 w-6" />
     },
     {
@@ -38,7 +37,7 @@ const ServicesPage = () => {
       name: 'Hot Towel Shave',
       description: 'Classic straight razor shave with hot towel treatment for the smoothest results and relaxation.',
       price: '£35',
-      duration: '45 min',
+      duration: '60 min',
       icon: <SparkleIcon className="h-6 w-6" />
     }
   ];

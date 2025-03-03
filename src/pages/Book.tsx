@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -17,10 +18,10 @@ const barbers = [
 ];
 
 const services = [
-  { id: 1, name: 'Haircut', price: '£25', duration: '30 min' },
-  { id: 2, name: 'Beard Trim', price: '£10', duration: '20 min' },
-  { id: 3, name: 'Buzz Cut', price: '£15', duration: '20 min' },
-  { id: 4, name: 'Hot Towel Shave', price: '£35', duration: '45 min' },
+  { id: 1, name: 'Haircut', price: '£25', duration: '45 min' },
+  { id: 2, name: 'Beard Trim', price: '£10', duration: '30 min' },
+  { id: 3, name: 'Buzz Cut', price: '£15', duration: '30 min' },
+  { id: 4, name: 'Hot Towel Shave', price: '£35', duration: '60 min' },
 ];
 
 // Define types for the opening hours
