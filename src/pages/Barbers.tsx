@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Scissors, Star } from 'lucide-react';
+import { Scissors } from 'lucide-react';
 
 const barbers = [
   {
@@ -12,7 +12,6 @@ const barbers = [
     name: 'Chris Skeggs',
     specialty: 'Classic Cuts & Styling',
     experience: '12 years',
-    rating: 4.9,
     bio: 'With over a decade of experience, Chris specializes in classic cuts and modern styling techniques. Known for his attention to detail and personalized service.',
     image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
   },
@@ -21,7 +20,6 @@ const barbers = [
     name: 'Thomas Mayfield',
     specialty: 'Modern Styles & Fades',
     experience: '8 years',
-    rating: 4.8,
     bio: 'Thomas brings creativity and precision to every haircut. He excels in modern styles, fades, and texture work, always staying on top of the latest trends.',
     image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
   },
@@ -30,7 +28,6 @@ const barbers = [
     name: 'Conor McKernan',
     specialty: 'Beard Grooming & Shaves',
     experience: '7 years',
-    rating: 4.7,
     bio: 'Conor is a master of beard styling and traditional hot towel shaves. His careful approach and steady hand deliver exceptional results every time.',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
   }
@@ -91,12 +88,8 @@ const Barbers = () => {
                   />
                 </div>
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3">
                     <h3 className="text-xl font-semibold font-playfair">{barber.name}</h3>
-                    <div className="flex items-center space-x-1 text-yellow-500">
-                      <Star size={16} className="fill-current" />
-                      <span className="text-sm font-medium text-foreground">{barber.rating}</span>
-                    </div>
                   </div>
                   
                   <div className="flex items-center mb-4">
@@ -110,14 +103,9 @@ const Barbers = () => {
                     {barber.bio}
                   </p>
                   
-                  <div className="flex space-x-3">
-                    <Button asChild className="flex-1 rounded-none bg-burgundy hover:bg-burgundy-light">
-                      <Link to={`/book?barber=${barber.id}`}>Book Now</Link>
-                    </Button>
-                    <Button asChild variant="outline" className="rounded-none border-burgundy hover:bg-burgundy/10">
-                      <Link to={`/barbers/${barber.id}`}>View Profile</Link>
-                    </Button>
-                  </div>
+                  <Button asChild className="w-full rounded-none bg-burgundy hover:bg-burgundy-light">
+                    <Link to={`/book?barber=${barber.id}`}>Book Now</Link>
+                  </Button>
                 </div>
               </motion.div>
             ))}
