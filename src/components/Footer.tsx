@@ -14,21 +14,21 @@ const Footer: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center">
               <Scissors className="h-5 w-5 text-burgundy mr-2" />
-              <h3 className="text-lg font-semibold">Queens Dock Barbershop</h3>
+              <h3 className="text-lg font-semibold font-playfair">Queens Dock Barbershop</h3>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground font-playfair">
               Traditional barbering with a modern twist, providing premium grooming services since 2015.
             </p>
             <div className="space-y-2">
-              <div className="flex items-center text-sm text-muted-foreground">
+              <div className="flex items-center text-sm text-muted-foreground font-playfair">
                 <MapPin size={16} className="mr-2 text-burgundy" />
                 <span>52 Bank Street, Rossendale, BB4 8DY</span>
               </div>
-              <div className="flex items-center text-sm text-muted-foreground">
+              <div className="flex items-center text-sm text-muted-foreground font-playfair">
                 <Phone size={16} className="mr-2 text-burgundy" />
                 <span>01706 831878</span>
               </div>
-              <div className="flex items-center text-sm text-muted-foreground">
+              <div className="flex items-center text-sm text-muted-foreground font-playfair">
                 <Mail size={16} className="mr-2 text-burgundy" />
                 <span>info@queensdockbarbershop.co.uk</span>
               </div>
@@ -59,25 +59,25 @@ const Footer: React.FC = () => {
           </div>
           
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider">Services</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider font-playfair">Services</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/services" className="text-sm text-muted-foreground hover:text-burgundy transition-colors">
+                <Link to="/services" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
                   Haircuts
                 </Link>
               </li>
               <li>
-                <Link to="/services" className="text-sm text-muted-foreground hover:text-burgundy transition-colors">
+                <Link to="/services" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
                   Beard Trims
                 </Link>
               </li>
               <li>
-                <Link to="/services" className="text-sm text-muted-foreground hover:text-burgundy transition-colors">
+                <Link to="/services" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
                   Hot Towel Shaves
                 </Link>
               </li>
               <li>
-                <Link to="/services" className="text-sm text-muted-foreground hover:text-burgundy transition-colors">
+                <Link to="/services" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
                   Styling
                 </Link>
               </li>
@@ -85,25 +85,25 @@ const Footer: React.FC = () => {
           </div>
           
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider">Shop</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider font-playfair">Shop</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/about" className="text-sm text-muted-foreground hover:text-burgundy transition-colors">
+                <Link to="/about" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link to="/barbers" className="text-sm text-muted-foreground hover:text-burgundy transition-colors">
+                <Link to="/barbers" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
                   Our Barbers
                 </Link>
               </li>
               <li>
-                <Link to="/book" className="text-sm text-muted-foreground hover:text-burgundy transition-colors">
+                <Link to="/book" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
                   Book Appointment
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-sm text-muted-foreground hover:text-burgundy transition-colors">
+                <Link to="/contact" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
                   Contact
                 </Link>
               </li>
@@ -111,14 +111,14 @@ const Footer: React.FC = () => {
           </div>
           
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider">Opening Hours</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider font-playfair">Opening Hours</h3>
             <ul className="space-y-2">
               {[
                 { day: "Monday - Friday", hours: "9:00 AM - 7:00 PM" },
                 { day: "Saturday", hours: "9:00 AM - 5:00 PM" },
                 { day: "Sunday", hours: "Closed" }
               ].map((schedule, index) => (
-                <li key={index} className="text-sm">
+                <li key={index} className="text-sm font-playfair">
                   <span className="text-muted-foreground">{schedule.day}: </span>
                   <span className="text-foreground">{schedule.hours}</span>
                 </li>
@@ -128,7 +128,7 @@ const Footer: React.FC = () => {
         </div>
         
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground font-playfair">
             © {currentYear} Queens Dock Barbershop. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0">
@@ -136,7 +136,7 @@ const Footer: React.FC = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className="bg-burgundy/20 text-burgundy text-xs px-3 py-1 rounded-full"
+              className="bg-burgundy/20 text-burgundy text-xs px-3 py-1 rounded-full font-playfair"
             >
               Traditional Barbering Since 2015
             </motion.div>

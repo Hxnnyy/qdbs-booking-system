@@ -59,7 +59,7 @@ const Navbar: React.FC = () => {
               className="flex items-center"
             >
               <Scissors className="mr-2 h-5 w-5 text-burgundy" />
-              <span className="text-xl font-semibold">Queens Dock Barbershop</span>
+              <span className="text-xl font-semibold font-playfair">Queens Dock Barbershop</span>
             </motion.div>
           </Link>
 
@@ -69,7 +69,7 @@ const Navbar: React.FC = () => {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`text-sm font-medium transition-colors hover:text-burgundy relative ${
+                className={`text-sm font-medium transition-colors hover:text-burgundy relative font-playfair ${
                   location.pathname === item.path
                     ? 'text-burgundy'
                     : 'text-foreground'
@@ -86,10 +86,10 @@ const Navbar: React.FC = () => {
               </Link>
             ))}
             <div className="flex space-x-2">
-              <Button asChild variant="outline" size="sm" className="text-foreground border-burgundy hover:bg-burgundy/20">
+              <Button asChild variant="outline" size="sm" className="text-foreground border-burgundy hover:bg-burgundy/20 font-playfair">
                 <Link to="/login">Log in</Link>
               </Button>
-              <Button asChild size="sm" className="bg-burgundy hover:bg-burgundy-light text-white">
+              <Button asChild size="sm" className="bg-burgundy hover:bg-burgundy-light text-white font-playfair">
                 <Link to="/book">Book Now</Link>
               </Button>
             </div>
@@ -122,7 +122,7 @@ const Navbar: React.FC = () => {
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`text-sm font-medium py-2 transition-colors ${
+                    className={`text-sm font-medium py-2 transition-colors font-playfair ${
                       location.pathname === item.path
                         ? 'text-burgundy'
                         : 'text-foreground'
@@ -132,10 +132,10 @@ const Navbar: React.FC = () => {
                   </Link>
                 ))}
                 <div className="pt-2 flex flex-col space-y-2">
-                  <Button asChild variant="outline" size="sm" className="text-foreground border-burgundy hover:bg-burgundy/20">
+                  <Button asChild variant="outline" size="sm" className="text-foreground border-burgundy hover:bg-burgundy/20 font-playfair">
                     <Link to="/login">Log in</Link>
                   </Button>
-                  <Button asChild size="sm" className="bg-burgundy hover:bg-burgundy-light text-white">
+                  <Button asChild size="sm" className="bg-burgundy hover:bg-burgundy-light text-white font-playfair">
                     <Link to="/book">Book Now</Link>
                   </Button>
                 </div>
