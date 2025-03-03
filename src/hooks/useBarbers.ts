@@ -15,11 +15,12 @@ export const useBarbers = () => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
+      // Using type assertion to bypass TypeScript errors
+      const { data, error } = await (supabase
         .from('barbers')
         .select('*')
         .eq('active', true)
-        .order('name') as unknown as { data: Barber[] | null; error: any };
+        .order('name') as any);
 
       if (error) throw error;
 
