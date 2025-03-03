@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -6,13 +7,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, ChevronRight, User } from 'lucide-react';
 import { format } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 
 const barbers = [
   { id: 1, name: 'Chris Skeggs', specialty: 'Classic Cuts & Styling' },
@@ -27,13 +24,16 @@ const services = [
   { id: 4, name: 'Hot Towel Shave', price: '£35', duration: '45 min' },
 ];
 
-const timeSlots = [
-  '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', 
-  '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM',
-  '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM',
-  '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM',
-  '5:00 PM', '5:30 PM', '6:00 PM'
-];
+// Opening hours configuration
+const openingHours = {
+  0: { isOpen: false, name: 'Sunday' }, // Sunday - closed
+  1: { isOpen: false, name: 'Monday' }, // Monday - closed
+  2: { isOpen: true, name: 'Tuesday', start: 9, end: 18 }, // Tuesday 9am-6pm
+  3: { isOpen: true, name: 'Wednesday', start: 9, end: 17 }, // Wednesday 9am-5pm
+  4: { isOpen: true, name: 'Thursday', start: 10, end: 20 }, // Thursday 10am-8pm
+  5: { isOpen: true, name: 'Friday', start: 9, end: 18 }, // Friday 9am-6pm
+  6: { isOpen: true, name: 'Saturday', start: 8, end: 16 }, // Saturday 8am-4pm
+};
 
 const Book = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -50,6 +50,41 @@ const Book = () => {
   const prevStep = () => {
     setStep(step - 1);
     window.scrollTo(0, 0);
+  };
+
+  // Generate available time slots based on the selected date
+  const getAvailableTimeSlots = () => {
+    if (!date) return [];
+    
+    const dayOfWeek = date.getDay();
+    const dayConfig = openingHours[dayOfWeek as keyof typeof openingHours];
+    
+    if (!dayConfig.isOpen) return [];
+    
+    const slots = [];
+    for (let hour = dayConfig.start; hour < dayConfig.end; hour++) {
+      slots.push(`${hour}:00 ${hour < 12 ? 'AM' : 'PM'}`);
+      if (hour + 0.5 < dayConfig.end) {
+        slots.push(`${hour}:30 ${hour < 12 ? 'AM' : 'PM'}`);
+      }
+    }
+    
+    // Convert 24-hour format to 12-hour format
+    return slots.map(slot => {
+      const [hourStr, minuteAmPm] = slot.split(':');
+      const [minute, amPm] = minuteAmPm.split(' ');
+      let hour = parseInt(hourStr);
+      
+      if (hour === 0) {
+        return `12:${minute} AM`;
+      } else if (hour === 12) {
+        return `12:${minute} PM`;
+      } else if (hour > 12) {
+        return `${hour - 12}:${minute} PM`;
+      } else {
+        return `${hour}:${minute} ${amPm}`;
+      }
+    });
   };
 
   return (
@@ -215,35 +250,61 @@ const Book = () => {
                       <Calendar
                         mode="single"
                         selected={date}
-                        onSelect={setDate}
+                        onSelect={(newDate) => {
+                          setDate(newDate);
+                          setSelectedTime(''); // Reset selected time when date changes
+                        }}
                         className="w-full"
                         disabled={(date) => {
                           const today = new Date();
                           today.setHours(0, 0, 0, 0);
-                          return date < today || date.getDay() === 0;
+                          // Disable dates in the past, Mondays and Sundays
+                          const dayOfWeek = date.getDay();
+                          return date < today || !openingHours[dayOfWeek as keyof typeof openingHours].isOpen;
                         }}
                       />
                     </div>
+                    {date && (
+                      <div className="mt-2 text-sm text-muted-foreground font-playfair">
+                        <p>
+                          {openingHours[date.getDay() as keyof typeof openingHours].isOpen ? (
+                            `Opening hours on ${format(date, 'EEEE')}: ${openingHours[date.getDay() as keyof typeof openingHours].start}:00 AM - ${openingHours[date.getDay() as keyof typeof openingHours].end > 12 ? `${openingHours[date.getDay() as keyof typeof openingHours].end - 12}:00 PM` : `${openingHours[date.getDay() as keyof typeof openingHours].end}:00 AM`}`
+                          ) : (
+                            `We're closed on ${format(date, 'EEEE')}. Please select another day.`
+                          )}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
                     <Label className="mb-2 block">Available time slots</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {timeSlots.map((time) => (
-                        <button
-                          key={time}
-                          type="button"
-                          className={`p-2 text-sm rounded-md border ${
-                            selectedTime === time 
-                              ? 'bg-primary text-primary-foreground border-primary' 
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                          onClick={() => setSelectedTime(time)}
-                        >
-                          {time}
-                        </button>
-                      ))}
-                    </div>
+                    {date && openingHours[date.getDay() as keyof typeof openingHours].isOpen ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {getAvailableTimeSlots().map((time) => (
+                          <button
+                            key={time}
+                            type="button"
+                            className={`p-2 text-sm rounded-md border ${
+                              selectedTime === time 
+                                ? 'bg-primary text-primary-foreground border-primary' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                            onClick={() => setSelectedTime(time)}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground font-playfair">
+                        {date ? (
+                          <p>We're closed on the selected date. Please choose another day.</p>
+                        ) : (
+                          <p>Please select a date to view available time slots.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

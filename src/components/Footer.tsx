@@ -114,8 +114,12 @@ const Footer: React.FC = () => {
             <h3 className="text-sm font-semibold uppercase tracking-wider font-playfair">Opening Hours</h3>
             <ul className="space-y-2">
               {[
-                { day: "Monday - Friday", hours: "9:00 AM - 7:00 PM" },
-                { day: "Saturday", hours: "9:00 AM - 5:00 PM" },
+                { day: "Monday", hours: "Closed" },
+                { day: "Tuesday", hours: "9:00 AM - 6:00 PM" },
+                { day: "Wednesday", hours: "9:00 AM - 5:00 PM" },
+                { day: "Thursday", hours: "10:00 AM - 8:00 PM" },
+                { day: "Friday", hours: "9:00 AM - 6:00 PM" },
+                { day: "Saturday", hours: "8:00 AM - 4:00 PM" },
                 { day: "Sunday", hours: "Closed" }
               ].map((schedule, index) => (
                 <li key={index} className="text-sm font-playfair">
