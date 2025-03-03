@@ -36,7 +36,11 @@ const AssignAdmin = () => {
           user_email: email
         });
         
-        if (authUserError || !userId) {
+        if (authUserError) {
+          throw new Error('User not found');
+        }
+        
+        if (!userId) {
           throw new Error('User not found');
         }
         
@@ -49,29 +53,42 @@ const AssignAdmin = () => {
         
         if (profileError) {
           // Create a profile if one doesn't exist
-          await supabase
+          const { error: insertError } = await supabase
             .from('profiles')
             .insert({
               id: userId,
               email: email,
               is_admin: true
             });
+            
+          if (insertError) {
+            throw new Error('Failed to create user profile');
+          }
           
           toast.success(`Admin privileges granted to ${email}`);
+          setEmail('');
           return;
         }
         
         // Update the existing profile
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({ is_admin: true })
           .eq('id', userId);
+          
+        if (updateError) {
+          throw new Error('Failed to update user profile');
+        }
       } else {
         // Update the user's admin status
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({ is_admin: true })
           .eq('id', userData.id);
+          
+        if (updateError) {
+          throw new Error('Failed to update user profile');
+        }
       }
       
       toast.success(`Admin privileges granted to ${email}`);
