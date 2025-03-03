@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import AdminLayout from '@/components/AdminLayout';
+import { AdminLayout } from '@/components/AdminLayout';
 
 const AssignAdmin = () => {
   const [email, setEmail] = useState('');
@@ -31,10 +31,13 @@ const AssignAdmin = () => {
         .single();
       
       if (userError) {
-        // If the user isn't found by email, try to find them via auth.users
-        const { data: authUser, error: authUserError } = await supabase.auth.admin.getUserByEmail(email);
+        // The getUserByEmail method doesn't exist, so we'll need a different approach
+        // We can query the auth.users table directly with RPC
+        const { data: authUserData, error: authUserError } = await supabase.rpc('get_user_id_by_email', {
+          user_email: email
+        });
         
-        if (authUserError || !authUser?.user) {
+        if (authUserError || !authUserData) {
           throw new Error('User not found');
         }
         
@@ -42,7 +45,7 @@ const AssignAdmin = () => {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', authUser.user.id)
+          .eq('id', authUserData)
           .single();
         
         if (profileError) {
@@ -50,7 +53,7 @@ const AssignAdmin = () => {
           await supabase
             .from('profiles')
             .insert({
-              id: authUser.user.id,
+              id: authUserData,
               email: email,
               is_admin: true
             });
@@ -63,7 +66,7 @@ const AssignAdmin = () => {
         await supabase
           .from('profiles')
           .update({ is_admin: true })
-          .eq('id', authUser.user.id);
+          .eq('id', authUserData);
       } else {
         // Update the user's admin status
         await supabase
