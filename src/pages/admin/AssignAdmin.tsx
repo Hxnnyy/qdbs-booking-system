@@ -20,9 +20,9 @@ const AssignAdmin = () => {
       return;
     }
     
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      
       // First, fetch the user data by email
       const { data: userData, error: userError } = await supabase
         .from('profiles')
@@ -76,9 +76,10 @@ const AssignAdmin = () => {
       
       toast.success(`Admin privileges granted to ${email}`);
       setEmail('');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error assigning admin:', error);
-      toast.error(error.message || 'Error assigning admin privileges');
+      const errorMessage = error instanceof Error ? error.message : 'Error assigning admin privileges';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
