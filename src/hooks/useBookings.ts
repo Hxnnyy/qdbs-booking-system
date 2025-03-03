@@ -3,9 +3,26 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { BookingType } from '@/types/supabase';
 
-export type Booking = BookingType;
+export type Booking = {
+  id?: string;
+  user_id: string | undefined;
+  barber_id: string;
+  service_id: string;
+  booking_date: string;
+  booking_time: string;
+  status?: string;
+  notes?: string;
+  created_at?: string;
+  barber?: {
+    name: string;
+  };
+  service?: {
+    name: string;
+    price: number;
+    duration: number;
+  };
+};
 
 export const useBookings = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,11 +44,10 @@ export const useBookings = () => {
         status: 'confirmed'
       };
 
-      // Using type assertion to bypass TypeScript errors
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('bookings')
         .insert(newBooking)
-        .select() as any);
+        .select();
 
       if (error) throw error;
 
@@ -55,8 +71,7 @@ export const useBookings = () => {
         throw new Error('You must be logged in to view your bookings');
       }
 
-      // Using type assertion to bypass TypeScript errors
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
@@ -65,7 +80,7 @@ export const useBookings = () => {
         `)
         .eq('user_id', user.id)
         .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true }) as any);
+        .order('booking_time', { ascending: true });
 
       if (error) throw error;
 
@@ -83,12 +98,11 @@ export const useBookings = () => {
       setIsLoading(true);
       setError(null);
 
-      // Using type assertion to bypass TypeScript errors
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('bookings')
         .update({ status: 'cancelled' })
         .eq('id', bookingId)
-        .eq('user_id', user?.id) as any);
+        .eq('user_id', user?.id);
 
       if (error) throw error;
 

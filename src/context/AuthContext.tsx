@@ -4,12 +4,11 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ProfileType } from '@/types/supabase';
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: ProfileType | null;
+  profile: any | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: any) => Promise<void>;
@@ -24,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<ProfileType | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -62,18 +61,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
-      // Using type assertion to bypass TypeScript errors
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single() as any);
+        .single();
 
       if (error) {
         throw error;
       }
 
-      setProfile(data as ProfileType | null);
+      setProfile(data || null);
       setIsAdmin(data?.is_admin || false);
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);

@@ -1,9 +1,15 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ServiceType } from '@/types/supabase';
 
-export type Service = ServiceType;
+export type Service = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: number;
+  active: boolean;
+};
 
 export const useServices = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -15,12 +21,11 @@ export const useServices = () => {
       setIsLoading(true);
       setError(null);
 
-      // Using type assertion to bypass TypeScript errors
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('services')
         .select('*')
         .eq('active', true)
-        .order('name') as any);
+        .order('name');
 
       if (error) throw error;
 
