@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center">
               <Scissors className="h-5 w-5 text-burgundy mr-2" />
-              <h3 className="text-lg font-semibold">Queen's Dock Barbershop</h3>
+              <h3 className="text-lg font-semibold">Queens Dock Barbershop</h3>
             </div>
             <p className="text-sm text-muted-foreground">
               Traditional barbering with a modern twist, providing premium grooming services since 2015.
@@ -22,11 +22,11 @@ const Footer: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center text-sm text-muted-foreground">
                 <MapPin size={16} className="mr-2 text-burgundy" />
-                <span>123 Dock Road, Liverpool, L1 0AA</span>
+                <span>52 Bank Street, Rossendale, BB4 8DY</span>
               </div>
               <div className="flex items-center text-sm text-muted-foreground">
                 <Phone size={16} className="mr-2 text-burgundy" />
-                <span>0151 123 4567</span>
+                <span>01706 831878</span>
               </div>
               <div className="flex items-center text-sm text-muted-foreground">
                 <Mail size={16} className="mr-2 text-burgundy" />
@@ -129,7 +129,7 @@ const Footer: React.FC = () => {
         
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} Queen's Dock Barbershop. All rights reserved.
+            © {currentYear} Queens Dock Barbershop. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0">
             <motion.div 

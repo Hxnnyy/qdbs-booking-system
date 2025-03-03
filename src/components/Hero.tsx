@@ -48,7 +48,7 @@ const Hero: React.FC = () => {
                 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground"
                 variants={fadeInUp}
               >
-                Queen's Dock
+                Queens Dock
                 <span className="text-burgundy"> Barbershop</span>
               </motion.h1>
               
@@ -56,7 +56,7 @@ const Hero: React.FC = () => {
                 className="max-w-xl text-lg text-muted-foreground"
                 variants={fadeInUp}
               >
-                Premium grooming services in the heart of Liverpool's historic docks. Experience traditional barbering with a modern touch.
+                Premium grooming services in Rossendale. Experience traditional barbering with a modern touch.
               </motion.p>
             </motion.div>
             
@@ -109,7 +109,7 @@ const Hero: React.FC = () => {
                     <Scissors className="w-4 h-4 mr-2 text-burgundy" />
                     <div className="text-sm font-medium">Est. 2015</div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">Traditional barbering in Liverpool</div>
+                  <div className="text-xs text-muted-foreground mt-1">Traditional barbering in Rossendale</div>
                 </div>
               </div>
             </div>

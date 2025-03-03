@@ -59,7 +59,7 @@ const Navbar: React.FC = () => {
               className="flex items-center"
             >
               <Scissors className="mr-2 h-5 w-5 text-burgundy" />
-              <span className="text-xl font-semibold">Queen's Dock Barbershop</span>
+              <span className="text-xl font-semibold">Queens Dock Barbershop</span>
             </motion.div>
           </Link>
 
