@@ -63,7 +63,6 @@ const ManageBookings = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const { barbers } = useBarbers();
   
-  // Fetch all bookings
   useEffect(() => {
     const fetchBookings = async () => {
       try {
@@ -78,7 +77,7 @@ const ManageBookings = () => {
             profile:user_id(first_name, last_name, email, phone)
           `)
           .order('booking_date', { ascending: true })
-          .order('booking_time', { ascending: true }) as { data: ExtendedBooking[] | null; error: any };
+          .order('booking_time', { ascending: true }) as unknown as { data: ExtendedBooking[] | null; error: any };
         
         if (error) throw error;
         
@@ -99,12 +98,11 @@ const ManageBookings = () => {
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({ status: newStatus })
-        .eq('id', bookingId) as { error: any };
+        .update({ status: newStatus } as any)
+        .eq('id', bookingId) as unknown as { error: any };
       
       if (error) throw error;
       
-      // Update local state
       setBookings(bookings.map(booking => 
         booking.id === bookingId ? { ...booking, status: newStatus } : booking
       ));
@@ -116,13 +114,11 @@ const ManageBookings = () => {
     }
   };
   
-  // Get today's, upcoming and past bookings
   const today = new Date().toISOString().split('T')[0];
   const todayBookings = filteredBookings.filter(b => b.booking_date === today);
   const upcomingBookings = filteredBookings.filter(b => b.booking_date > today);
   const pastBookings = filteredBookings.filter(b => b.booking_date < today);
   
-  // Format time from "14:30:00" to "2:30 PM"
   const formatTime = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(':');
     let hour = parseInt(hours);
@@ -131,7 +127,6 @@ const ManageBookings = () => {
     return `${hour}:${minutes} ${ampm}`;
   };
   
-  // Get status badge color
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':

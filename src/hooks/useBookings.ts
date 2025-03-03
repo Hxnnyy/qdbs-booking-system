@@ -47,7 +47,7 @@ export const useBookings = () => {
       const { data, error } = await supabase
         .from('bookings')
         .insert(newBooking as any)
-        .select() as { data: Booking[] | null; error: any };
+        .select() as unknown as { data: Booking[] | null; error: any };
 
       if (error) throw error;
 
@@ -80,7 +80,7 @@ export const useBookings = () => {
         `)
         .eq('user_id', user.id)
         .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true }) as { data: Booking[] | null; error: any };
+        .order('booking_time', { ascending: true }) as unknown as { data: Booking[] | null; error: any };
 
       if (error) throw error;
 
@@ -100,9 +100,9 @@ export const useBookings = () => {
 
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'cancelled' })
+        .update({ status: 'cancelled' } as any)
         .eq('id', bookingId)
-        .eq('user_id', user?.id) as { error: any };
+        .eq('user_id', user?.id) as unknown as { error: any };
 
       if (error) throw error;
 

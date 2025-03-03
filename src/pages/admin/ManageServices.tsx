@@ -79,7 +79,7 @@ const ManageServices = () => {
           price: parseFloat(price),
           duration: parseInt(duration, 10),
           active: true
-        }) as { error: any };
+        } as any) as unknown as { error: any };
 
       if (error) throw error;
 
@@ -110,8 +110,8 @@ const ManageServices = () => {
           description,
           price: parseFloat(price),
           duration: parseInt(duration, 10)
-        })
-        .eq('id', selectedService.id) as { error: any };
+        } as any)
+        .eq('id', selectedService.id) as unknown as { error: any };
 
       if (error) throw error;
 
@@ -132,8 +132,8 @@ const ManageServices = () => {
       
       const { error } = await supabase
         .from('services')
-        .update({ active: false })
-        .eq('id', serviceId) as { error: any };
+        .update({ active: false } as any)
+        .eq('id', serviceId) as unknown as { error: any };
 
       if (error) throw error;
 

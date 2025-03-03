@@ -1,19 +1,31 @@
-
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, Scissors, User, X } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { useBookings, Booking } from '@/hooks/useBookings';
-import { format, parseISO } from 'date-fns';
 import { Spinner } from '@/components/ui/spinner';
+import { User, Calendar, Clock, Pencil } from 'lucide-react';
+import { format, parseISO, isAfter } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { useBookings } from '@/hooks/useBookings';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,15 +38,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+interface Booking {
+  id: string;
+  barber: { name: string };
+  service: { name: string; price: number; duration: number };
+  booking_date: string;
+  booking_time: string;
+  notes?: string;
+  status: string;
+}
+
 const Profile = () => {
-  const { user, profile, refreshProfile } = useAuth();
-  const { getUserBookings, cancelBooking, isLoading: bookingsLoading } = useBookings();
+  const { user, profile, isLoading, refreshProfile } = useAuth();
+  const { getUserBookings, cancelBooking } = useBookings();
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [open, setOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -46,49 +71,76 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchBookings = async () => {
-      if (user) {
-        const userBookings = await getUserBookings();
-        setBookings(userBookings || []);
-      }
+      setLoadingBookings(true);
+      const userBookings = await getUserBookings();
+      setBookings(userBookings || []);
+      setLoadingBookings(false);
     };
 
     fetchBookings();
-  }, [user, getUserBookings]);
+  }, [getUserBookings]);
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    setIsUpdating(true);
+  // Function to update profile
+  const updateProfile = async (userId: string, profileData: any) => {
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
-          first_name: firstName,
-          last_name: lastName,
-          phone: phone
-        })
-        .eq('id', user.id) as { error: any };
+          first_name: profileData.first_name,
+          last_name: profileData.last_name,
+          phone: profileData.phone
+        } as any)
+        .eq('id', userId) as unknown as { error: any };
 
       if (error) throw error;
-      
-      await refreshProfile();
-      toast.success('Profile updated successfully');
+    
+      return true;
     } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setIsUpdating(false);
+      console.error('Error updating profile:', error.message);
+      toast.error('Failed to update profile');
+      return false;
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    if (!user) {
+      toast.error('You must be logged in to update your profile');
+      return;
+    }
+
+    const profileData = {
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone,
+    };
+
+    const success = await updateProfile(user.id, profileData);
+
+    if (success) {
+      toast.success('Profile updated successfully');
+      await refreshProfile();
+      setOpen(false);
+    }
+
+    setIsSubmitting(false);
   };
 
   const handleCancelBooking = async (bookingId: string) => {
     const success = await cancelBooking(bookingId);
     if (success) {
-      setBookings(bookings.map(booking => 
+      // Optimistically update the UI
+      setBookings(bookings.map(booking =>
         booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
       ));
     }
   };
+
+  const today = new Date().toISOString().split('T')[0];
+  const upcomingBookings = bookings.filter(b => isAfter(parseISO(b.booking_date), new Date()) || b.booking_date === today);
+  const pastBookings = bookings.filter(b => isAfter(new Date(), parseISO(b.booking_date)) && b.booking_date !== today);
 
   const formatTime = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(':');
@@ -100,188 +152,193 @@ const Profile = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 text-center"
-        >
-          <h1 className="text-3xl font-bold mb-2 font-playfair">My Profile</h1>
-          <p className="text-muted-foreground font-playfair">
-            Manage your account and view your bookings
-          </p>
-        </motion.div>
-
-        <Tabs defaultValue="bookings" className="space-y-8">
-          <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
-            <TabsTrigger value="bookings">My Bookings</TabsTrigger>
-            <TabsTrigger value="profile">Personal Info</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="bookings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-playfair">My Appointments</CardTitle>
-                <CardDescription className="font-playfair">
-                  View and manage your upcoming barbershop appointments
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {bookingsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Spinner className="w-8 h-8" />
-                  </div>
-                ) : bookings.length > 0 ? (
-                  <div className="space-y-4">
-                    {bookings.map((booking) => (
-                      <Card key={booking.id} className={`overflow-hidden ${booking.status === 'cancelled' ? 'opacity-70' : ''}`}>
-                        <div className="p-4 border-l-4 border-burgundy flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center mb-2">
-                              <Calendar className="h-4 w-4 mr-2 text-burgundy" />
-                              <span className="font-medium">
-                                {format(parseISO(booking.booking_date), 'EEEE, MMMM d, yyyy')}
-                              </span>
-                            </div>
-                            <div className="flex items-center mb-2">
-                              <Clock className="h-4 w-4 mr-2 text-burgundy" />
-                              <span>{formatTime(booking.booking_time)}</span>
-                            </div>
-                            <div className="flex items-center mb-2">
-                              <Scissors className="h-4 w-4 mr-2 text-burgundy" />
-                              <span>{booking.service?.name}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <User className="h-4 w-4 mr-2 text-burgundy" />
-                              <span>{booking.barber?.name}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col items-end">
-                            <div className="mb-2 font-medium text-burgundy">
-                              £{booking.service?.price.toFixed(2)}
-                            </div>
-                            
-                            {booking.status === 'cancelled' ? (
-                              <span className="text-muted-foreground text-sm px-3 py-1 bg-secondary rounded-full">
-                                Cancelled
-                              </span>
-                            ) : (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="flex items-center">
-                                    <X className="h-4 w-4 mr-1" /> Cancel
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Cancel appointment?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone. The appointment will be cancelled and you'll need to book again if you change your mind.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Keep appointment</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => booking.id && handleCancelBooking(booking.id)}
-                                      className="bg-red-500 hover:bg-red-600"
-                                    >
-                                      Yes, cancel it
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4 font-playfair">
-                      You don't have any appointments yet
-                    </p>
-                    <Button asChild className="bg-burgundy hover:bg-burgundy-light">
-                      <a href="/book">Book an Appointment</a>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-playfair">Personal Information</CardTitle>
-                <CardDescription className="font-playfair">
-                  Update your personal details
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input 
-                        id="firstName" 
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input 
-                        id="lastName" 
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      value={user?.email || ''}
-                      disabled
+      <div className="container mx-auto px-4 py-12">
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-2xl font-bold">Profile</CardTitle>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Pencil className="w-4 h-4 mr-2" /> Edit Profile
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Edit profile</DialogTitle>
+                  <DialogDescription>
+                    Make changes to your profile here. Click save when you're done.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="firstName" className="text-right">
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="col-span-3"
                     />
-                    <p className="text-xs text-muted-foreground font-playfair">
-                      Email cannot be changed
-                    </p>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      placeholder="07700 900000"
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="lastName" className="text-right">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="phone"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                      className="col-span-3"
                     />
                   </div>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  onClick={handleUpdateProfile} 
-                  className="w-full bg-burgundy hover:bg-burgundy-light"
-                  disabled={isLoading || isUpdating}
-                >
-                  {isLoading || isUpdating ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4 border-2 border-white" /> Updating...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                <DialogFooter>
+                  <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Spinner className="mr-2 h-4 w-4 border-2 border-white" /> Updating...
+                      </>
+                    ) : (
+                      'Save changes'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
+          <CardContent>
+            {isLoading || !profile ? (
+              <div className="flex justify-center">
+                <Spinner className="w-6 h-6" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <User className="h-5 w-5 text-gray-500" />
+                  <CardDescription>
+                    {profile.first_name} {profile.last_name}
+                  </CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5 text-gray-500" />
+                  <CardDescription>{user?.email}</CardDescription>
+                </div>
+                {profile.phone && (
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-5 w-5 text-gray-500" />
+                    <CardDescription>{profile.phone}</CardDescription>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-4">Your Appointments</h2>
+          {loadingBookings ? (
+            <div className="flex justify-center py-6">
+              <Spinner className="w-6 h-6" />
+            </div>
+          ) : bookings.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-gray-500">No appointments found.</p>
+            </div>
+          ) : (
+            <Tabs defaultValue="upcoming" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                <TabsTrigger value="past">Past</TabsTrigger>
+              </TabsList>
+              <TabsContent value="upcoming" className="space-y-4">
+                {upcomingBookings.length > 0 ? (
+                  upcomingBookings.map((booking) => (
+                    <Card key={booking.id}>
+                      <CardHeader>
+                        <CardTitle>{booking.service.name}</CardTitle>
+                        <CardDescription>
+                          {booking.barber.name} | {format(parseISO(booking.booking_date), 'PPP')} at {formatTime(booking.booking_time)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {booking.notes && <p className="text-sm text-gray-500">Notes: {booking.notes}</p>}
+                      </CardContent>
+                      <CardFooter className="justify-end">
+                        {booking.status === 'confirmed' && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive">Cancel</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will cancel your appointment.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleCancelBooking(booking.id)}>Continue</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {booking.status === 'cancelled' && (
+                          <p className="text-sm text-gray-500">Cancelled</p>
+                        )}
+                      </CardFooter>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-gray-500">No upcoming appointments.</p>
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="past" className="space-y-4">
+                {pastBookings.length > 0 ? (
+                  pastBookings.map((booking) => (
+                    <Card key={booking.id}>
+                      <CardHeader>
+                        <CardTitle>{booking.service.name}</CardTitle>
+                        <CardDescription>
+                          {booking.barber.name} | {format(parseISO(booking.booking_date), 'PPP')} at {formatTime(booking.booking_time)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {booking.notes && <p className="text-sm text-gray-500">Notes: {booking.notes}</p>}
+                      </CardContent>
+                      <CardFooter className="justify-end">
+                        {booking.status === 'cancelled' && (
+                          <p className="text-sm text-gray-500">Cancelled</p>
+                        )}
+                        {booking.status === 'completed' && (
+                          <p className="text-sm text-gray-500">Completed</p>
+                        )}
+                      </CardFooter>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-gray-500">No past appointments.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </div>
       </div>
     </Layout>
   );

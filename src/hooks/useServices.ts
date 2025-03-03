@@ -25,7 +25,7 @@ export const useServices = () => {
         .from('services')
         .select('*')
         .eq('active', true)
-        .order('name') as { data: Service[] | null; error: any };
+        .order('name') as unknown as { data: Service[] | null; error: any };
 
       if (error) throw error;
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +38,6 @@ const ManageBarbers = () => {
   const [openEditBarberDialog, setOpenEditBarberDialog] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   
-  // Form fields
   const [name, setName] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [bio, setBio] = useState('');
@@ -79,7 +77,7 @@ const ManageBarbers = () => {
           bio,
           image_url: imageUrl || 'https://source.unsplash.com/random/300x300/?barber',
           active: true
-        }) as { error: any };
+        } as any) as unknown as { error: any };
 
       if (error) throw error;
 
@@ -110,8 +108,8 @@ const ManageBarbers = () => {
           specialty,
           bio,
           image_url: imageUrl || selectedBarber.image_url
-        })
-        .eq('id', selectedBarber.id) as { error: any };
+        } as any)
+        .eq('id', selectedBarber.id) as unknown as { error: any };
 
       if (error) throw error;
 
@@ -132,8 +130,8 @@ const ManageBarbers = () => {
       
       const { error } = await supabase
         .from('barbers')
-        .update({ active: false })
-        .eq('id', barberId) as { error: any };
+        .update({ active: false } as any)
+        .eq('id', barberId) as unknown as { error: any };
 
       if (error) throw error;
 
@@ -309,7 +307,6 @@ const ManageBarbers = () => {
         )}
       </div>
       
-      {/* Edit Barber Dialog */}
       <Dialog open={openEditBarberDialog} onOpenChange={setOpenEditBarberDialog}>
         <DialogContent>
           <DialogHeader>

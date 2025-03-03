@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single() as { data: any | null; error: any };
+        .single() as unknown as { data: any | null; error: any };
 
       if (error) {
         throw error;
