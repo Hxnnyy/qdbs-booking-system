@@ -26,7 +26,7 @@ const About = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              About BarberConnect
+              About Queen&apos;s Dock Barbershop
             </motion.h1>
             <motion.p 
               className="text-muted-foreground text-lg md:text-xl"
@@ -34,7 +34,7 @@ const About = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Revolutionizing the way you book and manage barber appointments
+              Traditional barbering with a modern touch in the heart of the docks
             </motion.p>
           </div>
         </div>
@@ -52,7 +52,7 @@ const About = () => {
               <div className="relative aspect-[4/3] rounded-xl overflow-hidden shadow-elevated">
                 <img 
                   src="https://images.unsplash.com/photo-1521490291151-20eb6fc613f4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-                  alt="BarberConnect Team" 
+                  alt="Queen's Dock Barbershop Team" 
                   className="object-cover w-full h-full"
                 />
               </div>
@@ -66,34 +66,34 @@ const About = () => {
             >
               <h2 className="text-3xl font-bold">Our Mission</h2>
               <p className="text-muted-foreground">
-                At BarberConnect, we're on a mission to simplify and elevate the barber booking experience. 
-                We believe that scheduling your next haircut should be as smooth and satisfying as the haircut itself.
+                At Queen&apos;s Dock Barbershop, we're dedicated to providing exceptional grooming services with a focus on 
+                precision, quality, and customer satisfaction. Founded in 2015, our barbershop has become a staple in the community.
               </p>
               <p className="text-muted-foreground">
-                Founded in 2023, our platform connects clients with skilled barbers, providing a seamless scheduling 
-                experience with real-time availability, automated reminders, and hassle-free management.
+                With our team of skilled barbers led by Chris, Thomas, and Conor, we combine traditional barbering techniques 
+                with contemporary styles to give our clients the best of both worlds.
               </p>
               <h2 className="text-3xl font-bold pt-4">Why Choose Us</h2>
               <ul className="space-y-2 text-muted-foreground">
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Real-time availability with instant booking confirmation</span>
+                  <span>Expert barbers with years of experience</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Smart scheduling system to find the perfect time slot</span>
+                  <span>Relaxed, friendly atmosphere</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Automated email and SMS reminders</span>
+                  <span>Quality products and tools</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Personalized customer profiles to track preferences</span>
+                  <span>Easy online booking system</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Seamless rescheduling and cancellation options</span>
+                  <span>Convenient location in the heart of the docks</span>
                 </li>
               </ul>
             </motion.div>
@@ -107,23 +107,23 @@ const About = () => {
           <div className="max-w-3xl mx-auto text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Our Values</h2>
             <p className="text-muted-foreground text-lg">
-              The principles that guide everything we do
+              The principles that guide everything we do at Queen&apos;s Dock
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                title: "Simplicity",
-                description: "We believe technology should make life easier, not more complicated. Our platform is designed with user-friendly simplicity at its core."
+                title: "Craftsmanship",
+                description: "We take pride in our work, treating each haircut as a form of art that requires skill, precision, and attention to detail."
               },
               {
-                title: "Reliability",
-                description: "You can count on our platform to be there when you need it, with accurate scheduling and dependable notifications."
+                title: "Community",
+                description: "Our barbershop is more than just a place to get a haircut—it's a community hub where relationships are built and maintained."
               },
               {
-                title: "Excellence",
-                description: "We're committed to delivering an exceptional experience for both barbers and clients, constantly improving our service."
+                title: "Customer Service",
+                description: "We believe in providing exceptional service that exceeds expectations, ensuring every client leaves feeling confident and satisfied."
               }
             ].map((value, index) => (
               <motion.div
@@ -152,16 +152,16 @@ const About = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl font-bold mb-6">Join the BarberConnect Community</h2>
+            <h2 className="text-3xl font-bold mb-6">Visit Queen&apos;s Dock Barbershop Today</h2>
             <p className="text-muted-foreground text-lg mb-8">
-              Experience the future of barber booking today
+              Experience premium barbering services in a welcoming environment
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button asChild size="lg" className="rounded-full">
                 <Link to="/book">Book an Appointment</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="rounded-full">
-                <Link to="/signup">Create an Account</Link>
+                <Link to="/contact">Contact Us</Link>
               </Button>
             </div>
           </motion.div>

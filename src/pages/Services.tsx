@@ -11,9 +11,9 @@ const ServicesPage = () => {
   const services = [
     {
       id: 1,
-      name: 'Classic Haircut',
+      name: 'Haircut',
       description: 'A traditional barber cut with attention to detail and precision. Includes consultation, shampoo, and styling.',
-      price: '$30',
+      price: '£25',
       duration: '30 min',
       icon: <Scissors className="h-6 w-6" />
     },
@@ -21,40 +21,24 @@ const ServicesPage = () => {
       id: 2,
       name: 'Beard Trim',
       description: 'Professional beard shaping and trimming to maintain or create a new style for your facial hair.',
-      price: '$20',
+      price: '£10',
       duration: '20 min',
       icon: <Brush className="h-6 w-6" />
     },
     {
       id: 3,
-      name: 'Premium Package',
-      description: 'The complete experience: haircut, beard trim, hot towel, facial massage, and styling.',
-      price: '$60',
-      duration: '60 min',
-      icon: <SparkleIcon className="h-6 w-6" />
-    },
-    {
-      id: 4,
-      name: 'Kids Haircut',
-      description: 'Gentle haircuts for children under 12. Fun and comfortable environment with experienced barbers.',
-      price: '$25',
-      duration: '25 min',
+      name: 'Buzz Cut',
+      description: 'Quick and efficient all-over short cut using clippers, perfect for a low-maintenance style.',
+      price: '£15',
+      duration: '20 min',
       icon: <Scissors className="h-6 w-6" />
     },
     {
-      id: 5,
+      id: 4,
       name: 'Hot Towel Shave',
       description: 'Classic straight razor shave with hot towel treatment for the smoothest results and relaxing experience.',
-      price: '$35',
-      duration: '30 min',
-      icon: <Brush className="h-6 w-6" />
-    },
-    {
-      id: 6,
-      name: 'Hair & Beard Coloring',
-      description: 'Professional color application to cover gray hair or create a new look for hair or beard.',
-      price: '$45+',
-      duration: '45+ min',
+      price: '£35',
+      duration: '45 min',
       icon: <SparkleIcon className="h-6 w-6" />
     }
   ];
@@ -87,7 +71,7 @@ const ServicesPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Discover our range of premium grooming services designed for the modern man
+              Discover our range of premium grooming services at Queen&apos;s Dock Barbershop
             </motion.p>
           </div>
         </div>
@@ -96,7 +80,7 @@ const ServicesPage = () => {
       {/* Services grid */}
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {services.map((service, index) => (
               <motion.div
                 key={service.id}

@@ -9,57 +9,30 @@ import { Scissors, Star } from 'lucide-react';
 const barbers = [
   {
     id: 1,
-    name: 'James Wilson',
-    specialty: 'Classic Cuts',
-    experience: '8 years',
+    name: 'Chris Skeggs',
+    specialty: 'Classic Cuts & Styling',
+    experience: '12 years',
     rating: 4.9,
-    bio: 'Specializing in classic and traditional cuts with a modern twist. James has worked with celebrities and has a loyal client base.',
+    bio: 'With over a decade of experience, Chris specializes in classic cuts and modern styling techniques. Known for his attention to detail and personalized service.',
     image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
   },
   {
     id: 2,
-    name: 'Michael Reynolds',
-    specialty: 'Modern Styles',
-    experience: '6 years',
+    name: 'Thomas Mayfield',
+    specialty: 'Modern Styles & Fades',
+    experience: '8 years',
     rating: 4.8,
-    bio: 'Michael is known for his contemporary approach to hair styling and ability to create trendy, fashion-forward looks.',
+    bio: 'Thomas brings creativity and precision to every haircut. He excels in modern styles, fades, and texture work, always staying on top of the latest trends.',
     image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
   },
   {
     id: 3,
-    name: 'David Kim',
-    specialty: 'Beard Grooming',
+    name: 'Conor McKernan',
+    specialty: 'Beard Grooming & Shaves',
     experience: '7 years',
     rating: 4.7,
-    bio: 'David is a master of beard styling and facial hair grooming. His precision with a straight razor is unmatched.',
+    bio: 'Conor is a master of beard styling and traditional hot towel shaves. His careful approach and steady hand deliver exceptional results every time.',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 4,
-    name: 'Sarah Johnson',
-    specialty: 'Fades & Tapers',
-    experience: '5 years',
-    rating: 4.8,
-    bio: 'Sarah has a natural talent for creating perfect fades and tapers. Her attention to detail makes her one of our most requested barbers.',
-    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 5,
-    name: 'Robert Garcia',
-    specialty: 'Textured Hair',
-    experience: '9 years',
-    rating: 4.9,
-    bio: 'Robert specializes in working with all types of textured hair, creating styles that enhance natural texture and volume.',
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 6,
-    name: 'Alex Martinez',
-    specialty: 'Creative Color',
-    experience: '6 years',
-    rating: 4.7,
-    bio: 'Alex brings artistic vision to hair coloring, offering everything from subtle highlights to bold, creative color transformations.',
-    image: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'
   }
 ];
 
@@ -92,7 +65,7 @@ const Barbers = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Our skilled professionals are dedicated to providing you with the perfect cut and grooming experience
+              Our skilled professionals at Queen&apos;s Dock Barbershop are dedicated to providing you with the perfect cut and grooming experience
             </motion.p>
           </div>
         </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -16,21 +15,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 
 const barbers = [
-  { id: 1, name: 'James Wilson', specialty: 'Classic Cuts' },
-  { id: 2, name: 'Michael Reynolds', specialty: 'Modern Styles' },
-  { id: 3, name: 'David Kim', specialty: 'Beard Grooming' },
-  { id: 4, name: 'Sarah Johnson', specialty: 'Fades & Tapers' },
-  { id: 5, name: 'Robert Garcia', specialty: 'Textured Hair' },
-  { id: 6, name: 'Alex Martinez', specialty: 'Creative Color' },
+  { id: 1, name: 'Chris Skeggs', specialty: 'Classic Cuts & Styling' },
+  { id: 2, name: 'Thomas Mayfield', specialty: 'Modern Styles & Fades' },
+  { id: 3, name: 'Conor McKernan', specialty: 'Beard Grooming & Shaves' },
 ];
 
 const services = [
-  { id: 1, name: 'Classic Haircut', price: '$30', duration: '30 min' },
-  { id: 2, name: 'Beard Trim', price: '$20', duration: '20 min' },
-  { id: 3, name: 'Premium Package', price: '$60', duration: '60 min' },
-  { id: 4, name: 'Kids Haircut', price: '$25', duration: '25 min' },
-  { id: 5, name: 'Hot Towel Shave', price: '$35', duration: '30 min' },
-  { id: 6, name: 'Hair & Beard Coloring', price: '$45+', duration: '45+ min' },
+  { id: 1, name: 'Haircut', price: '£25', duration: '30 min' },
+  { id: 2, name: 'Beard Trim', price: '£10', duration: '20 min' },
+  { id: 3, name: 'Buzz Cut', price: '£15', duration: '20 min' },
+  { id: 4, name: 'Hot Towel Shave', price: '£35', duration: '45 min' },
 ];
 
 const timeSlots = [
@@ -72,7 +66,7 @@ const Book = () => {
           </span>
           <h1 className="text-3xl md:text-4xl font-bold mb-4">Book Your Appointment</h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Follow the steps below to schedule your next appointment with one of our professional barbers
+            Follow the steps below to schedule your next appointment at Queen&apos;s Dock Barbershop
           </p>
         </motion.div>
 
@@ -330,7 +324,7 @@ const Book = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" placeholder="(123) 456-7890" />
+                      <Input id="phone" placeholder="07700 900000" />
                     </div>
                     
                     <div className="space-y-2">
