@@ -15,9 +15,9 @@ export const useServices = () => {
       setIsLoading(true);
       setError(null);
 
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { data, error } = await (supabase
-        .from('services') as any)
+      // @ts-ignore - Supabase types issue
+      const { data, error } = await supabase
+        .from('services')
         .select('*')
         .eq('active', true)
         .order('name');
