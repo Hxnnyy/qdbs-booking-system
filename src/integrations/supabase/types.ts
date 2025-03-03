@@ -9,7 +9,135 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      barbers: {
+        Row: {
+          active: boolean | null
+          bio: string | null
+          id: string
+          image_url: string | null
+          name: string
+          specialty: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          bio?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          specialty?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          bio?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          specialty?: string | null
+        }
+        Relationships: []
+      }
+      bookings: {
+        Row: {
+          barber_id: string
+          booking_date: string
+          booking_time: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          service_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          barber_id: string
+          booking_date: string
+          booking_time: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          service_id: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          barber_id?: string
+          booking_date?: string
+          booking_time?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          service_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          first_name: string | null
+          id: string
+          is_admin: boolean | null
+          last_name: string | null
+          phone: string | null
+        }
+        Insert: {
+          first_name?: string | null
+          id: string
+          is_admin?: boolean | null
+          last_name?: string | null
+          phone?: string | null
+        }
+        Update: {
+          first_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          last_name?: string | null
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          active: boolean | null
+          description: string | null
+          duration: number
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          active?: boolean | null
+          description?: string | null
+          duration: number
+          id?: string
+          name: string
+          price: number
+        }
+        Update: {
+          active?: boolean | null
+          description?: string | null
+          duration?: number
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
