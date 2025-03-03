@@ -20,14 +20,14 @@ const Feature: React.FC<FeatureProps> = ({ icon, title, description, index }) =>
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       transition={{ duration: 0.6, delay: index * 0.1 }}
-      className="relative p-6 glass rounded-lg shadow-subtle border border-border transition-all duration-300 hover:shadow-elevated"
+      className="relative p-6 glass rounded-none shadow-subtle border border-white/5 transition-all duration-300 hover:shadow-elevated"
     >
       <div className="flex flex-col gap-4">
-        <div className="p-3 rounded-full bg-primary/10 text-primary w-fit">
+        <div className="p-3 rounded-full bg-burgundy/10 text-burgundy w-fit">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-muted-foreground text-sm">{description}</p>
+        <h3 className="text-lg font-semibold font-playfair">{title}</h3>
+        <p className="text-muted-foreground text-sm font-playfair">{description}</p>
       </div>
     </motion.div>
   );
@@ -53,7 +53,7 @@ const Features: React.FC = () => {
     {
       icon: <Users size={20} />,
       title: "Barber Selection",
-      description: "Browse profiles and select from up to 10 skilled barbers based on expertise and style."
+      description: "Browse profiles and select from our team of skilled barbers based on expertise and style."
     },
     {
       icon: <Scissors size={20} />,
@@ -80,8 +80,8 @@ const Features: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="max-w-3xl mx-auto text-center mb-12 md:mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Streamlined Booking Experience</h2>
-          <p className="text-muted-foreground text-lg">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 font-playfair">Streamlined Booking Experience</h2>
+          <p className="text-muted-foreground text-lg font-playfair">
             Every feature is designed with simplicity and elegance in mind, ensuring a seamless scheduling process.
           </p>
         </motion.div>

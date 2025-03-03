@@ -58,7 +58,7 @@ const ServicesPage = () => {
               Premium Services
             </motion.span>
             <motion.h1 
-              className="text-3xl md:text-5xl font-bold tracking-tight mb-4"
+              className="text-3xl md:text-5xl font-bold tracking-tight mb-4 font-playfair"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -66,12 +66,12 @@ const ServicesPage = () => {
               Our Barber Services
             </motion.h1>
             <motion.p 
-              className="text-muted-foreground text-lg md:text-xl"
+              className="text-muted-foreground text-lg md:text-xl font-playfair"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Discover our range of premium grooming services at Queen&apos;s Dock Barbershop
+              Discover our range of premium grooming services at Queens Dock Barbershop
             </motion.p>
           </div>
         </div>
@@ -88,7 +88,7 @@ const ServicesPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="h-full glass shadow-subtle border border-white/5 transition-all duration-300 hover:shadow-elevated">
+                <Card className="h-full glass shadow-subtle border border-white/5 transition-all duration-300 hover:shadow-elevated rounded-none">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="p-2 rounded-full bg-burgundy/20 text-burgundy">
@@ -96,21 +96,21 @@ const ServicesPage = () => {
                       </div>
                       <div className="flex items-center space-x-2 text-base font-semibold">
                         <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">{service.duration}</span>
+                        <span className="text-sm text-muted-foreground font-playfair">{service.duration}</span>
                       </div>
                     </div>
-                    <CardTitle className="mt-4 text-xl">{service.name}</CardTitle>
+                    <CardTitle className="mt-4 text-xl font-playfair">{service.name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-sm font-playfair">
                       {service.description}
                     </p>
                   </CardContent>
                   <CardFooter className="flex flex-col items-start space-y-4">
-                    <div className="text-2xl font-bold text-burgundy">
+                    <div className="text-2xl font-bold text-burgundy font-playfair">
                       {service.price}
                     </div>
-                    <Button asChild className="w-full rounded-full bg-burgundy hover:bg-burgundy-light">
+                    <Button asChild className="w-full rounded-none bg-burgundy hover:bg-burgundy-light">
                       <Link to={`/book?service=${service.id}`}>Book This Service</Link>
                     </Button>
                   </CardFooter>
@@ -131,11 +131,11 @@ const ServicesPage = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl font-bold mb-6">Ready for your next grooming experience?</h2>
-            <p className="text-muted-foreground text-lg mb-8">
+            <h2 className="text-3xl font-bold mb-6 font-playfair">Ready for your next grooming experience?</h2>
+            <p className="text-muted-foreground text-lg mb-8 font-playfair">
               Book an appointment with one of our skilled barbers today
             </p>
-            <Button asChild size="lg" className="rounded-full bg-burgundy hover:bg-burgundy-light">
+            <Button asChild size="lg" className="rounded-none bg-burgundy hover:bg-burgundy-light">
               <Link to="/book">Book Appointment</Link>
             </Button>
           </motion.div>

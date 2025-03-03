@@ -44,7 +44,7 @@ const Barbers = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <motion.span 
-              className="inline-block px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full mb-4"
+              className="inline-block px-3 py-1 text-xs font-medium bg-burgundy/20 text-burgundy rounded-full mb-4"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
@@ -52,7 +52,7 @@ const Barbers = () => {
               Professional Team
             </motion.span>
             <motion.h1 
-              className="text-3xl md:text-5xl font-bold tracking-tight mb-4"
+              className="text-3xl md:text-5xl font-bold tracking-tight mb-4 font-playfair"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -60,12 +60,12 @@ const Barbers = () => {
               Meet Our Expert Barbers
             </motion.h1>
             <motion.p 
-              className="text-muted-foreground text-lg md:text-xl"
+              className="text-muted-foreground text-lg md:text-xl font-playfair"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Our skilled professionals at Queen&apos;s Dock Barbershop are dedicated to providing you with the perfect cut and grooming experience
+              Our skilled professionals at Queens Dock Barbershop are dedicated to providing you with the perfect cut and grooming experience
             </motion.p>
           </div>
         </div>
@@ -81,7 +81,7 @@ const Barbers = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="glass rounded-xl shadow-subtle border border-border overflow-hidden transition-all duration-300 hover:shadow-elevated"
+                className="glass rounded-none shadow-subtle border border-white/5 overflow-hidden transition-all duration-300 hover:shadow-elevated"
               >
                 <div className="relative aspect-[3/2]">
                   <img 
@@ -92,7 +92,7 @@ const Barbers = () => {
                 </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xl font-semibold">{barber.name}</h3>
+                    <h3 className="text-xl font-semibold font-playfair">{barber.name}</h3>
                     <div className="flex items-center space-x-1 text-yellow-500">
                       <Star size={16} className="fill-current" />
                       <span className="text-sm font-medium text-foreground">{barber.rating}</span>
@@ -100,21 +100,21 @@ const Barbers = () => {
                   </div>
                   
                   <div className="flex items-center mb-4">
-                    <Scissors size={16} className="text-primary mr-2" />
-                    <span className="text-sm font-medium">{barber.specialty}</span>
+                    <Scissors size={16} className="text-burgundy mr-2" />
+                    <span className="text-sm font-medium font-playfair">{barber.specialty}</span>
                     <span className="mx-2 text-muted-foreground">•</span>
-                    <span className="text-sm text-muted-foreground">{barber.experience}</span>
+                    <span className="text-sm text-muted-foreground font-playfair">{barber.experience}</span>
                   </div>
                   
-                  <p className="text-muted-foreground text-sm mb-5">
+                  <p className="text-muted-foreground text-sm mb-5 font-playfair">
                     {barber.bio}
                   </p>
                   
                   <div className="flex space-x-3">
-                    <Button asChild className="flex-1 rounded-full">
+                    <Button asChild className="flex-1 rounded-none bg-burgundy hover:bg-burgundy-light">
                       <Link to={`/book?barber=${barber.id}`}>Book Now</Link>
                     </Button>
-                    <Button asChild variant="outline" className="rounded-full">
+                    <Button asChild variant="outline" className="rounded-none border-burgundy hover:bg-burgundy/10">
                       <Link to={`/barbers/${barber.id}`}>View Profile</Link>
                     </Button>
                   </div>
@@ -135,11 +135,11 @@ const Barbers = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl font-bold mb-6">Ready to get your best look?</h2>
-            <p className="text-muted-foreground text-lg mb-8">
+            <h2 className="text-3xl font-bold mb-6 font-playfair">Ready to get your best look?</h2>
+            <p className="text-muted-foreground text-lg mb-8 font-playfair">
               Choose your preferred barber and book your appointment today
             </p>
-            <Button asChild size="lg" className="rounded-full">
+            <Button asChild size="lg" className="rounded-none bg-burgundy hover:bg-burgundy-light">
               <Link to="/book">Book Appointment</Link>
             </Button>
           </motion.div>
