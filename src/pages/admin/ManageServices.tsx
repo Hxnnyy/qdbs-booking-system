@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { InsertableService, UpdatableService } from '@/supabase-types';
 
 const ManageServices = () => {
   const { services, refreshServices, isLoading } = useServices();
@@ -39,7 +39,6 @@ const ManageServices = () => {
   const [openEditServiceDialog, setOpenEditServiceDialog] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   
-  // Form fields
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -71,15 +70,17 @@ const ManageServices = () => {
     try {
       setIsSubmitting(true);
       
+      const newService: InsertableService = {
+        name,
+        description,
+        price: parseFloat(price),
+        duration: parseInt(duration, 10),
+        active: true
+      };
+
       const { error } = await supabase
         .from('services')
-        .insert({
-          name,
-          description,
-          price: parseFloat(price),
-          duration: parseInt(duration, 10),
-          active: true
-        } as any) as unknown as { error: any };
+        .insert(newService);
 
       if (error) throw error;
 
@@ -103,15 +104,17 @@ const ManageServices = () => {
     try {
       setIsSubmitting(true);
       
+      const updateData: UpdatableService = {
+        name,
+        description,
+        price: parseFloat(price),
+        duration: parseInt(duration, 10)
+      };
+
       const { error } = await supabase
         .from('services')
-        .update({
-          name,
-          description,
-          price: parseFloat(price),
-          duration: parseInt(duration, 10)
-        } as any)
-        .eq('id', selectedService.id) as unknown as { error: any };
+        .update(updateData)
+        .eq('id', selectedService.id);
 
       if (error) throw error;
 
@@ -130,10 +133,12 @@ const ManageServices = () => {
     try {
       setIsSubmitting(true);
       
+      const updateData: UpdatableService = { active: false };
+      
       const { error } = await supabase
         .from('services')
-        .update({ active: false } as any)
-        .eq('id', serviceId) as unknown as { error: any };
+        .update(updateData)
+        .eq('id', serviceId);
 
       if (error) throw error;
 
@@ -320,7 +325,6 @@ const ManageServices = () => {
         )}
       </div>
       
-      {/* Edit Service Dialog */}
       <Dialog open={openEditServiceDialog} onOpenChange={setOpenEditServiceDialog}>
         <DialogContent>
           <DialogHeader>

@@ -29,7 +29,7 @@ const Dashboard = () => {
         // Fetch total users
         const { count: userCount, error: userError } = await supabase
           .from('profiles')
-          .select('*', { count: 'exact' }) as unknown as { count: number; error: any };
+          .select('*', { count: 'exact' });
         
         if (userError) throw userError;
         
@@ -37,7 +37,7 @@ const Dashboard = () => {
         const { count: barberCount, error: barberError } = await supabase
           .from('barbers')
           .select('*', { count: 'exact' })
-          .eq('active', true) as unknown as { count: number; error: any };
+          .eq('active', true);
         
         if (barberError) throw barberError;
         
@@ -45,7 +45,7 @@ const Dashboard = () => {
         const { count: serviceCount, error: serviceError } = await supabase
           .from('services')
           .select('*', { count: 'exact' })
-          .eq('active', true) as unknown as { count: number; error: any };
+          .eq('active', true);
         
         if (serviceError) throw serviceError;
         
@@ -56,7 +56,7 @@ const Dashboard = () => {
             *,
             service:service_id(price)
           `)
-          .eq('status', 'completed') as unknown as { data: any[] | null; error: any };
+          .eq('status', 'completed');
         
         if (bookingError) throw bookingError;
         

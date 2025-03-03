@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useBarbers } from '@/hooks/useBarbers';
 import { Badge } from '@/components/ui/badge';
+import { UpdatableBooking } from '@/supabase-types';
 
 type ExtendedBooking = {
   id: string;
@@ -96,10 +97,12 @@ const ManageBookings = () => {
   
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
     try {
+      const updateData: UpdatableBooking = { status: newStatus };
+      
       const { error } = await supabase
         .from('bookings')
-        .update({ status: newStatus } as any)
-        .eq('id', bookingId) as unknown as { error: any };
+        .update(updateData)
+        .eq('id', bookingId);
       
       if (error) throw error;
       

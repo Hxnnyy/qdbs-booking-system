@@ -1,15 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Service, InsertableService, UpdatableService } from '@/supabase-types';
 
-export type Service = {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  duration: number;
-  active: boolean;
-};
+export type { Service };
 
 export const useServices = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -25,7 +19,7 @@ export const useServices = () => {
         .from('services')
         .select('*')
         .eq('active', true)
-        .order('name') as unknown as { data: Service[] | null; error: any };
+        .order('name');
 
       if (error) throw error;
 

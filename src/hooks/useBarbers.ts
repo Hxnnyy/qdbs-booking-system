@@ -1,15 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Barber, InsertableBarber, UpdatableBarber } from '@/supabase-types';
 
-export type Barber = {
-  id: string;
-  name: string;
-  specialty: string;
-  bio?: string;
-  image_url?: string;
-  active: boolean;
-};
+export type { Barber };
 
 export const useBarbers = () => {
   const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -25,7 +19,7 @@ export const useBarbers = () => {
         .from('barbers')
         .select('*')
         .eq('active', true)
-        .order('name') as unknown as { data: Barber[] | null; error: any };
+        .order('name');
 
       if (error) throw error;
 

@@ -3,33 +3,16 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { Booking, InsertableBooking, UpdatableBooking } from '@/supabase-types';
 
-export type Booking = {
-  id?: string;
-  user_id: string | undefined;
-  barber_id: string;
-  service_id: string;
-  booking_date: string;
-  booking_time: string;
-  status?: string;
-  notes?: string;
-  created_at?: string;
-  barber?: {
-    name: string;
-  };
-  service?: {
-    name: string;
-    price: number;
-    duration: number;
-  };
-};
+export type { Booking };
 
 export const useBookings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const createBooking = async (bookingData: Omit<Booking, 'user_id'>) => {
+  const createBooking = async (bookingData: Omit<InsertableBooking, 'user_id'>) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -38,7 +21,7 @@ export const useBookings = () => {
         throw new Error('You must be logged in to book an appointment');
       }
 
-      const newBooking: Booking = {
+      const newBooking: InsertableBooking = {
         ...bookingData,
         user_id: user.id,
         status: 'confirmed'
@@ -46,8 +29,8 @@ export const useBookings = () => {
 
       const { data, error } = await supabase
         .from('bookings')
-        .insert(newBooking as any)
-        .select() as unknown as { data: Booking[] | null; error: any };
+        .insert(newBooking)
+        .select();
 
       if (error) throw error;
 
@@ -80,7 +63,7 @@ export const useBookings = () => {
         `)
         .eq('user_id', user.id)
         .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true }) as unknown as { data: Booking[] | null; error: any };
+        .order('booking_time', { ascending: true });
 
       if (error) throw error;
 
@@ -98,11 +81,13 @@ export const useBookings = () => {
       setIsLoading(true);
       setError(null);
 
+      const updateData: UpdatableBooking = { status: 'cancelled' };
+
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'cancelled' } as any)
+        .update(updateData)
         .eq('id', bookingId)
-        .eq('user_id', user?.id) as unknown as { error: any };
+        .eq('user_id', user?.id);
 
       if (error) throw error;
 
