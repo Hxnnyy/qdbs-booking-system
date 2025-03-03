@@ -12,7 +12,7 @@ export const useBookings = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const createBooking = async (bookingData: Omit<InsertableBooking, 'user_id'>) => {
+  const createBooking = async (bookingData: Omit<InsertableBooking, 'user_id' | 'status'>) => {
     try {
       setIsLoading(true);
       setError(null);

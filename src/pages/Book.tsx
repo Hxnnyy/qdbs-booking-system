@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -83,7 +84,7 @@ const Book = () => {
         notes: notes.trim() || null
       });
 
-      navigate('/bookings');
+      navigate('/profile');
     } catch (error) {
       console.error('Booking error:', error);
     }
