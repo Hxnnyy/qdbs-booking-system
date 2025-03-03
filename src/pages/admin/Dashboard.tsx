@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,43 +27,44 @@ const Dashboard = () => {
   const fetchDashboardStats = async () => {
     setIsLoading(true);
     try {
+      // Using type assertion for all queries
       // Fetch bookings count
-      const bookingsResult = await supabase
+      const { count: totalBookings, error: bookingsError } = await (supabase
         .from('bookings')
-        .select('*', { count: 'exact', head: true }) as unknown as { count: number | null; error: any };
+        .select('*', { count: 'exact', head: true }) as any);
       
       // Fetch confirmed bookings count
-      const confirmedResult = await supabase
+      const { count: confirmedBookings, error: confirmedError } = await (supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'confirmed') as unknown as { count: number | null; error: any };
+        .eq('status', 'confirmed') as any);
       
       // Fetch cancelled bookings count
-      const cancelledResult = await supabase
+      const { count: cancelledBookings, error: cancelledError } = await (supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'cancelled') as unknown as { count: number | null; error: any };
+        .eq('status', 'cancelled') as any);
       
       // Fetch barbers count
-      const barbersResult = await supabase
+      const { count: totalBarbers, error: barbersError } = await (supabase
         .from('barbers')
-        .select('*', { count: 'exact', head: true }) as unknown as { count: number | null; error: any };
+        .select('*', { count: 'exact', head: true }) as any);
       
       // Fetch services count
-      const servicesResult = await supabase
+      const { count: totalServices, error: servicesError } = await (supabase
         .from('services')
-        .select('*', { count: 'exact', head: true }) as unknown as { count: number | null; error: any };
+        .select('*', { count: 'exact', head: true }) as any);
       
-      if (bookingsResult.error || confirmedResult.error || cancelledResult.error || barbersResult.error || servicesResult.error) {
+      if (bookingsError || confirmedError || cancelledError || barbersError || servicesError) {
         throw new Error('Error fetching dashboard stats');
       }
       
       setStats({
-        totalBookings: bookingsResult.count || 0,
-        confirmedBookings: confirmedResult.count || 0,
-        cancelledBookings: cancelledResult.count || 0,
-        totalBarbers: barbersResult.count || 0,
-        totalServices: servicesResult.count || 0
+        totalBookings: totalBookings || 0,
+        confirmedBookings: confirmedBookings || 0,
+        cancelledBookings: cancelledBookings || 0,
+        totalBarbers: totalBarbers || 0,
+        totalServices: totalServices || 0
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);

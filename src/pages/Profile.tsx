@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
@@ -43,20 +44,24 @@ const Profile = () => {
     }
   };
 
-  const updateProfile = async (profileData: { first_name: string; last_name: string; phone: string }) => {
+  const handleProfileUpdate = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
       const { error } = await supabase
-        .from('profiles')
-        .update(profileData)
-        .eq('id', user?.id) as unknown as { error: any };
+        .from('profiles' as any)
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone
+        })
+        .eq('id', user.id);
       
       if (error) throw error;
       
       await refreshProfile();
       toast.success('Profile updated successfully');
-      setIsLoading(false);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -140,7 +145,7 @@ const Profile = () => {
               <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={signOut}>Sign Out</Button>
                 <Button 
-                  onClick={() => updateProfile({ first_name: firstName, last_name: lastName, phone: phone })}
+                  onClick={handleProfileUpdate} 
                   disabled={isLoading}
                   className="bg-burgundy hover:bg-burgundy-light"
                 >

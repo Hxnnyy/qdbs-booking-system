@@ -15,11 +15,12 @@ export const useServices = () => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
+      // Using type assertion to bypass TypeScript errors
+      const { data, error } = await (supabase
         .from('services')
         .select('*')
         .eq('active', true)
-        .order('name') as unknown as { data: Service[] | null; error: any };
+        .order('name') as any);
 
       if (error) throw error;
 
