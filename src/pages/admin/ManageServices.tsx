@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import AdminLayout from '@/components/ui/sidebar';
+import { AdminLayout } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,9 +35,9 @@ const ManageServices = () => {
       setIsLoading(true);
       setError(null);
       
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { data, error } = await supabase
-        .from('services')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { data, error } = await (supabase
+        .from('services') as any)
         .select('*')
         .order('active', { ascending: false })
         .order('name');
@@ -83,9 +83,9 @@ const ManageServices = () => {
         active: true
       };
       
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { data, error } = await supabase
-        .from('services')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { data, error } = await (supabase
+        .from('services') as any)
         .insert(newService)
         .select();
       
@@ -109,9 +109,9 @@ const ManageServices = () => {
       const updatedService: UpdatableService = { ...formData };
       const serviceId = currentService.id;
       
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { error } = await supabase
-        .from('services')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { error } = await (supabase
+        .from('services') as any)
         .update(updatedService)
         .eq('id', serviceId);
       
@@ -132,9 +132,9 @@ const ManageServices = () => {
     try {
       const serviceId = currentService.id;
       
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { error } = await supabase
-        .from('services')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { error } = await (supabase
+        .from('services') as any)
         .update({ active: false })
         .eq('id', serviceId);
       

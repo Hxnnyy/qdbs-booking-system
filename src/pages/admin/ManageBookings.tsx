@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import AdminLayout from '@/components/ui/sidebar';
+import { AdminLayout } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,9 +43,9 @@ const ManageBookings = () => {
       setIsLoading(true);
       setError(null);
       
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { data, error } = await supabase
-        .from('bookings')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { data, error } = await (supabase
+        .from('bookings') as any)
         .select(`
           *,
           barber:barber_id(name),
@@ -109,9 +109,9 @@ const ManageBookings = () => {
       const bookingId = currentBooking.id;
       const newStatus = newBookingStatus;
       
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { error } = await supabase
-        .from('bookings')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { error } = await (supabase
+        .from('bookings') as any)
         .update({ status: newStatus })
         .eq('id', bookingId);
       

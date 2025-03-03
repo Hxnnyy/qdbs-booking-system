@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import AdminLayout from '@/components/ui/sidebar';
+import { AdminLayout } from '@/components/ui/sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { format } from 'date-fns';
@@ -24,35 +24,35 @@ const Dashboard = () => {
     const fetchStats = async () => {
       try {
         // Fetch total users
-        // @ts-ignore - Suppressing TypeScript errors for Supabase query
-        const { count: userCount, error: userError } = await supabase
-          .from('profiles')
+        // Type assertion to avoid TypeScript errors with Supabase queries
+        const { count: userCount, error: userError } = await (supabase
+          .from('profiles') as any)
           .select('*', { count: 'exact' });
 
         if (userError) throw userError;
 
         // Fetch active barbers
-        // @ts-ignore - Suppressing TypeScript errors for Supabase query
-        const { count: barberCount, error: barberError } = await supabase
-          .from('barbers')
+        // Type assertion to avoid TypeScript errors with Supabase queries
+        const { count: barberCount, error: barberError } = await (supabase
+          .from('barbers') as any)
           .select('*', { count: 'exact' })
           .eq('active', true);
 
         if (barberError) throw barberError;
 
         // Fetch active services
-        // @ts-ignore - Suppressing TypeScript errors for Supabase query
-        const { count: serviceCount, error: serviceError } = await supabase
-          .from('services')
+        // Type assertion to avoid TypeScript errors with Supabase queries
+        const { count: serviceCount, error: serviceError } = await (supabase
+          .from('services') as any)
           .select('*', { count: 'exact' })
           .eq('active', true);
 
         if (serviceError) throw serviceError;
 
         // Fetch completed bookings for revenue calculation
-        // @ts-ignore - Suppressing TypeScript errors for Supabase query
-        const { data: bookings, error: bookingError } = await supabase
-          .from('bookings')
+        // Type assertion to avoid TypeScript errors with Supabase queries
+        const { data: bookings, error: bookingError } = await (supabase
+          .from('bookings') as any)
           .select(`
             *,
             service:service_id(price)
@@ -61,12 +61,12 @@ const Dashboard = () => {
 
         if (bookingError) throw bookingError;
 
-        const totalRevenue = bookings?.reduce((total, booking) => {
+        const totalRevenue = bookings?.reduce((total: number, booking: any) => {
           return total + (booking.service?.price || 0);
         }, 0) || 0;
 
         // Group bookings by date for chart
-        const bookingsByDate = bookings?.reduce((acc, booking) => {
+        const bookingsByDate = bookings?.reduce((acc: any, booking: any) => {
           const date = booking.booking_date;
           if (!acc[date]) {
             acc[date] = { date, count: 0, revenue: 0 };
@@ -88,7 +88,7 @@ const Dashboard = () => {
           isLoading: false,
           error: null
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching stats:', error);
         setStats(prev => ({ ...prev, isLoading: false, error: error.message }));
       }
@@ -187,7 +187,7 @@ const Dashboard = () => {
                 <CardContent>
                   {stats.recentBookings.length > 0 ? (
                     <div className="space-y-2">
-                      {stats.recentBookings.map((booking) => (
+                      {stats.recentBookings.map((booking: any) => (
                         <div key={booking.id} className="border-b pb-2 last:border-0">
                           <p className="font-medium">
                             {booking.service?.name} - £{booking.service?.price?.toFixed(2)}

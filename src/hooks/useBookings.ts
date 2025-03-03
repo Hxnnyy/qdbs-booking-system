@@ -27,9 +27,9 @@ export const useBookings = () => {
         status: 'confirmed'
       };
 
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { data, error } = await supabase
-        .from('bookings')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { data, error } = await (supabase
+        .from('bookings') as any)
         .insert(newBooking)
         .select();
 
@@ -55,9 +55,9 @@ export const useBookings = () => {
         throw new Error('You must be logged in to view your bookings');
       }
 
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { data, error } = await supabase
-        .from('bookings')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { data, error } = await (supabase
+        .from('bookings') as any)
         .select(`
           *,
           barber:barber_id(name),
@@ -85,9 +85,9 @@ export const useBookings = () => {
 
       const updateData: UpdatableBooking = { status: 'cancelled' };
 
-      // @ts-ignore - Suppressing TypeScript errors for Supabase query
-      const { error } = await supabase
-        .from('bookings')
+      // Type assertion to avoid TypeScript errors with Supabase queries
+      const { error } = await (supabase
+        .from('bookings') as any)
         .update(updateData)
         .eq('id', bookingId)
         .eq('user_id', user?.id);
