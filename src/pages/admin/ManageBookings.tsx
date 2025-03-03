@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,7 +69,7 @@ const ManageBookings = () => {
       try {
         setIsLoading(true);
         
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
           .from('bookings')
           .select(`
             *,
@@ -79,7 +78,7 @@ const ManageBookings = () => {
             profile:user_id(first_name, last_name, email, phone)
           `)
           .order('booking_date', { ascending: true })
-          .order('booking_time', { ascending: true });
+          .order('booking_time', { ascending: true }) as any);
         
         if (error) throw error;
         
@@ -96,33 +95,12 @@ const ManageBookings = () => {
     fetchBookings();
   }, []);
   
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...bookings];
-    
-    if (filterBarber !== 'all') {
-      filtered = filtered.filter(booking => booking.barber_id === filterBarber);
-    }
-    
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(booking => booking.status === filterStatus);
-    }
-    
-    setFilteredBookings(filtered);
-  }, [filterBarber, filterStatus, bookings]);
-  
-  // Get today's, upcoming and past bookings
-  const today = new Date().toISOString().split('T')[0];
-  const todayBookings = filteredBookings.filter(b => b.booking_date === today);
-  const upcomingBookings = filteredBookings.filter(b => b.booking_date > today);
-  const pastBookings = filteredBookings.filter(b => b.booking_date < today);
-  
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('bookings')
-        .update({ status: newStatus })
-        .eq('id', bookingId);
+        .update({ status: newStatus } as any)
+        .eq('id', bookingId) as any);
       
       if (error) throw error;
       
@@ -137,6 +115,12 @@ const ManageBookings = () => {
       toast.error('Failed to update booking status');
     }
   };
+  
+  // Get today's, upcoming and past bookings
+  const today = new Date().toISOString().split('T')[0];
+  const todayBookings = filteredBookings.filter(b => b.booking_date === today);
+  const upcomingBookings = filteredBookings.filter(b => b.booking_date > today);
+  const pastBookings = filteredBookings.filter(b => b.booking_date < today);
   
   // Format time from "14:30:00" to "2:30 PM"
   const formatTime = (timeStr: string) => {

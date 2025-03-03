@@ -71,14 +71,15 @@ const ManageBarbers = () => {
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('barbers')
         .insert({
           name,
           specialty,
           bio,
-          image_url: imageUrl || 'https://source.unsplash.com/random/300x300/?barber'
-        });
+          image_url: imageUrl || 'https://source.unsplash.com/random/300x300/?barber',
+          active: true
+        } as any) as any);
 
       if (error) throw error;
 
@@ -102,15 +103,15 @@ const ManageBarbers = () => {
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('barbers')
         .update({
           name,
           specialty,
           bio,
           image_url: imageUrl || selectedBarber.image_url
-        })
-        .eq('id', selectedBarber.id);
+        } as any)
+        .eq('id', selectedBarber.id) as any);
 
       if (error) throw error;
 
@@ -129,10 +130,10 @@ const ManageBarbers = () => {
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('barbers')
-        .update({ active: false })
-        .eq('id', barberId);
+        .update({ active: false } as any)
+        .eq('id', barberId) as any);
 
       if (error) throw error;
 

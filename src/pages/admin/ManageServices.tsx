@@ -71,14 +71,15 @@ const ManageServices = () => {
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('services')
         .insert({
           name,
           description,
           price: parseFloat(price),
-          duration: parseInt(duration, 10)
-        });
+          duration: parseInt(duration, 10),
+          active: true
+        } as any) as any);
 
       if (error) throw error;
 
@@ -102,15 +103,15 @@ const ManageServices = () => {
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('services')
         .update({
           name,
           description,
           price: parseFloat(price),
           duration: parseInt(duration, 10)
-        })
-        .eq('id', selectedService.id);
+        } as any)
+        .eq('id', selectedService.id) as any);
 
       if (error) throw error;
 
@@ -129,10 +130,10 @@ const ManageServices = () => {
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('services')
-        .update({ active: false })
-        .eq('id', serviceId);
+        .update({ active: false } as any)
+        .eq('id', serviceId) as any);
 
       if (error) throw error;
 

@@ -21,11 +21,11 @@ export const useBarbers = () => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('barbers')
         .select('*')
         .eq('active', true)
-        .order('name');
+        .order('name') as any);
 
       if (error) throw error;
 

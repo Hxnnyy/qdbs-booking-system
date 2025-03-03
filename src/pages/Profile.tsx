@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -34,8 +33,8 @@ const Profile = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Initialize form values from profile
   useEffect(() => {
     if (profile) {
       setFirstName(profile.first_name || '');
@@ -44,7 +43,6 @@ const Profile = () => {
     }
   }, [profile]);
 
-  // Fetch user bookings
   useEffect(() => {
     const fetchBookings = async () => {
       if (user) {
@@ -56,43 +54,41 @@ const Profile = () => {
     fetchBookings();
   }, [user, getUserBookings]);
 
-  const handleUpdateProfile = async () => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user) return;
 
+    setIsUpdating(true);
     try {
-      setIsLoading(true);
-
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('profiles')
         .update({
           first_name: firstName,
           last_name: lastName,
           phone: phone
-        })
-        .eq('id', user.id);
+        } as any)
+        .eq('id', user.id) as any);
 
       if (error) throw error;
-
+      
       await refreshProfile();
       toast.success('Profile updated successfully');
     } catch (error: any) {
       toast.error(error.message);
     } finally {
-      setIsLoading(false);
+      setIsUpdating(false);
     }
   };
 
   const handleCancelBooking = async (bookingId: string) => {
     const success = await cancelBooking(bookingId);
     if (success) {
-      // Update the bookings list
       setBookings(bookings.map(booking => 
         booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
       ));
     }
   };
 
-  // Format time from "14:30:00" to "2:30 PM"
   const formatTime = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(':');
     let hour = parseInt(hours);
@@ -271,9 +267,9 @@ const Profile = () => {
                 <Button 
                   onClick={handleUpdateProfile} 
                   className="w-full bg-burgundy hover:bg-burgundy-light"
-                  disabled={isLoading}
+                  disabled={isLoading || isUpdating}
                 >
-                  {isLoading ? (
+                  {isLoading || isUpdating ? (
                     <>
                       <Spinner className="mr-2 h-4 w-4 border-2 border-white" /> Updating...
                     </>
