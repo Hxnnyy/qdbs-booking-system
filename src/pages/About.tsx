@@ -26,7 +26,7 @@ const About = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              About Queen&apos;s Dock Barbershop
+              About Queens Dock Barbershop
             </motion.h1>
             <motion.p 
               className="text-muted-foreground text-lg md:text-xl font-playfair"
@@ -34,7 +34,7 @@ const About = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Traditional barbering with a modern touch in the heart of the docks
+              Traditional barbering with a modern touch in the heart of Rossendale
             </motion.p>
           </div>
         </div>
@@ -51,8 +51,8 @@ const About = () => {
             >
               <div className="relative aspect-[4/3] rounded-xl overflow-hidden shadow-elevated">
                 <img 
-                  src="https://images.unsplash.com/photo-1605497788044-5a32c7078486?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-                  alt="Queen's Dock Barbershop Interior" 
+                  src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
+                  alt="Queens Dock Barbershop Interior" 
                   className="object-cover w-full h-full"
                 />
               </div>
@@ -66,8 +66,8 @@ const About = () => {
             >
               <h2 className="text-3xl font-bold font-playfair">Our Mission</h2>
               <p className="text-muted-foreground font-playfair">
-                At Queen&apos;s Dock Barbershop, we're dedicated to providing exceptional grooming services with a focus on 
-                precision, quality, and customer satisfaction. Founded in 2015, our barbershop has become a staple in the community.
+                At Queens Dock Barbershop, we're dedicated to providing exceptional grooming services with a focus on 
+                precision, quality, and customer satisfaction. Founded in 2015, our barbershop has become a staple in Rossendale.
               </p>
               <p className="text-muted-foreground font-playfair">
                 With our team of skilled barbers led by Chris, Thomas, and Conor, we combine traditional barbering techniques 
@@ -93,7 +93,7 @@ const About = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Convenient location in the heart of the docks</span>
+                  <span>Convenient location in the heart of Rossendale</span>
                 </li>
               </ul>
             </motion.div>
@@ -107,7 +107,7 @@ const About = () => {
           <div className="max-w-3xl mx-auto text-center mb-16">
             <h2 className="text-3xl font-bold mb-4 font-playfair">Our Values</h2>
             <p className="text-muted-foreground text-lg font-playfair">
-              The principles that guide everything we do at Queen&apos;s Dock
+              The principles that guide everything we do at Queens Dock
             </p>
           </div>
           
@@ -152,9 +152,9 @@ const About = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl font-bold mb-6 font-playfair">Visit Queen&apos;s Dock Barbershop Today</h2>
+            <h2 className="text-3xl font-bold mb-6 font-playfair">Visit Queens Dock Barbershop Today</h2>
             <p className="text-muted-foreground text-lg mb-8 font-playfair">
-              Experience premium barbering services in a welcoming environment
+              Experience premium barbering services in a welcoming Rossendale environment
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button asChild size="lg" className="rounded-full">

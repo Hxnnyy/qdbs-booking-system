@@ -17,7 +17,7 @@ const Footer: React.FC = () => {
               <h3 className="text-lg font-semibold font-playfair">Queens Dock Barbershop</h3>
             </div>
             <p className="text-sm text-muted-foreground font-playfair">
-              Traditional barbering with a modern twist, providing premium grooming services since 2015.
+              Traditional barbering with a modern twist, providing premium grooming services in Rossendale since 2015.
             </p>
             <div className="space-y-2">
               <div className="flex items-center text-sm text-muted-foreground font-playfair">
