@@ -15,8 +15,8 @@ export const useBarbers = () => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error } = await (supabase
-        .from('barbers') as any)
+      const { data, error } = await supabase
+        .from('barbers' as any)
         .select('*')
         .eq('active', true)
         .order('name');

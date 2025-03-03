@@ -78,8 +78,8 @@ const ManageServices = () => {
         active: true
       };
 
-      const { error } = await (supabase
-        .from('services') as any)
+      const { error } = await supabase
+        .from('services' as any)
         .insert(newService as any);
 
       if (error) throw error;
@@ -111,8 +111,8 @@ const ManageServices = () => {
         duration: parseInt(duration, 10)
       };
 
-      const { error } = await (supabase
-        .from('services') as any)
+      const { error } = await supabase
+        .from('services' as any)
         .update(updateData as any)
         .eq('id', selectedService.id);
 
@@ -135,8 +135,8 @@ const ManageServices = () => {
       
       const updateData: UpdatableService = { active: false };
       
-      const { error } = await (supabase
-        .from('services') as any)
+      const { error } = await supabase
+        .from('services' as any)
         .update(updateData as any)
         .eq('id', serviceId);
 

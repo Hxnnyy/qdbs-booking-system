@@ -27,8 +27,8 @@ export const useBookings = () => {
         status: 'confirmed'
       };
 
-      const { data, error } = await (supabase
-        .from('bookings') as any)
+      const { data, error } = await supabase
+        .from('bookings' as any)
         .insert(newBooking as any)
         .select();
 
@@ -54,8 +54,8 @@ export const useBookings = () => {
         throw new Error('You must be logged in to view your bookings');
       }
 
-      const { data, error } = await (supabase
-        .from('bookings') as any)
+      const { data, error } = await supabase
+        .from('bookings' as any)
         .select(`
           *,
           barber:barber_id(name),
@@ -83,8 +83,8 @@ export const useBookings = () => {
 
       const updateData: UpdatableBooking = { status: 'cancelled' };
 
-      const { error } = await (supabase
-        .from('bookings') as any)
+      const { error } = await supabase
+        .from('bookings' as any)
         .update(updateData as any)
         .eq('id', bookingId)
         .eq('user_id', user?.id);

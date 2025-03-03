@@ -69,8 +69,8 @@ const ManageBookings = () => {
       try {
         setIsLoading(true);
         
-        const { data, error } = await (supabase
-          .from('bookings') as any)
+        const { data, error } = await supabase
+          .from('bookings' as any)
           .select(`
             *,
             barber:barber_id(name),
@@ -99,8 +99,8 @@ const ManageBookings = () => {
     try {
       const updateData: UpdatableBooking = { status: newStatus };
       
-      const { error } = await (supabase
-        .from('bookings') as any)
+      const { error } = await supabase
+        .from('bookings' as any)
         .update(updateData as any)
         .eq('id', bookingId);
       

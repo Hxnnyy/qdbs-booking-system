@@ -78,8 +78,8 @@ const ManageBarbers = () => {
         active: true
       };
 
-      const { error } = await (supabase
-        .from('barbers') as any)
+      const { error } = await supabase
+        .from('barbers' as any)
         .insert(newBarber as any);
 
       if (error) throw error;
@@ -111,8 +111,8 @@ const ManageBarbers = () => {
         image_url: imageUrl || selectedBarber.image_url
       };
 
-      const { error } = await (supabase
-        .from('barbers') as any)
+      const { error } = await supabase
+        .from('barbers' as any)
         .update(updateData as any)
         .eq('id', selectedBarber.id);
 
@@ -135,8 +135,8 @@ const ManageBarbers = () => {
       
       const updateData: UpdatableBarber = { active: false };
       
-      const { error } = await (supabase
-        .from('barbers') as any)
+      const { error } = await supabase
+        .from('barbers' as any)
         .update(updateData as any)
         .eq('id', barberId);
 

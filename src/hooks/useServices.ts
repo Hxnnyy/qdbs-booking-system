@@ -15,8 +15,8 @@ export const useServices = () => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error } = await (supabase
-        .from('services') as any)
+      const { data, error } = await supabase
+        .from('services' as any)
         .select('*')
         .eq('active', true)
         .order('name');

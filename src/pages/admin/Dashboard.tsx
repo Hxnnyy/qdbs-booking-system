@@ -34,31 +34,31 @@ const Dashboard = () => {
       
       try {
         // Fetch total users
-        const { count: userCount, error: userError } = await (supabase
-          .from('profiles') as any)
+        const { count: userCount, error: userError } = await supabase
+          .from('profiles' as any)
           .select('*', { count: 'exact' });
         
         if (userError) throw userError;
         
         // Fetch total barbers
-        const { count: barberCount, error: barberError } = await (supabase
-          .from('barbers') as any)
+        const { count: barberCount, error: barberError } = await supabase
+          .from('barbers' as any)
           .select('*', { count: 'exact' })
           .eq('active', true);
         
         if (barberError) throw barberError;
         
         // Fetch total services
-        const { count: serviceCount, error: serviceError } = await (supabase
-          .from('services') as any)
+        const { count: serviceCount, error: serviceError } = await supabase
+          .from('services' as any)
           .select('*', { count: 'exact' })
           .eq('active', true);
         
         if (serviceError) throw serviceError;
         
         // Fetch bookings for revenue calculation
-        const { data: bookings, error: bookingError } = await (supabase
-          .from('bookings') as any)
+        const { data: bookings, error: bookingError } = await supabase
+          .from('bookings' as any)
           .select(`
             *,
             service:service_id(price)
