@@ -12,7 +12,7 @@ const ServicesPage = () => {
     {
       id: 1,
       name: 'Haircut',
-      description: 'A traditional barber cut with attention to detail and precision. Includes consultation, shampoo, and styling.',
+      description: 'A traditional barber cut with precision and attention to detail. Includes consultation and styling.',
       price: '£25',
       duration: '30 min',
       icon: <Scissors className="h-6 w-6" />
@@ -20,7 +20,7 @@ const ServicesPage = () => {
     {
       id: 2,
       name: 'Beard Trim',
-      description: 'Professional beard shaping and trimming to maintain or create a new style for your facial hair.',
+      description: 'Professional beard shaping and trimming to create or maintain your ideal facial hair style.',
       price: '£10',
       duration: '20 min',
       icon: <Brush className="h-6 w-6" />
@@ -36,7 +36,7 @@ const ServicesPage = () => {
     {
       id: 4,
       name: 'Hot Towel Shave',
-      description: 'Classic straight razor shave with hot towel treatment for the smoothest results and relaxing experience.',
+      description: 'Classic straight razor shave with hot towel treatment for the smoothest results and relaxation.',
       price: '£35',
       duration: '45 min',
       icon: <SparkleIcon className="h-6 w-6" />
@@ -88,7 +88,7 @@ const ServicesPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="h-full glass shadow-subtle border border-white/5 transition-all duration-300 hover:shadow-elevated rounded-none">
+                <Card className="h-full flex flex-col glass shadow-subtle border border-white/5 transition-all duration-300 hover:shadow-elevated rounded-none">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="p-2 rounded-full bg-burgundy/20 text-burgundy">
@@ -101,12 +101,12 @@ const ServicesPage = () => {
                     </div>
                     <CardTitle className="mt-4 text-xl font-playfair">{service.name}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground text-sm font-playfair">
+                  <CardContent className="flex-grow">
+                    <p className="text-muted-foreground text-sm font-playfair h-12">
                       {service.description}
                     </p>
                   </CardContent>
-                  <CardFooter className="flex flex-col items-start space-y-4">
+                  <CardFooter className="mt-auto flex flex-col items-start space-y-4">
                     <div className="text-2xl font-bold text-burgundy font-playfair">
                       {service.price}
                     </div>
