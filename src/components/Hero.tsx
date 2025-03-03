@@ -3,7 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Scissors } from 'lucide-react';
 
 const Hero: React.FC = () => {
   const fadeInUp = {
@@ -18,8 +18,8 @@ const Hero: React.FC = () => {
     <section className="relative overflow-hidden bg-background pt-20 md:pt-32 pb-16 md:pb-24">
       {/* Background gradient */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-1/2 h-1/2 bg-accent/5 rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-1/4 w-1/2 h-1/2 bg-burgundy/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-1/2 h-1/2 bg-burgundy/5 rounded-full blur-[120px]" />
       </div>
       
       <div className="container mx-auto px-4 md:px-6 relative z-10">
@@ -38,25 +38,25 @@ const Hero: React.FC = () => {
               }}
             >
               <motion.span 
-                className="inline-block px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full"
+                className="inline-block px-3 py-1 text-xs font-medium bg-burgundy/20 text-burgundy rounded-full"
                 variants={fadeInUp}
               >
-                Simple. Beautiful. Efficient.
+                Traditional Craftsmanship. Modern Style.
               </motion.span>
               
               <motion.h1 
                 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground"
                 variants={fadeInUp}
               >
-                Schedule your next haircut 
-                <span className="text-primary"> effortlessly</span>
+                Queen's Dock
+                <span className="text-burgundy"> Barbershop</span>
               </motion.h1>
               
               <motion.p 
                 className="max-w-xl text-lg text-muted-foreground"
                 variants={fadeInUp}
               >
-                A premium booking platform that connects you with top barbers, providing a seamless scheduling experience with real-time availability.
+                Premium grooming services in the heart of Liverpool's historic docks. Experience traditional barbering with a modern touch.
               </motion.p>
             </motion.div>
             
@@ -66,11 +66,11 @@ const Hero: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: staggerDelay * 4, duration: 0.5 }}
             >
-              <Button asChild size="lg" className="rounded-full">
+              <Button asChild size="lg" className="rounded-full bg-burgundy hover:bg-burgundy-light">
                 <Link to="/book">Book Appointment</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full">
-                <Link to="/barbers">View Barbers</Link>
+              <Button asChild variant="outline" size="lg" className="rounded-full border-burgundy hover:bg-burgundy/10">
+                <Link to="/services">Our Services</Link>
               </Button>
             </motion.div>
             
@@ -81,12 +81,12 @@ const Hero: React.FC = () => {
               transition={{ delay: staggerDelay * 5, duration: 0.5 }}
             >
               {[
-                { text: "Real-time availability" },
-                { text: "Easy rescheduling" },
-                { text: "Automated reminders" }
+                { text: "Classic & modern cuts" },
+                { text: "Expert beard styling" },
+                { text: "Hot towel shaves" }
               ].map((item, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <CheckCircle size={16} className="text-primary" />
+                  <CheckCircle size={16} className="text-burgundy" />
                   <span>{item.text}</span>
                 </div>
               ))}
@@ -99,14 +99,17 @@ const Hero: React.FC = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="relative aspect-square md:aspect-[4/3] shadow-elevated rounded-xl overflow-hidden bg-gradient-to-br from-white to-secondary border border-border">
+            <div className="relative aspect-square md:aspect-[4/3] shadow-elevated rounded-xl overflow-hidden">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80')] bg-cover bg-center opacity-90"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-background/70 to-transparent"></div>
               
               <div className="absolute bottom-6 left-6 right-6">
-                <div className="glass rounded-lg p-4 shadow-glass">
-                  <div className="text-sm font-medium">Book your next appointment</div>
-                  <div className="text-xs text-muted-foreground mt-1">Modern barber experience at your fingertips</div>
+                <div className="glass rounded-lg p-4 shadow-glass border border-white/5">
+                  <div className="flex items-center text-white">
+                    <Scissors className="w-4 h-4 mr-2 text-burgundy" />
+                    <div className="text-sm font-medium">Est. 2015</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">Traditional barbering in Liverpool</div>
                 </div>
               </div>
             </div>

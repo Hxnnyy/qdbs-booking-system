@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from "@/components/ui/button";
-import { MenuIcon, X } from 'lucide-react';
+import { MenuIcon, X, Scissors } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -56,9 +56,10 @@ const Navbar: React.FC = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="text-xl font-semibold"
+              className="flex items-center"
             >
-              BarberConnect
+              <Scissors className="mr-2 h-5 w-5 text-burgundy" />
+              <span className="text-xl font-semibold">Queen's Dock Barbershop</span>
             </motion.div>
           </Link>
 
@@ -68,9 +69,9 @@ const Navbar: React.FC = () => {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`text-sm font-medium transition-colors hover:text-primary relative ${
+                className={`text-sm font-medium transition-colors hover:text-burgundy relative ${
                   location.pathname === item.path
-                    ? 'text-primary'
+                    ? 'text-burgundy'
                     : 'text-foreground'
                 }`}
               >
@@ -78,18 +79,18 @@ const Navbar: React.FC = () => {
                 {location.pathname === item.path && (
                   <motion.div
                     layoutId="navbar-indicator"
-                    className="absolute bottom-[-4px] left-0 right-0 h-[2px] bg-primary"
+                    className="absolute bottom-[-4px] left-0 right-0 h-[2px] bg-burgundy"
                     transition={{ type: 'spring', duration: 0.5 }}
                   />
                 )}
               </Link>
             ))}
             <div className="flex space-x-2">
-              <Button asChild variant="ghost" size="sm">
+              <Button asChild variant="outline" size="sm" className="text-foreground border-burgundy hover:bg-burgundy/20">
                 <Link to="/login">Log in</Link>
               </Button>
-              <Button asChild size="sm">
-                <Link to="/signup">Sign up</Link>
+              <Button asChild size="sm" className="bg-burgundy hover:bg-burgundy-light text-white">
+                <Link to="/book">Book Now</Link>
               </Button>
             </div>
           </nav>
@@ -123,7 +124,7 @@ const Navbar: React.FC = () => {
                     to={item.path}
                     className={`text-sm font-medium py-2 transition-colors ${
                       location.pathname === item.path
-                        ? 'text-primary'
+                        ? 'text-burgundy'
                         : 'text-foreground'
                     }`}
                   >
@@ -131,11 +132,11 @@ const Navbar: React.FC = () => {
                   </Link>
                 ))}
                 <div className="pt-2 flex flex-col space-y-2">
-                  <Button asChild variant="ghost" size="sm">
+                  <Button asChild variant="outline" size="sm" className="text-foreground border-burgundy hover:bg-burgundy/20">
                     <Link to="/login">Log in</Link>
                   </Button>
-                  <Button asChild size="sm">
-                    <Link to="/signup">Sign up</Link>
+                  <Button asChild size="sm" className="bg-burgundy hover:bg-burgundy-light text-white">
+                    <Link to="/book">Book Now</Link>
                   </Button>
                 </div>
               </nav>

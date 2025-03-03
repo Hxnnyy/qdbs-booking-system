@@ -50,12 +50,12 @@ const ServicesPage = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <motion.span 
-              className="inline-block px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full mb-4"
+              className="inline-block px-3 py-1 text-xs font-medium bg-burgundy/20 text-burgundy rounded-full mb-4"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              Professional Services
+              Premium Services
             </motion.span>
             <motion.h1 
               className="text-3xl md:text-5xl font-bold tracking-tight mb-4"
@@ -88,10 +88,10 @@ const ServicesPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="h-full glass shadow-subtle border border-border transition-all duration-300 hover:shadow-elevated">
+                <Card className="h-full glass shadow-subtle border border-white/5 transition-all duration-300 hover:shadow-elevated">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-full bg-primary/10 text-primary">
+                      <div className="p-2 rounded-full bg-burgundy/20 text-burgundy">
                         {service.icon}
                       </div>
                       <div className="flex items-center space-x-2 text-base font-semibold">
@@ -107,10 +107,10 @@ const ServicesPage = () => {
                     </p>
                   </CardContent>
                   <CardFooter className="flex flex-col items-start space-y-4">
-                    <div className="text-2xl font-bold text-primary">
+                    <div className="text-2xl font-bold text-burgundy">
                       {service.price}
                     </div>
-                    <Button asChild className="w-full rounded-full">
+                    <Button asChild className="w-full rounded-full bg-burgundy hover:bg-burgundy-light">
                       <Link to={`/book?service=${service.id}`}>Book This Service</Link>
                     </Button>
                   </CardFooter>
@@ -135,7 +135,7 @@ const ServicesPage = () => {
             <p className="text-muted-foreground text-lg mb-8">
               Book an appointment with one of our skilled barbers today
             </p>
-            <Button asChild size="lg" className="rounded-full">
+            <Button asChild size="lg" className="rounded-full bg-burgundy hover:bg-burgundy-light">
               <Link to="/book">Book Appointment</Link>
             </Button>
           </motion.div>

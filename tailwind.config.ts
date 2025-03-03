@@ -62,6 +62,11 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				burgundy: {
+					DEFAULT: '#800020',
+					light: '#a31e32',
+					dark: '#5c0018',
 				}
 			},
 			borderRadius: {
