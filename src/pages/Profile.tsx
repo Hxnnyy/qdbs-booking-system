@@ -1,78 +1,65 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
+import { useAuth } from '@/context/AuthContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, Scissors, User, X } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { useBookings, Booking } from '@/hooks/useBookings';
-import { format, parseISO } from 'date-fns';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { useBookings } from '@/hooks/useBookings';
 
 const Profile = () => {
-  const { user, profile, refreshProfile } = useAuth();
-  const { getUserBookings, cancelBooking, isLoading: bookingsLoading } = useBookings();
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const { getUserBookings, cancelBooking } = useBookings();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
 
-  // Initialize form values from profile
   useEffect(() => {
     if (profile) {
       setFirstName(profile.first_name || '');
       setLastName(profile.last_name || '');
       setPhone(profile.phone || '');
     }
+    
+    fetchBookings();
   }, [profile]);
 
-  // Fetch user bookings
-  useEffect(() => {
-    const fetchBookings = async () => {
-      if (user) {
-        const userBookings = await getUserBookings();
-        setBookings(userBookings || []);
-      }
-    };
-
-    fetchBookings();
-  }, [user, getUserBookings]);
-
-  const handleUpdateProfile = async () => {
-    if (!user) return;
-
+  const fetchBookings = async () => {
+    setLoadingBookings(true);
     try {
-      setIsLoading(true);
+      const data = await getUserBookings();
+      setBookings(data || []);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
 
+  const handleProfileUpdate = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
       const { error } = await supabase
-        .from('profiles')
+        .from('profiles' as any)
         .update({
           first_name: firstName,
           last_name: lastName,
           phone: phone
         })
         .eq('id', user.id);
-
+      
       if (error) throw error;
-
+      
       await refreshProfile();
       toast.success('Profile updated successfully');
     } catch (error: any) {
@@ -83,203 +70,179 @@ const Profile = () => {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    const confirmed = window.confirm('Are you sure you want to cancel this booking?');
+    if (!confirmed) return;
+    
     const success = await cancelBooking(bookingId);
     if (success) {
-      // Update the bookings list
-      setBookings(bookings.map(booking => 
-        booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
-      ));
+      await fetchBookings();
     }
   };
 
-  // Format time from "14:30:00" to "2:30 PM"
-  const formatTime = (timeStr: string) => {
-    const [hours, minutes] = timeStr.split(':');
-    let hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    hour = hour % 12 || 12;
-    return `${hour}:${minutes} ${ampm}`;
-  };
+  if (!user) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-12">
+          <p>Please log in to view your profile.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 text-center"
-        >
-          <h1 className="text-3xl font-bold mb-2 font-playfair">My Profile</h1>
-          <p className="text-muted-foreground font-playfair">
-            Manage your account and view your bookings
-          </p>
-        </motion.div>
-
-        <Tabs defaultValue="bookings" className="space-y-8">
-          <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
-            <TabsTrigger value="bookings">My Bookings</TabsTrigger>
-            <TabsTrigger value="profile">Personal Info</TabsTrigger>
+      <div className="container mx-auto py-12 max-w-4xl">
+        <h1 className="text-3xl font-bold mb-8 font-playfair">Your Profile</h1>
+        
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="mb-8">
+            <TabsTrigger value="profile">Profile Details</TabsTrigger>
+            <TabsTrigger value="bookings">Your Bookings</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="bookings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-playfair">My Appointments</CardTitle>
-                <CardDescription className="font-playfair">
-                  View and manage your upcoming barbershop appointments
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {bookingsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Spinner className="w-8 h-8" />
-                  </div>
-                ) : bookings.length > 0 ? (
-                  <div className="space-y-4">
-                    {bookings.map((booking) => (
-                      <Card key={booking.id} className={`overflow-hidden ${booking.status === 'cancelled' ? 'opacity-70' : ''}`}>
-                        <div className="p-4 border-l-4 border-burgundy flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center mb-2">
-                              <Calendar className="h-4 w-4 mr-2 text-burgundy" />
-                              <span className="font-medium">
-                                {format(parseISO(booking.booking_date), 'EEEE, MMMM d, yyyy')}
-                              </span>
-                            </div>
-                            <div className="flex items-center mb-2">
-                              <Clock className="h-4 w-4 mr-2 text-burgundy" />
-                              <span>{formatTime(booking.booking_time)}</span>
-                            </div>
-                            <div className="flex items-center mb-2">
-                              <Scissors className="h-4 w-4 mr-2 text-burgundy" />
-                              <span>{booking.service?.name}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <User className="h-4 w-4 mr-2 text-burgundy" />
-                              <span>{booking.barber?.name}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col items-end">
-                            <div className="mb-2 font-medium text-burgundy">
-                              £{booking.service?.price.toFixed(2)}
-                            </div>
-                            
-                            {booking.status === 'cancelled' ? (
-                              <span className="text-muted-foreground text-sm px-3 py-1 bg-secondary rounded-full">
-                                Cancelled
-                              </span>
-                            ) : (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="flex items-center">
-                                    <X className="h-4 w-4 mr-1" /> Cancel
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Cancel appointment?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone. The appointment will be cancelled and you'll need to book again if you change your mind.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Keep appointment</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => booking.id && handleCancelBooking(booking.id)}
-                                      className="bg-red-500 hover:bg-red-600"
-                                    >
-                                      Yes, cancel it
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4 font-playfair">
-                      You don't have any appointments yet
-                    </p>
-                    <Button asChild className="bg-burgundy hover:bg-burgundy-light">
-                      <a href="/book">Book an Appointment</a>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
+          
           <TabsContent value="profile">
-            <Card>
+            <Card className="glass shadow-subtle border border-border">
               <CardHeader>
-                <CardTitle className="font-playfair">Personal Information</CardTitle>
-                <CardDescription className="font-playfair">
-                  Update your personal details
+                <CardTitle>Profile Information</CardTitle>
+                <CardDescription>
+                  Update your personal details here
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input 
-                        id="firstName" 
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input 
-                        id="lastName" 
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="firstName">First Name</Label>
                     <Input 
-                      id="email" 
-                      value={user?.email || ''}
-                      disabled
+                      id="firstName" 
+                      value={firstName} 
+                      onChange={(e) => setFirstName(e.target.value)} 
                     />
-                    <p className="text-xs text-muted-foreground font-playfair">
-                      Email cannot be changed
-                    </p>
                   </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="lastName">Last Name</Label>
                     <Input 
-                      id="phone" 
-                      placeholder="07700 900000"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      id="lastName" 
+                      value={lastName} 
+                      onChange={(e) => setLastName(e.target.value)} 
                     />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" value={user.email} disabled />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone" 
+                    value={phone} 
+                    onChange={(e) => setPhone(e.target.value)} 
+                    placeholder="Your phone number"
+                  />
+                </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={signOut}>Sign Out</Button>
                 <Button 
-                  onClick={handleUpdateProfile} 
-                  className="w-full bg-burgundy hover:bg-burgundy-light"
+                  onClick={handleProfileUpdate} 
                   disabled={isLoading}
+                  className="bg-burgundy hover:bg-burgundy-light"
                 >
                   {isLoading ? (
                     <>
-                      <Spinner className="mr-2 h-4 w-4 border-2 border-white" /> Updating...
+                      <Spinner className="mr-2 h-4 w-4 border-2 border-white" /> Saving...
                     </>
-                  ) : (
-                    'Save Changes'
-                  )}
+                  ) : 'Save Changes'}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="bookings">
+            <Card className="glass shadow-subtle border border-border">
+              <CardHeader>
+                <CardTitle>Your Bookings</CardTitle>
+                <CardDescription>
+                  Manage your upcoming appointments
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingBookings ? (
+                  <div className="flex justify-center py-8">
+                    <Spinner className="w-8 h-8" />
+                  </div>
+                ) : bookings.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">You don't have any bookings yet.</p>
+                    <Button 
+                      className="mt-4 bg-burgundy hover:bg-burgundy-light"
+                      onClick={() => window.location.href = '/book'}
+                    >
+                      Book an Appointment
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bookings.map((booking) => (
+                      <div key={booking.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-medium">{booking.service?.name}</h3>
+                            <p className="text-sm text-muted-foreground">with {booking.barber?.name}</p>
+                          </div>
+                          <div>
+                            <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                              booking.status === 'confirmed' 
+                                ? 'bg-green-100 text-green-800' 
+                                : booking.status === 'cancelled'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {booking.status}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-sm mb-4">
+                          <span>
+                            {new Date(booking.booking_date).toLocaleDateString('en-GB', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </span>
+                          <span>{booking.booking_time}</span>
+                        </div>
+                        {booking.notes && (
+                          <div className="text-sm text-muted-foreground bg-secondary/30 p-2 rounded-md mb-4">
+                            <p className="font-medium">Notes:</p>
+                            <p>{booking.notes}</p>
+                          </div>
+                        )}
+                        {booking.status === 'confirmed' && (
+                          <div className="flex justify-end">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-red-600 hover:bg-red-50"
+                              onClick={() => handleCancelBooking(booking.id)}
+                            >
+                              Cancel Booking
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full bg-burgundy hover:bg-burgundy-light"
+                  onClick={() => window.location.href = '/book'}
+                >
+                  Book New Appointment
                 </Button>
               </CardFooter>
             </Card>

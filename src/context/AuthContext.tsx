@@ -4,11 +4,12 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ProfileType } from '@/types/supabase';
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: any | null;
+  profile: ProfileType | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: any) => Promise<void>;
@@ -23,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<ProfileType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -61,8 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Using 'any' to bypass TypeScript errors with Supabase client
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles' as any)
         .select('*')
         .eq('id', userId)
         .single();
