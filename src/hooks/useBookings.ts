@@ -44,10 +44,10 @@ export const useBookings = () => {
         status: 'confirmed'
       };
 
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('bookings')
         .insert(newBooking as any)
-        .select() as any);
+        .select();
 
       if (error) throw error;
 
@@ -71,7 +71,7 @@ export const useBookings = () => {
         throw new Error('You must be logged in to view your bookings');
       }
 
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
@@ -80,7 +80,7 @@ export const useBookings = () => {
         `)
         .eq('user_id', user.id)
         .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true }) as any);
+        .order('booking_time', { ascending: true });
 
       if (error) throw error;
 
@@ -98,11 +98,11 @@ export const useBookings = () => {
       setIsLoading(true);
       setError(null);
 
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('bookings')
-        .update({ status: 'cancelled' } as any)
+        .update({ status: 'cancelled' })
         .eq('id', bookingId)
-        .eq('user_id', user?.id) as any);
+        .eq('user_id', user?.id);
 
       if (error) throw error;
 

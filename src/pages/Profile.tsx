@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -60,14 +61,14 @@ const Profile = () => {
 
     setIsUpdating(true);
     try {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           first_name: firstName,
           last_name: lastName,
           phone: phone
-        } as any)
-        .eq('id', user.id) as any);
+        })
+        .eq('id', user.id);
 
       if (error) throw error;
       

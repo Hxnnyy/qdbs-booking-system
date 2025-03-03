@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
@@ -9,7 +10,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Calendar as CalendarIcon, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
-import { TimeSlot } from '@/components/TimeSlot';
+import TimeSlot from '@/components/TimeSlot';
 import {
   Card,
   CardContent,
@@ -55,7 +56,7 @@ const Book = () => {
       barber_id: selectedBarber,
       service_id: selectedService,
       booking_date: format(bookingDate, 'yyyy-MM-dd'),
-      booking_time,
+      booking_time: bookingTime,
       notes,
     };
 
@@ -126,8 +127,8 @@ const Book = () => {
           <div>
             <h2 className="text-lg font-semibold">Select Date</h2>
             <Calendar
-              selectedDate={bookingDate}
-              onDateChange={setBookingDate}
+              selected={bookingDate}
+              onSelect={setBookingDate}
             />
           </div>
 

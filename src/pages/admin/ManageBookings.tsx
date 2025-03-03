@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,7 +70,7 @@ const ManageBookings = () => {
       try {
         setIsLoading(true);
         
-        const { data, error } = await (supabase
+        const { data, error } = await supabase
           .from('bookings')
           .select(`
             *,
@@ -78,7 +79,7 @@ const ManageBookings = () => {
             profile:user_id(first_name, last_name, email, phone)
           `)
           .order('booking_date', { ascending: true })
-          .order('booking_time', { ascending: true }) as any);
+          .order('booking_time', { ascending: true });
         
         if (error) throw error;
         
@@ -97,10 +98,10 @@ const ManageBookings = () => {
   
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
     try {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('bookings')
-        .update({ status: newStatus } as any)
-        .eq('id', bookingId) as any);
+        .update({ status: newStatus })
+        .eq('id', bookingId);
       
       if (error) throw error;
       
