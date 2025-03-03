@@ -29,25 +29,25 @@ const Dashboard = () => {
         // Get total bookings count
         const { count: totalBookings } = await supabase
           .from('bookings')
-          .select('*', { count: 'exact', head: true });
+          .select('*', { count: 'exact', head: true }) as { count: number | null };
         
         // Get today's bookings count
         const { count: todayBookings } = await supabase
           .from('bookings')
           .select('*', { count: 'exact', head: true })
-          .eq('booking_date', today);
+          .eq('booking_date', today) as { count: number | null };
         
         // Get barbers count
         const { count: totalBarbers } = await supabase
           .from('barbers')
           .select('*', { count: 'exact', head: true })
-          .eq('active', true);
+          .eq('active', true) as { count: number | null };
         
         // Get services count
         const { count: totalServices } = await supabase
           .from('services')
           .select('*', { count: 'exact', head: true })
-          .eq('active', true);
+          .eq('active', true) as { count: number | null };
 
         setStats({
           totalBookings: totalBookings || 0,

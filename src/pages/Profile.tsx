@@ -68,7 +68,7 @@ const Profile = () => {
           last_name: lastName,
           phone: phone
         })
-        .eq('id', user.id);
+        .eq('id', user.id) as { error: any };
 
       if (error) throw error;
       

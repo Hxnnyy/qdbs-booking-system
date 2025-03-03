@@ -135,8 +135,8 @@ const Book = () => {
           <div>
             <h2 className="text-lg font-semibold">Select Time</h2>
             <TimeSlot
-              selectedTime={bookingTime}
-              onTimeChange={setBookingTime}
+              selected={bookingTime}
+              onChange={setBookingTime}
             />
           </div>
 

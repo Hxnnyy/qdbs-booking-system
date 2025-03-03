@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,7 +78,7 @@ const ManageBookings = () => {
             profile:user_id(first_name, last_name, email, phone)
           `)
           .order('booking_date', { ascending: true })
-          .order('booking_time', { ascending: true });
+          .order('booking_time', { ascending: true }) as { data: ExtendedBooking[] | null; error: any };
         
         if (error) throw error;
         
@@ -101,7 +100,7 @@ const ManageBookings = () => {
       const { error } = await supabase
         .from('bookings')
         .update({ status: newStatus })
-        .eq('id', bookingId);
+        .eq('id', bookingId) as { error: any };
       
       if (error) throw error;
       

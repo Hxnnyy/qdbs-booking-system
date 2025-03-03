@@ -79,7 +79,7 @@ const ManageBarbers = () => {
           bio,
           image_url: imageUrl || 'https://source.unsplash.com/random/300x300/?barber',
           active: true
-        });
+        }) as { error: any };
 
       if (error) throw error;
 
@@ -111,7 +111,7 @@ const ManageBarbers = () => {
           bio,
           image_url: imageUrl || selectedBarber.image_url
         })
-        .eq('id', selectedBarber.id);
+        .eq('id', selectedBarber.id) as { error: any };
 
       if (error) throw error;
 
@@ -133,7 +133,7 @@ const ManageBarbers = () => {
       const { error } = await supabase
         .from('barbers')
         .update({ active: false })
-        .eq('id', barberId);
+        .eq('id', barberId) as { error: any };
 
       if (error) throw error;
 

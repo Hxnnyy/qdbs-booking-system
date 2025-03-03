@@ -25,7 +25,7 @@ export const useBarbers = () => {
         .from('barbers')
         .select('*')
         .eq('active', true)
-        .order('name');
+        .order('name') as { data: Barber[] | null; error: any };
 
       if (error) throw error;
 
