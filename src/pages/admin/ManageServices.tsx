@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,10 +32,10 @@ const ManageServices = () => {
   const fetchServices = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('services')
         .select('*')
-        .order('name') as any);
+        .order('name') as unknown as { data: ServiceType[] | null; error: any };
       
       if (error) throw error;
       
@@ -98,19 +97,19 @@ const ManageServices = () => {
       
       if (editingService) {
         // Update existing service
-        const { error } = await (supabase
+        const { error } = await supabase
           .from('services')
           .update(serviceData)
-          .eq('id', editingService.id) as any);
+          .eq('id', editingService.id) as unknown as { error: any };
         
         if (error) throw error;
         
         toast.success('Service updated successfully');
       } else {
         // Create new service
-        const { error } = await (supabase
+        const { error } = await supabase
           .from('services')
-          .insert(serviceData) as any);
+          .insert(serviceData) as unknown as { error: any };
         
         if (error) throw error;
         

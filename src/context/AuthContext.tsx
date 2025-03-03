@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,18 +61,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
-      // Using type assertion to bypass TypeScript errors
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single() as any);
+        .single() as unknown as { data: ProfileType | null; error: any };
 
       if (error) {
         throw error;
       }
 
-      setProfile(data as ProfileType | null);
+      setProfile(data);
       setIsAdmin(data?.is_admin || false);
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
