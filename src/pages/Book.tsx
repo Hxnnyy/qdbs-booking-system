@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -17,6 +16,7 @@ import { useServices } from '@/hooks/useServices';
 import { useBookings } from '@/hooks/useBookings';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Define types for the opening hours
 type ClosedDay = {

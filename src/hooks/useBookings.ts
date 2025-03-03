@@ -47,8 +47,7 @@ export const useBookings = () => {
       const { data, error } = await supabase
         .from('bookings')
         .insert(newBooking)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
 

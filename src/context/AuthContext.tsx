@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      setProfile(data);
+      setProfile(data || null);
       setIsAdmin(data?.is_admin || false);
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
