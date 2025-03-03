@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { useBarbers } from '@/hooks/useBarbers';
@@ -58,6 +58,7 @@ const Book = () => {
       booking_date: format(bookingDate, 'yyyy-MM-dd'),
       booking_time: bookingTime,
       notes,
+      status: 'confirmed'
     };
 
     try {

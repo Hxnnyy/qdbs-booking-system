@@ -4,12 +4,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Spinner } from '@/components/ui/spinner';
 import { UserIcon, CalendarDays, Scissors, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 
 interface RevenueData {
   date: string;
   revenue: number;
+}
+
+interface BookingWithService {
+  booking_date: string;
+  service: {
+    price: number;
+  };
 }
 
 const Dashboard = () => {
@@ -27,31 +34,31 @@ const Dashboard = () => {
       
       try {
         // Fetch total users
-        const { count: userCount, error: userError } = await supabase
-          .from('profiles')
+        const { count: userCount, error: userError } = await (supabase
+          .from('profiles') as any)
           .select('*', { count: 'exact' });
         
         if (userError) throw userError;
         
         // Fetch total barbers
-        const { count: barberCount, error: barberError } = await supabase
-          .from('barbers')
+        const { count: barberCount, error: barberError } = await (supabase
+          .from('barbers') as any)
           .select('*', { count: 'exact' })
           .eq('active', true);
         
         if (barberError) throw barberError;
         
         // Fetch total services
-        const { count: serviceCount, error: serviceError } = await supabase
-          .from('services')
+        const { count: serviceCount, error: serviceError } = await (supabase
+          .from('services') as any)
           .select('*', { count: 'exact' })
           .eq('active', true);
         
         if (serviceError) throw serviceError;
         
         // Fetch bookings for revenue calculation
-        const { data: bookings, error: bookingError } = await supabase
-          .from('bookings')
+        const { data: bookings, error: bookingError } = await (supabase
+          .from('bookings') as any)
           .select(`
             *,
             service:service_id(price)
@@ -61,18 +68,18 @@ const Dashboard = () => {
         if (bookingError) throw bookingError;
         
         // Calculate total revenue
-        const calculatedRevenue = bookings?.reduce((acc, booking) => {
-          return acc + booking.service.price;
-        }, 0) || 0;
+        const calculatedRevenue = (bookings as BookingWithService[] || []).reduce((acc, booking) => {
+          return acc + (booking.service?.price || 0);
+        }, 0);
         
         // Prepare revenue data for the chart (last 30 days)
         const today = new Date();
         const last30Days = Array.from({ length: 30 }, (_, i) => subDays(today, i));
         
         const dailyRevenue: { [key: string]: number } = {};
-        bookings?.forEach(booking => {
+        (bookings as BookingWithService[] || []).forEach(booking => {
           const bookingDate = format(new Date(booking.booking_date), 'yyyy-MM-dd');
-          dailyRevenue[bookingDate] = (dailyRevenue[bookingDate] || 0) + booking.service.price;
+          dailyRevenue[bookingDate] = (dailyRevenue[bookingDate] || 0) + (booking.service?.price || 0);
         });
         
         const chartData: RevenueData[] = last30Days.map(date => {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { Calendar, Clock, User, CheckCircle, XCircle, Filter } from 'lucide-react';
-import { format, parseISO, addDays } from 'date-fns';
+import { Calendar, Clock, User, CheckCircle, XCircle } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -69,8 +69,8 @@ const ManageBookings = () => {
       try {
         setIsLoading(true);
         
-        const { data, error } = await supabase
-          .from('bookings')
+        const { data, error } = await (supabase
+          .from('bookings') as any)
           .select(`
             *,
             barber:barber_id(name),
@@ -78,7 +78,7 @@ const ManageBookings = () => {
             profile:user_id(first_name, last_name, email, phone)
           `)
           .order('booking_date', { ascending: true })
-          .order('booking_time', { ascending: true }) as unknown as { data: ExtendedBooking[] | null; error: any };
+          .order('booking_time', { ascending: true });
         
         if (error) throw error;
         
@@ -99,9 +99,9 @@ const ManageBookings = () => {
     try {
       const updateData: UpdatableBooking = { status: newStatus };
       
-      const { error } = await supabase
-        .from('bookings')
-        .update(updateData)
+      const { error } = await (supabase
+        .from('bookings') as any)
+        .update(updateData as any)
         .eq('id', bookingId);
       
       if (error) throw error;

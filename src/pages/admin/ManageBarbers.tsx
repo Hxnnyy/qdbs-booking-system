@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,9 +78,9 @@ const ManageBarbers = () => {
         active: true
       };
 
-      const { error } = await supabase
-        .from('barbers')
-        .insert(newBarber);
+      const { error } = await (supabase
+        .from('barbers') as any)
+        .insert(newBarber as any);
 
       if (error) throw error;
 
@@ -111,9 +111,9 @@ const ManageBarbers = () => {
         image_url: imageUrl || selectedBarber.image_url
       };
 
-      const { error } = await supabase
-        .from('barbers')
-        .update(updateData)
+      const { error } = await (supabase
+        .from('barbers') as any)
+        .update(updateData as any)
         .eq('id', selectedBarber.id);
 
       if (error) throw error;
@@ -135,9 +135,9 @@ const ManageBarbers = () => {
       
       const updateData: UpdatableBarber = { active: false };
       
-      const { error } = await supabase
-        .from('barbers')
-        .update(updateData)
+      const { error } = await (supabase
+        .from('barbers') as any)
+        .update(updateData as any)
         .eq('id', barberId);
 
       if (error) throw error;
