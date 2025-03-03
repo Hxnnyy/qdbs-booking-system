@@ -24,35 +24,35 @@ const Dashboard = () => {
     const fetchStats = async () => {
       try {
         // Fetch total users
-        // Type assertion to avoid TypeScript errors with Supabase queries
-        const { count: userCount, error: userError } = await (supabase
-          .from('profiles') as any)
+        // @ts-ignore - Supabase types issue
+        const { count: userCount, error: userError } = await supabase
+          .from('profiles')
           .select('*', { count: 'exact' });
 
         if (userError) throw userError;
 
         // Fetch active barbers
-        // Type assertion to avoid TypeScript errors with Supabase queries
-        const { count: barberCount, error: barberError } = await (supabase
-          .from('barbers') as any)
+        // @ts-ignore - Supabase types issue
+        const { count: barberCount, error: barberError } = await supabase
+          .from('barbers')
           .select('*', { count: 'exact' })
           .eq('active', true);
 
         if (barberError) throw barberError;
 
         // Fetch active services
-        // Type assertion to avoid TypeScript errors with Supabase queries
-        const { count: serviceCount, error: serviceError } = await (supabase
-          .from('services') as any)
+        // @ts-ignore - Supabase types issue
+        const { count: serviceCount, error: serviceError } = await supabase
+          .from('services')
           .select('*', { count: 'exact' })
           .eq('active', true);
 
         if (serviceError) throw serviceError;
 
         // Fetch completed bookings for revenue calculation
-        // Type assertion to avoid TypeScript errors with Supabase queries
-        const { data: bookings, error: bookingError } = await (supabase
-          .from('bookings') as any)
+        // @ts-ignore - Supabase types issue
+        const { data: bookings, error: bookingError } = await supabase
+          .from('bookings')
           .select(`
             *,
             service:service_id(price)
@@ -61,12 +61,15 @@ const Dashboard = () => {
 
         if (bookingError) throw bookingError;
 
-        const totalRevenue = bookings?.reduce((total: number, booking: any) => {
+        // Type assertion for bookings to handle service access
+        const typedBookings = bookings as any[];
+        
+        const totalRevenue = typedBookings?.reduce((total: number, booking: any) => {
           return total + (booking.service?.price || 0);
         }, 0) || 0;
 
         // Group bookings by date for chart
-        const bookingsByDate = bookings?.reduce((acc: any, booking: any) => {
+        const bookingsByDate = typedBookings?.reduce((acc: any, booking: any) => {
           const date = booking.booking_date;
           if (!acc[date]) {
             acc[date] = { date, count: 0, revenue: 0 };
@@ -84,7 +87,7 @@ const Dashboard = () => {
           services: serviceCount || 0,
           revenue: totalRevenue,
           bookings: chartData,
-          recentBookings: bookings?.slice(0, 5) || [],
+          recentBookings: typedBookings?.slice(0, 5) || [],
           isLoading: false,
           error: null
         });

@@ -35,9 +35,9 @@ const ManageServices = () => {
       setIsLoading(true);
       setError(null);
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { data, error } = await (supabase
-        .from('services') as any)
+      // @ts-ignore - Supabase types issue
+      const { data, error } = await supabase
+        .from('services')
         .select('*')
         .order('active', { ascending: false })
         .order('name');
@@ -83,9 +83,9 @@ const ManageServices = () => {
         active: true
       };
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { data, error } = await (supabase
-        .from('services') as any)
+      // @ts-ignore - Supabase types issue
+      const { data, error } = await supabase
+        .from('services')
         .insert(newService)
         .select();
       
@@ -109,9 +109,9 @@ const ManageServices = () => {
       const updatedService: UpdatableService = { ...formData };
       const serviceId = currentService.id;
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { error } = await (supabase
-        .from('services') as any)
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('services')
         .update(updatedService)
         .eq('id', serviceId);
       
@@ -132,9 +132,9 @@ const ManageServices = () => {
     try {
       const serviceId = currentService.id;
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { error } = await (supabase
-        .from('services') as any)
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('services')
         .update({ active: false })
         .eq('id', serviceId);
       

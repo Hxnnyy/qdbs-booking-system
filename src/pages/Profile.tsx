@@ -30,9 +30,9 @@ const Profile = () => {
     try {
       setIsSubmitting(true);
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { error } = await (supabase
-        .from('profiles') as any)
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('profiles')
         .update({
           first_name: firstName,
           last_name: lastName,

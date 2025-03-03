@@ -35,9 +35,9 @@ const ManageBarbers = () => {
       setIsLoading(true);
       setError(null);
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { data, error } = await (supabase
-        .from('barbers') as any)
+      // @ts-ignore - Supabase types issue
+      const { data, error } = await supabase
+        .from('barbers')
         .select('*')
         .order('active', { ascending: false })
         .order('name');
@@ -80,9 +80,9 @@ const ManageBarbers = () => {
         active: true
       };
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { data, error } = await (supabase
-        .from('barbers') as any)
+      // @ts-ignore - Supabase types issue
+      const { data, error } = await supabase
+        .from('barbers')
         .insert(newBarber)
         .select();
       
@@ -106,9 +106,9 @@ const ManageBarbers = () => {
       const updatedBarber: UpdatableBarber = { ...formData };
       const barberId = currentBarber.id;
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { error } = await (supabase
-        .from('barbers') as any)
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('barbers')
         .update(updatedBarber)
         .eq('id', barberId);
       
@@ -129,9 +129,9 @@ const ManageBarbers = () => {
     try {
       const barberId = currentBarber.id;
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { error } = await (supabase
-        .from('barbers') as any)
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('barbers')
         .update({ active: false })
         .eq('id', barberId);
       

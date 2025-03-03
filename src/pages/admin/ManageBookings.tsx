@@ -43,9 +43,9 @@ const ManageBookings = () => {
       setIsLoading(true);
       setError(null);
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { data, error } = await (supabase
-        .from('bookings') as any)
+      // @ts-ignore - Supabase types issue
+      const { data, error } = await supabase
+        .from('bookings')
         .select(`
           *,
           barber:barber_id(name),
@@ -109,9 +109,9 @@ const ManageBookings = () => {
       const bookingId = currentBooking.id;
       const newStatus = newBookingStatus;
       
-      // Type assertion to avoid TypeScript errors with Supabase queries
-      const { error } = await (supabase
-        .from('bookings') as any)
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('bookings')
         .update({ status: newStatus })
         .eq('id', bookingId);
       
