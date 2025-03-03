@@ -27,32 +27,33 @@ const Dashboard = () => {
   const fetchDashboardStats = async () => {
     setIsLoading(true);
     try {
+      // Using type assertion for all queries
       // Fetch bookings count
-      const { count: totalBookings, error: bookingsError } = await supabase
-        .from('bookings' as any)
-        .select('*', { count: 'exact', head: true });
+      const { count: totalBookings, error: bookingsError } = await (supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true }) as any);
       
       // Fetch confirmed bookings count
-      const { count: confirmedBookings, error: confirmedError } = await supabase
-        .from('bookings' as any)
+      const { count: confirmedBookings, error: confirmedError } = await (supabase
+        .from('bookings')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'confirmed');
+        .eq('status', 'confirmed') as any);
       
       // Fetch cancelled bookings count
-      const { count: cancelledBookings, error: cancelledError } = await supabase
-        .from('bookings' as any)
+      const { count: cancelledBookings, error: cancelledError } = await (supabase
+        .from('bookings')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'cancelled');
+        .eq('status', 'cancelled') as any);
       
       // Fetch barbers count
-      const { count: totalBarbers, error: barbersError } = await supabase
-        .from('barbers' as any)
-        .select('*', { count: 'exact', head: true });
+      const { count: totalBarbers, error: barbersError } = await (supabase
+        .from('barbers')
+        .select('*', { count: 'exact', head: true }) as any);
       
       // Fetch services count
-      const { count: totalServices, error: servicesError } = await supabase
-        .from('services' as any)
-        .select('*', { count: 'exact', head: true });
+      const { count: totalServices, error: servicesError } = await (supabase
+        .from('services')
+        .select('*', { count: 'exact', head: true }) as any);
       
       if (bookingsError || confirmedError || cancelledError || barbersError || servicesError) {
         throw new Error('Error fetching dashboard stats');

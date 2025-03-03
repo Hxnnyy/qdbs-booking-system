@@ -33,10 +33,10 @@ const ManageServices = () => {
   const fetchServices = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('services' as any)
+      const { data, error } = await (supabase
+        .from('services')
         .select('*')
-        .order('name');
+        .order('name') as any);
       
       if (error) throw error;
       
@@ -98,19 +98,19 @@ const ManageServices = () => {
       
       if (editingService) {
         // Update existing service
-        const { error } = await supabase
-          .from('services' as any)
-          .update(serviceData as any)
-          .eq('id', editingService.id);
+        const { error } = await (supabase
+          .from('services')
+          .update(serviceData)
+          .eq('id', editingService.id) as any);
         
         if (error) throw error;
         
         toast.success('Service updated successfully');
       } else {
         // Create new service
-        const { error } = await supabase
-          .from('services' as any)
-          .insert(serviceData as any);
+        const { error } = await (supabase
+          .from('services')
+          .insert(serviceData) as any);
         
         if (error) throw error;
         

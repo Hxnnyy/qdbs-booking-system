@@ -33,10 +33,10 @@ const ManageBarbers = () => {
   const fetchBarbers = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('barbers' as any)
+      const { data, error } = await (supabase
+        .from('barbers')
         .select('*')
-        .order('name');
+        .order('name') as any);
       
       if (error) throw error;
       
@@ -93,19 +93,19 @@ const ManageBarbers = () => {
       
       if (editingBarber) {
         // Update existing barber
-        const { error } = await supabase
-          .from('barbers' as any)
-          .update(barberData as any)
-          .eq('id', editingBarber.id);
+        const { error } = await (supabase
+          .from('barbers')
+          .update(barberData)
+          .eq('id', editingBarber.id) as any);
         
         if (error) throw error;
         
         toast.success('Barber updated successfully');
       } else {
         // Create new barber
-        const { error } = await supabase
-          .from('barbers' as any)
-          .insert(barberData as any);
+        const { error } = await (supabase
+          .from('barbers')
+          .insert(barberData) as any);
         
         if (error) throw error;
         

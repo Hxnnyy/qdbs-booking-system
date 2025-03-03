@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,9 +30,8 @@ const ManageBookings = () => {
   const fetchBookings = async () => {
     setIsLoading(true);
     try {
-      // Using 'any' to bypass TypeScript errors with Supabase client
-      const { data, error } = await supabase
-        .from('bookings' as any)
+      const { data, error } = await (supabase
+        .from('bookings')
         .select(`
           *,
           barber:barber_id(name),
@@ -41,7 +39,7 @@ const ManageBookings = () => {
           customer:user_id(email, first_name, last_name)
         `)
         .order('booking_date', { ascending: false })
-        .order('booking_time', { ascending: true });
+        .order('booking_time', { ascending: true }) as any);
       
       if (error) throw error;
       
@@ -55,10 +53,10 @@ const ManageBookings = () => {
 
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('bookings' as any)
-        .update({ status: newStatus } as any)
-        .eq('id', bookingId);
+      const { error } = await (supabase
+        .from('bookings')
+        .update({ status: newStatus })
+        .eq('id', bookingId) as any);
       
       if (error) throw error;
       

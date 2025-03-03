@@ -62,18 +62,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
-      // Using 'any' to bypass TypeScript errors with Supabase client
-      const { data, error } = await supabase
-        .from('profiles' as any)
+      // Using type assertion to bypass TypeScript errors
+      const { data, error } = await (supabase
+        .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .single() as any);
 
       if (error) {
         throw error;
       }
 
-      setProfile(data || null);
+      setProfile(data as ProfileType | null);
       setIsAdmin(data?.is_admin || false);
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);

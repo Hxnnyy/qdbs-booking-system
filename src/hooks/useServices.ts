@@ -15,12 +15,12 @@ export const useServices = () => {
       setIsLoading(true);
       setError(null);
 
-      // Using 'any' to bypass TypeScript errors with Supabase client
-      const { data, error } = await supabase
-        .from('services' as any)
+      // Using type assertion to bypass TypeScript errors
+      const { data, error } = await (supabase
+        .from('services')
         .select('*')
         .eq('active', true)
-        .order('name');
+        .order('name') as any);
 
       if (error) throw error;
 
