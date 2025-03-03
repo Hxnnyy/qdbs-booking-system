@@ -31,13 +31,12 @@ const AssignAdmin = () => {
         .single();
       
       if (userError) {
-        // The getUserByEmail method doesn't exist, so we'll need a different approach
-        // We can query the auth.users table directly with RPC
-        const { data: authUserData, error: authUserError } = await supabase.rpc('get_user_id_by_email', {
+        // We'll use our RPC function to get the user ID by email
+        const { data: userId, error: authUserError } = await supabase.rpc('get_user_id_by_email', {
           user_email: email
         });
         
-        if (authUserError || !authUserData) {
+        if (authUserError || !userId) {
           throw new Error('User not found');
         }
         
@@ -45,7 +44,7 @@ const AssignAdmin = () => {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', authUserData)
+          .eq('id', userId)
           .single();
         
         if (profileError) {
@@ -53,7 +52,7 @@ const AssignAdmin = () => {
           await supabase
             .from('profiles')
             .insert({
-              id: authUserData,
+              id: userId,
               email: email,
               is_admin: true
             });
@@ -66,7 +65,7 @@ const AssignAdmin = () => {
         await supabase
           .from('profiles')
           .update({ is_admin: true })
-          .eq('id', authUserData);
+          .eq('id', userId);
       } else {
         // Update the user's admin status
         await supabase

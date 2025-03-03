@@ -13,16 +13,17 @@ const MakeJosephAdmin = () => {
       try {
         setStatus('Searching for user...');
         
-        // Try to find the user by email in auth
-        const { data: userByEmail, error: emailError } = await supabase.auth.admin.getUserByEmail('josephdraper@hotmail.com');
+        // Use the RPC function to get the user ID by email
+        const { data: userId, error: userError } = await supabase.rpc('get_user_id_by_email', {
+          user_email: 'josephdraper@hotmail.com'
+        });
         
-        if (emailError || !userByEmail?.user) {
+        if (userError || !userId) {
           setStatus('User not found');
           toast.error('User not found');
           return;
         }
         
-        const userId = userByEmail.user.id;
         setStatus(`User found with ID: ${userId}`);
         
         // Check if user has a profile
@@ -39,8 +40,7 @@ const MakeJosephAdmin = () => {
             .from('profiles')
             .insert({
               id: userId,
-              first_name: userByEmail.user.user_metadata?.first_name || '',
-              last_name: userByEmail.user.user_metadata?.last_name || '',
+              email: 'josephdraper@hotmail.com',
               is_admin: true
             });
           
