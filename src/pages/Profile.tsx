@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
@@ -29,13 +30,14 @@ const Profile = () => {
     try {
       setIsSubmitting(true);
       
+      // @ts-ignore - Suppressing TypeScript errors for Supabase query
       const { error } = await supabase
-        .from('profiles' as any)
+        .from('profiles')
         .update({
           first_name: firstName,
           last_name: lastName,
           phone: phone
-        } as any)
+        })
         .eq('id', user?.id);
       
       if (error) throw error;

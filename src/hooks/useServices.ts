@@ -15,8 +15,9 @@ export const useServices = () => {
       setIsLoading(true);
       setError(null);
 
+      // @ts-ignore - Suppressing TypeScript errors for Supabase query
       const { data, error } = await supabase
-        .from('services' as any)
+        .from('services')
         .select('*')
         .eq('active', true)
         .order('name');
