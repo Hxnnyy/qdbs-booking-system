@@ -27,11 +27,10 @@ export const useBookings = () => {
         status: 'confirmed'
       };
 
-      // Using type assertion to bypass TypeScript errors
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('bookings')
         .insert(newBooking)
-        .select() as any);
+        .select() as unknown as { data: Booking[] | null; error: any };
 
       if (error) throw error;
 
@@ -46,6 +45,11 @@ export const useBookings = () => {
     }
   };
 
+  type ExtendedBooking = Booking & {
+    barber?: { name: string };
+    service?: { name: string; price: number; duration: number };
+  };
+
   const getUserBookings = async () => {
     try {
       setIsLoading(true);
@@ -55,8 +59,7 @@ export const useBookings = () => {
         throw new Error('You must be logged in to view your bookings');
       }
 
-      // Using type assertion to bypass TypeScript errors
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
@@ -65,7 +68,7 @@ export const useBookings = () => {
         `)
         .eq('user_id', user.id)
         .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true }) as any);
+        .order('booking_time', { ascending: true }) as unknown as { data: ExtendedBooking[] | null; error: any };
 
       if (error) throw error;
 
@@ -83,12 +86,11 @@ export const useBookings = () => {
       setIsLoading(true);
       setError(null);
 
-      // Using type assertion to bypass TypeScript errors
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('bookings')
         .update({ status: 'cancelled' })
         .eq('id', bookingId)
-        .eq('user_id', user?.id) as any);
+        .eq('user_id', user?.id) as unknown as { error: any };
 
       if (error) throw error;
 

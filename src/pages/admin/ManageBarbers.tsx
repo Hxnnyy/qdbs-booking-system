@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,10 +32,10 @@ const ManageBarbers = () => {
   const fetchBarbers = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('barbers')
         .select('*')
-        .order('name') as any);
+        .order('name') as unknown as { data: BarberType[] | null; error: any };
       
       if (error) throw error;
       
@@ -93,19 +92,19 @@ const ManageBarbers = () => {
       
       if (editingBarber) {
         // Update existing barber
-        const { error } = await (supabase
+        const { error } = await supabase
           .from('barbers')
           .update(barberData)
-          .eq('id', editingBarber.id) as any);
+          .eq('id', editingBarber.id) as unknown as { error: any };
         
         if (error) throw error;
         
         toast.success('Barber updated successfully');
       } else {
         // Create new barber
-        const { error } = await (supabase
+        const { error } = await supabase
           .from('barbers')
-          .insert(barberData) as any);
+          .insert(barberData) as unknown as { error: any };
         
         if (error) throw error;
         

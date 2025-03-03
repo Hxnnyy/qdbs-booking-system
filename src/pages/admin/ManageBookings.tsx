@@ -30,7 +30,7 @@ const ManageBookings = () => {
   const fetchBookings = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
@@ -39,7 +39,7 @@ const ManageBookings = () => {
           customer:user_id(email, first_name, last_name)
         `)
         .order('booking_date', { ascending: false })
-        .order('booking_time', { ascending: true }) as any);
+        .order('booking_time', { ascending: true }) as unknown as { data: ExtendedBooking[] | null; error: any };
       
       if (error) throw error;
       
@@ -53,10 +53,10 @@ const ManageBookings = () => {
 
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
     try {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('bookings')
         .update({ status: newStatus })
-        .eq('id', bookingId) as any);
+        .eq('id', bookingId) as unknown as { error: any };
       
       if (error) throw error;
       
