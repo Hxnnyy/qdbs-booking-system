@@ -16,6 +16,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isAdmin: boolean;
   refreshProfile: () => Promise<void>;
+  updateProfile: (data: UpdatableProfile) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,6 +89,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (data: UpdatableProfile) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('profiles')
+        .update(data)
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      await refreshProfile();
+      toast.success('Profile updated successfully');
+    } catch (error: any) {
+      toast.error(error.message);
+      throw error;
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -145,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         isAdmin,
         refreshProfile,
+        updateProfile,
       }}
     >
       {children}

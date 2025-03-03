@@ -20,6 +20,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import ManageBarbers from "./pages/admin/ManageBarbers";
 import ManageServices from "./pages/admin/ManageServices";
 import ManageBookings from "./pages/admin/ManageBookings";
+import AssignAdmin from "./pages/admin/AssignAdmin";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +83,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <ManageBookings />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/assign-admin" 
+              element={
+                <AdminRoute>
+                  <AssignAdmin />
                 </AdminRoute>
               } 
             />
