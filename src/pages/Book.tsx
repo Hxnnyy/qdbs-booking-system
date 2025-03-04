@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -53,6 +54,9 @@ const Book = () => {
   const [notes, setNotes] = useState<string>('');
   const [step, setStep] = useState<'barber' | 'service' | 'datetime' | 'notes'>('barber');
   const [isLoadingBarberServices, setIsLoadingBarberServices] = useState<boolean>(false);
+  const [existingBookings, setExistingBookings] = useState<any[]>([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState<boolean>(false);
+  const [selectedServiceDetails, setSelectedServiceDetails] = useState<Service | null>(null);
 
   const today = startOfToday();
   const maxDate = addDays(today, 30);
@@ -63,7 +67,7 @@ const Book = () => {
     '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
   ];
 
-  const isLoading = barbersLoading || servicesLoading || bookingLoading || isLoadingBarberServices;
+  const isLoading = barbersLoading || servicesLoading || bookingLoading || isLoadingBarberServices || isLoadingBookings;
 
   const fetchBarberServices = async (barberId: string) => {
     try {
@@ -101,15 +105,74 @@ const Book = () => {
     }
   };
 
+  const fetchExistingBookings = async (barberId: string, date: Date) => {
+    try {
+      setIsLoadingBookings(true);
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('booking_time, service_id, services(duration)')
+        .eq('barber_id', barberId)
+        .eq('booking_date', formattedDate)
+        .eq('status', 'confirmed')
+        .order('booking_time');
+      
+      if (error) throw error;
+      
+      console.log('Existing bookings:', data);
+      setExistingBookings(data || []);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      toast.error('Failed to load existing bookings');
+    } finally {
+      setIsLoadingBookings(false);
+    }
+  };
+
+  // Effect to fetch existing bookings when date changes
+  useEffect(() => {
+    if (selectedBarber && selectedDate) {
+      fetchExistingBookings(selectedBarber, selectedDate);
+    }
+  }, [selectedBarber, selectedDate]);
+
+  const isTimeSlotBooked = (time: string): boolean => {
+    if (!selectedServiceDetails || !existingBookings.length) return false;
+
+    // Convert current time slot to minutes for easier calculation
+    const [hours, minutes] = time.split(':').map(Number);
+    const timeInMinutes = hours * 60 + minutes;
+    const serviceLength = selectedServiceDetails.duration;
+
+    // Check if any existing booking overlaps with this time slot
+    return existingBookings.some(booking => {
+      const [bookingHours, bookingMinutes] = booking.booking_time.split(':').map(Number);
+      const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
+      const bookingServiceLength = booking.services ? booking.services.duration : 60; // Default to 60 if unknown
+      
+      // Check if there's an overlap
+      return (
+        (timeInMinutes >= bookingTimeInMinutes && 
+         timeInMinutes < bookingTimeInMinutes + bookingServiceLength) ||
+        (timeInMinutes + serviceLength > bookingTimeInMinutes && 
+         timeInMinutes < bookingTimeInMinutes)
+      );
+    });
+  };
+
   const handleSelectBarber = (barberId: string) => {
     setSelectedBarber(barberId);
     setSelectedService(null);
+    setSelectedServiceDetails(null);
     fetchBarberServices(barberId);
     setStep('service');
   };
 
   const handleSelectService = (serviceId: string) => {
     setSelectedService(serviceId);
+    const serviceDetails = services.find(s => s.id === serviceId) || null;
+    setSelectedServiceDetails(serviceDetails);
     setStep('datetime');
   };
 
@@ -117,11 +180,13 @@ const Book = () => {
     setStep('barber');
     setSelectedBarber(null);
     setSelectedService(null);
+    setSelectedServiceDetails(null);
   };
 
   const handleBackToServices = () => {
     setStep('service');
     setSelectedService(null);
+    setSelectedServiceDetails(null);
     setSelectedDate(undefined);
     setSelectedTime(null);
   };
@@ -149,17 +214,23 @@ const Book = () => {
     }
 
     try {
-      await createBooking({
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      
+      const result = await createBooking({
         barber_id: selectedBarber,
         service_id: selectedService,
-        booking_date: format(selectedDate, 'yyyy-MM-dd'),
+        booking_date: formattedDate,
         booking_time: selectedTime,
         notes: notes.trim() || null
       });
 
-      navigate('/profile');
+      if (result) {
+        toast.success('Booking created successfully!');
+        navigate('/profile');
+      }
     } catch (error) {
       console.error('Booking error:', error);
+      // Error is already handled in useBookings hook
     }
   };
 
@@ -334,7 +405,8 @@ const Book = () => {
                             key={time} 
                             time={time} 
                             selected={selectedTime === time ? "true" : "false"} 
-                            onClick={() => setSelectedTime(time)} 
+                            onClick={() => setSelectedTime(time)}
+                            disabled={isTimeSlotBooked(time)}
                           />
                         ))}
                       </div>

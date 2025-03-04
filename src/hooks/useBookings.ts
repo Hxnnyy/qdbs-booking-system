@@ -27,19 +27,25 @@ export const useBookings = () => {
         status: 'confirmed'
       };
 
+      console.log('Creating booking with data:', newBooking);
+
       // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('bookings')
         .insert(newBooking)
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(error.message || 'Failed to create booking');
+      }
 
-      toast.success('Booking created successfully');
+      console.log('Booking created successfully:', data);
       return data;
     } catch (err: any) {
+      console.error('Error in createBooking:', err);
       setError(err.message);
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to create booking');
       throw err;
     } finally {
       setIsLoading(false);
@@ -55,6 +61,8 @@ export const useBookings = () => {
         throw new Error('You must be logged in to view your bookings');
       }
 
+      console.log('Fetching bookings for user:', user.id);
+
       // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('bookings')
@@ -67,11 +75,17 @@ export const useBookings = () => {
         .order('booking_date', { ascending: true })
         .order('booking_time', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(error.message || 'Failed to fetch bookings');
+      }
 
+      console.log('Fetched user bookings:', data);
       return data;
     } catch (err: any) {
+      console.error('Error in getUserBookings:', err);
       setError(err.message);
+      toast.error(err.message || 'Failed to fetch your bookings');
       return [];
     } finally {
       setIsLoading(false);
@@ -83,22 +97,32 @@ export const useBookings = () => {
       setIsLoading(true);
       setError(null);
 
+      if (!user) {
+        throw new Error('You must be logged in to cancel a booking');
+      }
+
       const updateData: UpdatableBooking = { status: 'cancelled' };
+
+      console.log('Cancelling booking:', bookingId);
 
       // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('bookings')
         .update(updateData)
         .eq('id', bookingId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(error.message || 'Failed to cancel booking');
+      }
 
       toast.success('Booking cancelled successfully');
       return true;
     } catch (err: any) {
+      console.error('Error in cancelBooking:', err);
       setError(err.message);
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to cancel booking');
       return false;
     } finally {
       setIsLoading(false);
