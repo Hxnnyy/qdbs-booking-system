@@ -10,10 +10,6 @@ value = "AC54b797ebe565b448f49220123b5fb5d0"
 [TWILIO_AUTH_TOKEN]
 value = "4b75253f7f2847203c08fb5c8af48802"
 
-# This will be filled in when you get your Twilio phone number
-[TWILIO_PHONE_NUMBER]
-value = ""
-
 # Twilio Verify Service SID
 [TWILIO_VERIFY_SID]
 value = "VAf74f714e04ecde0290cf2049f0858bfa"

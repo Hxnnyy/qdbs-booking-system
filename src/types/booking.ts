@@ -22,9 +22,10 @@ export interface BookingFormState {
   guestPhone: string;
   notes: string;
   selectedServiceDetails: Service | null;
+  isPhoneVerified: boolean;
 }
 
-export type BookingStep = 'barber' | 'service' | 'datetime' | 'guest-info' | 'notes' | 'confirmation';
+export type BookingStep = 'barber' | 'service' | 'datetime' | 'guest-info' | 'verify-phone' | 'notes' | 'confirmation';
 
 export interface ExistingBooking {
   booking_time: string;
@@ -39,4 +40,13 @@ export interface TwilioSMSResult {
   message: string;
   isTwilioConfigured?: boolean;
   sid?: string;
+}
+
+export interface VerifyPhoneResult {
+  success: boolean;
+  message: string;
+  isTwilioConfigured?: boolean;
+  status?: string;
+  sid?: string;
+  mockVerificationCode?: string;
 }

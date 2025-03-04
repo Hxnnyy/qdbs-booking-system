@@ -18,6 +18,7 @@ import BarberSelectionStep from '@/components/booking/steps/BarberSelectionStep'
 import ServiceSelectionStep from '@/components/booking/steps/ServiceSelectionStep';
 import DateTimeSelectionStep from '@/components/booking/steps/DateTimeSelectionStep';
 import GuestInfoStep from '@/components/booking/steps/GuestInfoStep';
+import VerifyPhoneStep from '@/components/booking/steps/VerifyPhoneStep';
 import NotesAndConfirmationStep from '@/components/booking/steps/NotesAndConfirmationStep';
 import ConfirmationStep from '@/components/booking/steps/ConfirmationStep';
 
@@ -35,7 +36,8 @@ const GuestBooking = () => {
     guestName: '',
     guestPhone: '',
     notes: '',
-    selectedServiceDetails: null
+    selectedServiceDetails: null,
+    isPhoneVerified: false
   });
 
   // UI state
@@ -183,19 +185,34 @@ const GuestBooking = () => {
       return;
     }
     
-    setStep('notes');
+    // Go to verification step instead of notes
+    setStep('verify-phone');
   };
 
   const handleBackToGuestInfo = () => {
     setStep('guest-info');
   };
 
+  const handleVerificationComplete = () => {
+    setStep('notes');
+  };
+
+  const handleBackToVerification = () => {
+    setStep('verify-phone');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { selectedBarber, selectedService, selectedDate, selectedTime, guestName, guestPhone, notes } = formState;
+    const { selectedBarber, selectedService, selectedDate, selectedTime, guestName, guestPhone, notes, isPhoneVerified } = formState;
 
     if (!selectedBarber || !selectedService || !selectedDate || !selectedTime || !guestName || !guestPhone) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (!isPhoneVerified) {
+      toast.error('Phone verification is required');
+      setStep('verify-phone');
       return;
     }
 
@@ -282,6 +299,16 @@ const GuestBooking = () => {
                 onBack={handleBackToDateTime}
               />
             )}
+
+            {step === 'verify-phone' && (
+              <VerifyPhoneStep 
+                phone={formState.guestPhone}
+                isVerified={formState.isPhoneVerified}
+                setIsVerified={(verified) => updateFormState({ isPhoneVerified: verified })}
+                onNext={handleVerificationComplete}
+                onBack={handleBackToGuestInfo}
+              />
+            )}
             
             {step === 'notes' && (
               <NotesAndConfirmationStep 
@@ -292,7 +319,7 @@ const GuestBooking = () => {
                 services={services}
                 isLoading={bookingLoading}
                 onSubmit={handleSubmit}
-                onBack={handleBackToGuestInfo}
+                onBack={handleBackToVerification}
                 onNext={() => {}}
               />
             )}

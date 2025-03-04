@@ -40,6 +40,8 @@ export const getStepTitle = (step: string): string => {
       return 'Pick Date & Time';
     case 'guest-info':
       return 'Your Information';
+    case 'verify-phone':
+      return 'Verify Your Phone Number';
     case 'notes':
       return 'Additional Information';
     case 'confirmation':
