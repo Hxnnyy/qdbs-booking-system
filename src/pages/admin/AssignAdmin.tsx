@@ -23,84 +23,64 @@ const AssignAdmin = () => {
     setIsLoading(true);
     
     try {
-      // First, fetch the user data by email
-      const { data: userData, error: userError } = await supabase
+      // First, check if the user exists in profiles
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, is_admin')
         .eq('email', email)
-        .single();
+        .maybeSingle();
       
-      if (userError) {
-        // We'll use our RPC function to get the user ID by email
-        const { data: userId, error: authUserError } = await supabase.rpc('get_user_id_by_email', {
-          user_email: email
+      if (profileError) {
+        throw new Error('Error checking user profile');
+      }
+      
+      // If profile exists, update it
+      if (profileData) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ is_admin: true })
+          .eq('id', profileData.id);
+          
+        if (updateError) {
+          throw new Error('Failed to update user profile');
+        }
+        
+        toast.success(`Admin privileges granted to ${email}`);
+        setEmail('');
+        return;
+      }
+      
+      // If no profile, try to get user ID by email
+      const { data: userId, error: userIdError } = await supabase.rpc('get_user_id_by_email', {
+        user_email: email
+      });
+      
+      if (userIdError) {
+        throw new Error('User not found');
+      }
+      
+      if (!userId) {
+        throw new Error('User not found');
+      }
+      
+      // Create a profile for the user
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: email,
+          is_admin: true
         });
         
-        if (authUserError) {
-          throw new Error('User not found');
-        }
-        
-        if (!userId) {
-          throw new Error('User not found');
-        }
-        
-        // Check if this user has a profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-        
-        if (profileError) {
-          // Create a profile if one doesn't exist
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: userId,
-              email: email,
-              is_admin: true
-            });
-            
-          if (insertError) {
-            throw new Error('Failed to create user profile');
-          }
-          
-          toast.success(`Admin privileges granted to ${email}`);
-          setEmail('');
-          return;
-        }
-        
-        // Update the existing profile
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ is_admin: true })
-          .eq('id', userId);
-          
-        if (updateError) {
-          throw new Error('Failed to update user profile');
-        }
-      } else {
-        // Update the user's admin status
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ is_admin: true })
-          .eq('id', userData.id);
-          
-        if (updateError) {
-          throw new Error('Failed to update user profile');
-        }
+      if (insertError) {
+        throw new Error('Failed to create user profile');
       }
       
       toast.success(`Admin privileges granted to ${email}`);
       setEmail('');
     } catch (error) {
       console.error('Error assigning admin:', error);
-      // Fix for the TypeScript error - use type assertion instead of complex conditionals
-      let errorMessage = 'Error assigning admin privileges';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      toast.error(errorMessage);
+      toast.error(error instanceof Error ? error.message : 'Error assigning admin privileges');
     } finally {
       setIsLoading(false);
     }
