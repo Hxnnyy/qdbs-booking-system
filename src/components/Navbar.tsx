@@ -104,7 +104,7 @@ const Navbar = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/book" className="cursor-pointer">
+                  <Link to="/profile" className="cursor-pointer">
                     <Calendar className="mr-2 h-4 w-4" />
                     <span>My Bookings</span>
                   </Link>
@@ -215,7 +215,7 @@ const Navbar = () => {
                     Profile
                   </Link>
                   <Link 
-                    to="/book" 
+                    to="/profile" 
                     className="flex items-center py-2 text-lg font-medium" 
                     onClick={closeMobileMenu}
                   >
