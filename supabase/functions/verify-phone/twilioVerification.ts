@@ -1,5 +1,28 @@
-
 // Twilio verification functionality
+
+// Function to format phone number to E.164 format (required by Twilio)
+function formatPhoneNumber(phoneNumber: string): string {
+  // Remove any non-digit characters
+  const digits = phoneNumber.replace(/\D/g, '');
+  
+  // Check if the number starts with + or country code
+  if (phoneNumber.startsWith('+')) {
+    return phoneNumber; // Already in E.164 format
+  }
+  
+  // If it starts with 0, assume UK number (replace 0 with +44)
+  if (digits.startsWith('0')) {
+    return '+44' + digits.substring(1);
+  }
+  
+  // If it doesn't have country code, assume US/Canada and add +1
+  if (digits.length === 10) {
+    return '+1' + digits;
+  }
+  
+  // Otherwise, just add + to the beginning if missing
+  return '+' + digits;
+}
 
 // Function to send verification code via Twilio Verify
 export async function sendVerificationCode(phoneNumber: string) {
@@ -36,7 +59,10 @@ export async function sendVerificationCode(phoneNumber: string) {
   }
   
   try {
-    console.log('Attempting to send verification code to:', phoneNumber);
+    // Format the phone number to E.164 for Twilio
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    console.log('Attempting to send verification code to formatted number:', formattedPhone);
+    
     // Auth header for Twilio API
     const auth = btoa(`${accountSid}:${authToken}`);
     
@@ -50,7 +76,7 @@ export async function sendVerificationCode(phoneNumber: string) {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          'To': phoneNumber,
+          'To': formattedPhone,
           'Channel': 'sms'
         }),
       }
@@ -131,7 +157,10 @@ export async function checkVerificationCode(phoneNumber: string, code: string) {
   }
   
   try {
-    console.log('Attempting to verify code for phone:', phoneNumber);
+    // Format the phone number to E.164 for Twilio
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    console.log('Attempting to verify code for formatted phone:', formattedPhone);
+    
     // Auth header for Twilio API
     const auth = btoa(`${accountSid}:${authToken}`);
     
@@ -145,7 +174,7 @@ export async function checkVerificationCode(phoneNumber: string, code: string) {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          'To': phoneNumber,
+          'To': formattedPhone,
           'Code': code
         }),
       }
