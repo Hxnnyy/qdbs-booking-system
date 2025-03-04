@@ -20,6 +20,9 @@ const VerifyPhoneStep: React.FC<VerifyPhoneStepProps> = ({
   onNext,
   onBack
 }) => {
+  // Format the phone number for display
+  const displayPhone = phone.startsWith('+') ? phone : `+${phone}`;
+  
   const {
     verificationCode,
     setVerificationCode,
@@ -39,6 +42,12 @@ const VerifyPhoneStep: React.FC<VerifyPhoneStepProps> = ({
 
   return (
     <>
+      <div className="mb-6 text-center">
+        <p className="text-muted-foreground">
+          We're sending a verification code to <span className="font-medium text-foreground">{displayPhone}</span>
+        </p>
+      </div>
+      
       <VerificationCodeInput
         verificationCode={verificationCode}
         setVerificationCode={setVerificationCode}
