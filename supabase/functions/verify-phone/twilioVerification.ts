@@ -22,17 +22,10 @@ function formatPhoneNumber(phoneNumber: string): string {
     return formatted;
   }
   
-  // If it starts with 44, assume it's a UK number without +
-  if (cleaned.startsWith('44')) {
-    const formatted = '+' + cleaned;
-    console.log('UK format with country code detected, formatted as:', formatted);
-    return formatted;
-  }
-  
-  // If it has 10-12 digits but no country code, assume UK number
-  if (cleaned.length >= 10 && cleaned.length <= 12 && !cleaned.startsWith('44')) {
-    const formatted = '+44' + cleaned;
-    console.log('Assuming UK number, formatted as:', formatted);
+  // If it has 10 digits, assume US/Canada and add +1
+  if (cleaned.length === 10) {
+    const formatted = '+1' + cleaned;
+    console.log('US format detected, formatted as:', formatted);
     return formatted;
   }
   
