@@ -49,15 +49,49 @@ function App() {
               <Dashboard />
             </AdminLayout>
           </AdminRoute>
-        }>
-          <Route index element={<Dashboard />} />
-          <Route path="manage-barbers" element={<ManageBarbers />} />
-          <Route path="manage-services" element={<ManageServices />} />
-          <Route path="manage-bookings" element={<ManageBookings />} />
-          <Route path="setup-shop" element={<SetupShop />} />
-          <Route path="assign-admin" element={<AssignAdmin />} />
-          <Route path="make-joseph-admin" element={<MakeJosephAdmin />} />
-        </Route>
+        } />
+        <Route path="/admin/manage-barbers" element={
+          <AdminRoute>
+            <AdminLayout>
+              <ManageBarbers />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/manage-services" element={
+          <AdminRoute>
+            <AdminLayout>
+              <ManageServices />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/manage-bookings" element={
+          <AdminRoute>
+            <AdminLayout>
+              <ManageBookings />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/setup-shop" element={
+          <AdminRoute>
+            <AdminLayout>
+              <SetupShop />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/assign-admin" element={
+          <AdminRoute>
+            <AdminLayout>
+              <AssignAdmin />
+            </AdminLayout>
+          </AdminRoute>
+        } />
+        <Route path="/admin/make-joseph-admin" element={
+          <AdminRoute>
+            <AdminLayout>
+              <MakeJosephAdmin />
+            </AdminLayout>
+          </AdminRoute>
+        } />
       </Routes>
     </div>
   );
