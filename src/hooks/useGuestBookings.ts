@@ -32,25 +32,14 @@ export const useGuestBookings = () => {
 
       const { guest_name, guest_phone, ...bookingDetails } = bookingData;
 
-      // 1. Create a temporary profile for the guest without requiring auth
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: guestUserId,
-          first_name: guest_name,
-          phone: guest_phone,
-          is_admin: false
-        });
-
-      if (profileError) {
-        throw new Error(profileError.message || 'Failed to create guest profile');
-      }
-
-      // 2. Create the booking
+      // Create the booking without creating a profile
+      // Store guest info in the notes field
       const newBooking: Omit<InsertableBooking, 'status'> = {
         ...bookingDetails,
-        user_id: guestUserId,
-        notes: bookingData.notes || `Guest booking by ${guest_name}. Verification code: ${bookingCode}`
+        user_id: guestUserId, // Use the generated UUID as user_id but don't create a profile
+        notes: bookingData.notes 
+          ? `${bookingData.notes}\nGuest booking by ${guest_name} (${guest_phone}). Verification code: ${bookingCode}`
+          : `Guest booking by ${guest_name} (${guest_phone}). Verification code: ${bookingCode}`
       };
 
       // @ts-ignore - Supabase types issue
@@ -105,23 +94,7 @@ export const useGuestBookings = () => {
       setIsLoading(true);
       setError(null);
 
-      // Find the profile with the phone number
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone', phone);
-
-      if (profileError) {
-        throw new Error(profileError.message || 'Failed to find profile');
-      }
-
-      if (!profiles || profiles.length === 0) {
-        throw new Error('No booking found with this phone number');
-      }
-
-      // Find bookings for the profile that contain the code in the notes
-      const userIds = profiles.map(profile => profile.id);
-      
+      // Find bookings that contain the code in the notes
       // @ts-ignore - Supabase types issue
       const { data: bookings, error: bookingError } = await supabase
         .from('bookings')
@@ -130,7 +103,6 @@ export const useGuestBookings = () => {
           barber:barber_id(name),
           service:service_id(name, price, duration)
         `)
-        .in('user_id', userIds)
         .ilike('notes', `%Verification code: ${code}%`)
         .order('booking_date', { ascending: true })
         .order('booking_time', { ascending: true });
@@ -143,7 +115,16 @@ export const useGuestBookings = () => {
         throw new Error('No booking found with this verification code');
       }
 
-      return bookings;
+      // Filter bookings to ensure the phone number matches
+      const matchingBookings = bookings.filter(booking => 
+        booking.notes && booking.notes.includes(`(${phone})`)
+      );
+
+      if (matchingBookings.length === 0) {
+        throw new Error('No booking found with this phone number and verification code');
+      }
+
+      return matchingBookings;
     } catch (err: any) {
       console.error('Error in getGuestBookingByCode:', err);
       setError(err.message);
