@@ -23,19 +23,19 @@ const AssignAdmin = () => {
     setIsLoading(true);
     
     try {
-      // First, check if the user exists in profiles - using simpler query approach
-      const { data: profiles, error: profilesError } = await supabase
+      // First check if the user exists in profiles with a simple query
+      const { data, error } = await supabase
         .from('profiles')
-        .select('id, is_admin')
+        .select('id')
         .eq('email', email);
       
-      if (profilesError) {
+      if (error) {
         throw new Error('Error checking user profile');
       }
       
       // If profile exists, update it
-      if (profiles && profiles.length > 0) {
-        const profileId = profiles[0].id;
+      if (data && data.length > 0) {
+        const profileId = data[0].id;
         
         const { error: updateError } = await supabase
           .from('profiles')
