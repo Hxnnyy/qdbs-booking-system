@@ -198,7 +198,7 @@ const ManageBookings = () => {
                     <SelectValue placeholder="All booking types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="guest">Guest Bookings</SelectItem>
                     <SelectItem value="user">User Bookings</SelectItem>
                   </SelectContent>
@@ -209,7 +209,7 @@ const ManageBookings = () => {
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Statuses</SelectItem>
+                    <SelectItem value="all">All Statuses</SelectItem>
                     {statusOptions.map(option => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
