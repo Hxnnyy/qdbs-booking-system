@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -15,6 +15,10 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, user, isLoading } = useAuth();
+  const location = useLocation();
+
+  // Get the redirect path from location state or default to '/'
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +34,7 @@ const Login = () => {
     }
   };
 
-  // If already logged in, redirect to homepage
+  // If already logged in, redirect to homepage or the original page they tried to access
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -107,6 +111,11 @@ const Login = () => {
                   Don't have an account?{' '}
                   <Link to="/signup" className="text-burgundy hover:underline">
                     Sign up
+                  </Link>
+                </div>
+                <div className="text-sm text-center">
+                  <Link to="/book-guest" className="text-burgundy hover:underline font-playfair">
+                    Continue as guest
                   </Link>
                 </div>
               </CardFooter>
