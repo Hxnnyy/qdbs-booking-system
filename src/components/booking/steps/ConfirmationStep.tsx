@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { BookingFormState, TwilioSMSResult } from '@/types/booking';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
+import { Clipboard, CalendarDays } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ConfirmationStepProps {
   bookingResult: any;
@@ -23,6 +25,17 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
   const navigate = useNavigate();
   const { selectedBarber, selectedService, selectedDate, selectedTime, guestPhone } = formData;
   const twilioResult = bookingResult.twilioResult as TwilioSMSResult;
+  
+  const handleCopyCode = () => {
+    if (bookingResult.bookingCode) {
+      navigator.clipboard.writeText(bookingResult.bookingCode);
+      toast.success('Booking code copied to clipboard!');
+    }
+  };
+  
+  const handleManageBooking = () => {
+    navigate('/verify-booking');
+  };
   
   return (
     <div className="text-center space-y-6">
@@ -43,11 +56,19 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
         
         <div className="mb-4">
           <h4 className="text-lg font-semibold mb-2">Your Booking Code</h4>
-          <div className="bg-burgundy p-3 rounded border border-burgundy-dark text-center">
+          <div className="bg-burgundy p-3 rounded border border-burgundy-dark text-center relative">
             <span className="text-xl font-mono font-bold tracking-wider text-white">{bookingResult.bookingCode}</span>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:text-white hover:bg-burgundy-light"
+              onClick={handleCopyCode}
+            >
+              <Clipboard className="h-4 w-4" />
+            </Button>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            Keep this code safe. You'll need it to manage your booking.
+            Keep this code safe. You'll need it to manage or cancel your booking.
           </p>
         </div>
         
@@ -73,8 +94,16 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
       
       <div className="mt-6 space-y-4">
         <Button 
+          onClick={handleManageBooking} 
+          className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
+        >
+          <CalendarDays className="h-4 w-4" />
+          Manage My Booking
+        </Button>
+        <Button 
           onClick={() => navigate('/')} 
-          className="bg-burgundy hover:bg-burgundy-light"
+          variant="outline"
+          className="text-burgundy border-burgundy hover:bg-burgundy/10"
         >
           Return to Home
         </Button>

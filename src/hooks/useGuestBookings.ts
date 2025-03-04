@@ -77,7 +77,12 @@ export const useGuestBookings = () => {
       
       return {
         bookingData: data[0],
-        bookingCode
+        bookingCode,
+        twilioResult: {
+          success: !smsError,
+          message: smsError ? 'SMS notification failed' : 'SMS notification sent',
+          isTwilioConfigured: !smsError
+        }
       };
     } catch (err: any) {
       console.error('Error in createGuestBooking:', err);
@@ -169,10 +174,74 @@ export const useGuestBookings = () => {
     }
   };
 
+  const updateGuestBooking = async (
+    bookingId: string, 
+    phone: string, 
+    code: string, 
+    newDate: string, 
+    newTime: string
+  ) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Verify the booking code first
+      const bookings = await getGuestBookingByCode(phone, code);
+      
+      const bookingToUpdate = bookings.find(booking => booking.id === bookingId);
+      
+      if (!bookingToUpdate) {
+        throw new Error('You are not authorized to update this booking');
+      }
+
+      // Update the booking date and time
+      const { error } = await supabase
+        .from('bookings')
+        .update({ 
+          booking_date: newDate,
+          booking_time: newTime 
+        })
+        .eq('id', bookingId);
+
+      if (error) {
+        throw new Error(error.message || 'Failed to update booking');
+      }
+
+      // Send SMS notification about the update
+      const { error: smsError } = await supabase.functions.invoke('send-booking-sms', {
+        body: {
+          phone: phone,
+          name: "Guest", // We don't have the name from this context
+          bookingCode: code,
+          bookingId: bookingId,
+          bookingDate: newDate,
+          bookingTime: newTime,
+          isUpdate: true
+        }
+      });
+
+      if (smsError) {
+        console.error('SMS notification error:', smsError);
+        // Continue despite SMS error, just log it
+      }
+
+      toast.success('Booking updated successfully');
+      return true;
+    } catch (err: any) {
+      console.error('Error in updateGuestBooking:', err);
+      setError(err.message);
+      toast.error(err.message || 'Failed to update booking');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     createGuestBooking,
     getGuestBookingByCode,
     cancelGuestBooking,
+    updateGuestBooking,
     bookingCode,
     isLoading,
     error
