@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Index';
@@ -7,7 +6,7 @@ import Services from './pages/Services';
 import Barbers from './pages/Barbers';
 import Book from './pages/Book';
 import GuestBooking from './pages/GuestBooking';
-import VerifyGuestBooking from './pages/guestBooking/VerifyGuestBooking';
+import VerifyGuestBooking from './pages/VerifyGuestBooking';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -19,7 +18,7 @@ import ManageBookings from './pages/admin/ManageBookings';
 import SetupShop from './pages/admin/SetupShop';
 import AssignAdmin from './pages/admin/AssignAdmin';
 import MakeJosephAdmin from './pages/admin/MakeJosephAdmin';
-import { AdminLayout } from './components/AdminLayout';
+import AdminLayout from './components/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import './App.css';
@@ -45,53 +44,17 @@ function App() {
         } />
         <Route path="/admin" element={
           <AdminRoute>
-            <AdminLayout>
-              <Dashboard />
-            </AdminLayout>
+            <AdminLayout />
           </AdminRoute>
-        } />
-        <Route path="/admin/manage-barbers" element={
-          <AdminRoute>
-            <AdminLayout>
-              <ManageBarbers />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/manage-services" element={
-          <AdminRoute>
-            <AdminLayout>
-              <ManageServices />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/manage-bookings" element={
-          <AdminRoute>
-            <AdminLayout>
-              <ManageBookings />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/setup-shop" element={
-          <AdminRoute>
-            <AdminLayout>
-              <SetupShop />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/assign-admin" element={
-          <AdminRoute>
-            <AdminLayout>
-              <AssignAdmin />
-            </AdminLayout>
-          </AdminRoute>
-        } />
-        <Route path="/admin/make-joseph-admin" element={
-          <AdminRoute>
-            <AdminLayout>
-              <MakeJosephAdmin />
-            </AdminLayout>
-          </AdminRoute>
-        } />
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="manage-barbers" element={<ManageBarbers />} />
+          <Route path="manage-services" element={<ManageServices />} />
+          <Route path="manage-bookings" element={<ManageBookings />} />
+          <Route path="setup-shop" element={<SetupShop />} />
+          <Route path="assign-admin" element={<AssignAdmin />} />
+          <Route path="make-joseph-admin" element={<MakeJosephAdmin />} />
+        </Route>
       </Routes>
     </div>
   );
