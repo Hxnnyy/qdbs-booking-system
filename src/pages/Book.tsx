@@ -166,13 +166,53 @@ const Book = () => {
   const renderStepIndicator = () => {
     return (
       <div className="flex items-center justify-center mb-8">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'barber' ? 'bg-burgundy text-white' : 'bg-gray-200 text-gray-600'}`}>1</div>
-        <div className={`h-1 w-12 ${step !== 'barber' ? 'bg-burgundy' : 'bg-gray-200'}`}></div>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'service' ? 'bg-burgundy text-white' : step === 'barber' ? 'bg-gray-200 text-gray-600' : 'bg-burgundy text-white'}`}>2</div>
-        <div className={`h-1 w-12 ${step === 'datetime' || step === 'notes' ? 'bg-burgundy' : 'bg-gray-200'}`}></div>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'datetime' ? 'bg-burgundy text-white' : step === 'notes' ? 'bg-burgundy text-white' : 'bg-gray-200 text-gray-600'}`}>3</div>
-        <div className={`h-1 w-12 ${step === 'notes' ? 'bg-burgundy' : 'bg-gray-200'}`}></div>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'notes' ? 'bg-burgundy text-white' : 'bg-gray-200 text-gray-600'}`}>4</div>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          step === 'barber' 
+            ? 'bg-burgundy text-white' 
+            : step === 'service' || step === 'datetime' || step === 'notes' 
+              ? 'bg-burgundy text-white' 
+              : 'bg-gray-200 text-gray-600'
+        }`}>1</div>
+        
+        <div className={`h-1 w-12 ${
+          step === 'service' || step === 'datetime' || step === 'notes' 
+            ? 'bg-burgundy' 
+            : 'bg-gray-200'
+        }`}></div>
+        
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          step === 'service' 
+            ? 'bg-burgundy text-white' 
+            : step === 'datetime' || step === 'notes' 
+              ? 'bg-burgundy text-white' 
+              : 'bg-gray-200 text-gray-600'
+        }`}>2</div>
+        
+        <div className={`h-1 w-12 ${
+          step === 'datetime' || step === 'notes' 
+            ? 'bg-burgundy' 
+            : 'bg-gray-200'
+        }`}></div>
+        
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          step === 'datetime' 
+            ? 'bg-burgundy text-white' 
+            : step === 'notes' 
+              ? 'bg-burgundy text-white' 
+              : 'bg-gray-200 text-gray-600'
+        }`}>3</div>
+        
+        <div className={`h-1 w-12 ${
+          step === 'notes' 
+            ? 'bg-burgundy' 
+            : 'bg-gray-200'
+        }`}></div>
+        
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          step === 'notes' 
+            ? 'bg-burgundy text-white' 
+            : 'bg-gray-200 text-gray-600'
+        }`}>4</div>
       </div>
     );
   };
