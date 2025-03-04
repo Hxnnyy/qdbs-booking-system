@@ -9,18 +9,15 @@ const corsHeaders = {
 
 // Function to send verification code via Twilio Verify
 async function sendVerificationCode(phoneNumber: string) {
+  // Get environment variables directly without trimming
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  console.log('Environment variables check for sending verification:');
-  console.log('TWILIO_ACCOUNT_SID present:', !!accountSid);
-  console.log('TWILIO_AUTH_TOKEN present:', !!authToken);
-  console.log('TWILIO_VERIFY_SID present:', !!verifySid);
-  
-  // Print actual values for debugging (redacted for security)
-  if (accountSid) console.log('TWILIO_ACCOUNT_SID:', accountSid.substring(0, 4) + '...' + accountSid.substring(accountSid.length - 4));
-  if (verifySid) console.log('TWILIO_VERIFY_SID:', verifySid.substring(0, 4) + '...' + verifySid.substring(verifySid.length - 4));
+  console.log('Environment variables for sending verification:');
+  console.log('TWILIO_ACCOUNT_SID:', accountSid);
+  console.log('TWILIO_AUTH_TOKEN:', authToken ? '********' : undefined);
+  console.log('TWILIO_VERIFY_SID:', verifySid);
   
   // Enhanced check for Twilio Verify configuration
   if (!accountSid || !authToken || !verifySid) {
@@ -103,14 +100,15 @@ async function sendVerificationCode(phoneNumber: string) {
 
 // Function to check verification code via Twilio Verify
 async function checkVerificationCode(phoneNumber: string, code: string) {
+  // Get environment variables directly without trimming
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  console.log('Environment variables check for verification:');
-  console.log('TWILIO_ACCOUNT_SID present:', !!accountSid);
-  console.log('TWILIO_AUTH_TOKEN present:', !!authToken);
-  console.log('TWILIO_VERIFY_SID present:', !!verifySid);
+  console.log('Environment variables for verification:');
+  console.log('TWILIO_ACCOUNT_SID:', accountSid);
+  console.log('TWILIO_AUTH_TOKEN:', authToken ? '********' : undefined);
+  console.log('TWILIO_VERIFY_SID:', verifySid);
   
   // Enhanced check for Twilio Verify configuration
   if (!accountSid || !authToken || !verifySid) {
@@ -203,6 +201,9 @@ serve(async (req) => {
   }
 
   try {
+    // Log all env variables for debugging
+    console.log('All Deno.env keys:', Object.keys(Deno.env.toObject()));
+    
     const { action, phone, code } = await req.json();
     console.log(`Processing ${action} request for phone: ${phone}${code ? ' with code' : ''}`);
 
@@ -246,14 +247,6 @@ serve(async (req) => {
           } 
         }
       );
-    }
-
-    // Log all environment variables (names only, not values) for debugging
-    try {
-      const envKeys = Object.keys(Deno.env.toObject());
-      console.log('All available environment variables:', envKeys);
-    } catch (e) {
-      console.log('Could not list environment variables:', e);
     }
 
     let result;

@@ -2,14 +2,14 @@
 [project_id]
 value = "mvcqywuqkeerlmodohgw"
 
-# Twilio Account SID
+# Twilio Account SID - without quotes
 [TWILIO_ACCOUNT_SID]
 value = "AC54b797ebe565b448f49220123b5fb5d0"
 
-# Twilio Auth Token  
+# Twilio Auth Token - without quotes
 [TWILIO_AUTH_TOKEN]
 value = "4b75253f7f2847203c08fb5c8af48802"
 
-# Twilio Verify Service SID
+# Twilio Verify Service SID - without quotes
 [TWILIO_VERIFY_SID]
 value = "VAf74f714e04ecde0290cf2049f0858bfa"
