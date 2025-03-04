@@ -8,6 +8,21 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/AdminLayout';
 
+// Define explicit types for Supabase responses to avoid deep type instantiation
+type ProfileQueryResponse = { 
+  data: { id: string }[] | null; 
+  error: Error | null 
+};
+
+type RPCResponse = {
+  data: string | null;
+  error: Error | null;
+};
+
+type MutationResponse = {
+  error: Error | null;
+};
+
 const AssignAdmin = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -23,13 +38,12 @@ const AssignAdmin = () => {
     setIsLoading(true);
     
     try {
-      // First check if the user exists in profiles with a different query approach
-      // Using explicit type annotations to avoid deep type instantiation
+      // First check if the user exists in profiles
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', email)
-        .limit(1) as { data: { id: string }[] | null, error: Error | null };
+        .limit(1) as ProfileQueryResponse;
       
       if (profileError) {
         throw new Error('Error checking user profile');
@@ -42,7 +56,7 @@ const AssignAdmin = () => {
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ is_admin: true })
-          .eq('id', profileId);
+          .eq('id', profileId) as MutationResponse;
           
         if (updateError) {
           throw new Error('Failed to update user profile');
@@ -56,7 +70,7 @@ const AssignAdmin = () => {
       // If no profile, try to get user ID by email
       const { data: userId, error: userIdError } = await supabase.rpc('get_user_id_by_email', {
         user_email: email
-      });
+      }) as RPCResponse;
       
       if (userIdError || !userId) {
         throw new Error('User not found');
@@ -69,7 +83,7 @@ const AssignAdmin = () => {
           id: userId,
           email: email,
           is_admin: true
-        });
+        }) as MutationResponse;
         
       if (insertError) {
         throw new Error('Failed to create user profile');
