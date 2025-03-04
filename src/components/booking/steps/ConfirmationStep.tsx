@@ -73,6 +73,14 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
       
       <div className="mt-6 space-y-4">
         <Button 
+          onClick={() => navigate('/verify-booking')} 
+          variant="outline"
+          className="mr-2"
+        >
+          Manage Your Booking
+        </Button>
+        
+        <Button 
           onClick={() => navigate('/')} 
           className="bg-burgundy hover:bg-burgundy-light"
         >

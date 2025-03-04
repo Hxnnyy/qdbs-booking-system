@@ -1,270 +1,193 @@
-
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Scissors, Menu, X, User, LogOut, Calendar, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { useAuth } from '@/context/AuthContext';
+} from '@/components/ui/dropdown-menu';
+import { Menu, X, User, LogOut } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useProfile } from '@/hooks/useProfile';
 
 const Navbar = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const location = useLocation();
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut } = useAuth();
+  const { profile } = useProfile(user?.id);
+  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [scrolled]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
 
   const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
+    setMobileMenuOpen(false);
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  const getLinkClasses = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      'text-gray-700 hover:text-burgundy transition-colors duration-200',
+      isActive && 'text-burgundy font-medium'
+    );
 
-  return (
-    <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b border-border/40">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center">
-          <Link to="/" className="flex items-center space-x-2" onClick={closeMobileMenu}>
-            <Scissors className="h-6 w-6 text-burgundy" />
-            <span className="text-xl font-bold font-playfair text-foreground tracking-tight">Queens Dock</span>
-          </Link>
-        </div>
+  const getMobileLinkClasses = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      'block py-2 px-4 text-gray-700 hover:bg-gray-100 rounded-md',
+      isActive && 'text-burgundy font-medium'
+    );
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
-          <Link
-            to="/"
-            className={`text-sm font-medium transition-colors hover:text-foreground/80 ${
-              isActive('/') ? 'text-foreground' : 'text-foreground/60'
-            }`}
-          >
-            Home
-          </Link>
-          <Link
-            to="/services"
-            className={`text-sm font-medium transition-colors hover:text-foreground/80 ${
-              isActive('/services') ? 'text-foreground' : 'text-foreground/60'
-            }`}
-          >
-            Services
-          </Link>
-          <Link
-            to="/barbers"
-            className={`text-sm font-medium transition-colors hover:text-foreground/80 ${
-              isActive('/barbers') ? 'text-foreground' : 'text-foreground/60'
-            }`}
-          >
-            Barbers
-          </Link>
-          <Link
-            to="/about"
-            className={`text-sm font-medium transition-colors hover:text-foreground/80 ${
-              isActive('/about') ? 'text-foreground' : 'text-foreground/60'
-            }`}
-          >
-            About
-          </Link>
-          <Link to="/book">
-            <Button size="sm" className="ml-2 bg-burgundy hover:bg-burgundy-light">
-              Book Now
+  const renderDesktopMenu = () => (
+    <nav className="hidden md:flex space-x-6 items-center">
+      <NavLink to="/" className={getLinkClasses}>Home</NavLink>
+      <NavLink to="/services" className={getLinkClasses}>Services</NavLink>
+      <NavLink to="/barbers" className={getLinkClasses}>Barbers</NavLink>
+      <NavLink to="/about" className={getLinkClasses}>About</NavLink>
+      <NavLink to="/book" className={getLinkClasses}>Book Now</NavLink>
+      <NavLink to="/verify-booking" className={getLinkClasses}>Manage Booking</NavLink>
+      {user ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src="/placeholder-avatar.jpg" alt={profile?.first_name || user.email} />
+                <AvatarFallback>{profile?.first_name?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+              </Avatar>
             </Button>
-          </Link>
-        </nav>
-
-        {/* User Profile/Authentication Buttons */}
-        <div className="hidden md:flex items-center space-x-2">
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="relative">
-                  <User className="h-5 w-5" />
-                  <span className="sr-only">Account menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-0.5">
-                    <p className="text-sm font-medium">{user.email}</p>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="cursor-pointer">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    <span>My Bookings</span>
-                  </Link>
-                </DropdownMenuItem>
-                {isAdmin && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin" className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Admin Panel</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="cursor-pointer">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <>
-              <Link to="/login">
-                <Button variant="ghost" size="sm">
-                  Sign in
-                </Button>
-              </Link>
-              <Link to="/signup">
-                <Button size="sm" variant="outline">
-                  Sign up
-                </Button>
-              </Link>
-            </>
-          )}
-        </div>
-
-        {/* Mobile Menu Button */}
-        <button
-          onClick={toggleMobileMenu}
-          className="inline-flex md:hidden items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          {isMobileMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-          <span className="sr-only">Toggle menu</span>
-        </button>
-      </div>
-
-      {/* Mobile Navigation */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-background pt-16 px-4">
-          <nav className="flex flex-col space-y-4 pt-6 pb-8">
-            <Link
-              to="/"
-              className={`text-lg font-medium transition-colors hover:text-foreground/80 ${
-                isActive('/') ? 'text-foreground' : 'text-foreground/60'
-              }`}
-              onClick={closeMobileMenu}
-            >
-              Home
-            </Link>
-            <Link
-              to="/services"
-              className={`text-lg font-medium transition-colors hover:text-foreground/80 ${
-                isActive('/services') ? 'text-foreground' : 'text-foreground/60'
-              }`}
-              onClick={closeMobileMenu}
-            >
-              Services
-            </Link>
-            <Link
-              to="/barbers"
-              className={`text-lg font-medium transition-colors hover:text-foreground/80 ${
-                isActive('/barbers') ? 'text-foreground' : 'text-foreground/60'
-              }`}
-              onClick={closeMobileMenu}
-            >
-              Barbers
-            </Link>
-            <Link
-              to="/about"
-              className={`text-lg font-medium transition-colors hover:text-foreground/80 ${
-                isActive('/about') ? 'text-foreground' : 'text-foreground/60'
-              }`}
-              onClick={closeMobileMenu}
-            >
-              About
-            </Link>
-            <Link to="/book" onClick={closeMobileMenu}>
-              <Button className="w-full bg-burgundy hover:bg-burgundy-light">
-                Book Now
-              </Button>
-            </Link>
-            
-            <div className="border-t border-border/30 my-4 pt-4">
-              {user ? (
-                <>
-                  <Link 
-                    to="/profile" 
-                    className="flex items-center py-2 text-lg font-medium" 
-                    onClick={closeMobileMenu}
-                  >
-                    <User className="mr-2 h-5 w-5" />
-                    Profile
-                  </Link>
-                  <Link 
-                    to="/profile" 
-                    className="flex items-center py-2 text-lg font-medium" 
-                    onClick={closeMobileMenu}
-                  >
-                    <Calendar className="mr-2 h-5 w-5" />
-                    My Bookings
-                  </Link>
-                  {isAdmin && (
-                    <Link 
-                      to="/admin" 
-                      className="flex items-center py-2 text-lg font-medium" 
-                      onClick={closeMobileMenu}
-                    >
-                      <Settings className="mr-2 h-5 w-5" />
-                      Admin Panel
-                    </Link>
-                  )}
-                  <button 
-                    onClick={() => {
-                      signOut();
-                      closeMobileMenu();
-                    }} 
-                    className="flex items-center py-2 text-lg font-medium w-full"
-                  >
-                    <LogOut className="mr-2 h-5 w-5" />
-                    Log out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link 
-                    to="/login" 
-                    className="block py-2 text-lg font-medium"
-                    onClick={closeMobileMenu}
-                  >
-                    Sign in
-                  </Link>
-                  <Link 
-                    to="/signup" 
-                    className="block py-2 text-lg font-medium"
-                    onClick={closeMobileMenu}
-                  >
-                    Sign up
-                  </Link>
-                </>
-              )}
-            </div>
-          </nav>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{profile?.first_name} {profile?.last_name}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/profile')}>
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            {profile?.is_admin && (
+              <DropdownMenuItem onClick={() => navigate('/admin')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Admin Dashboard</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => navigate('/login')}>
+            Login
+          </Button>
+          <Button className="bg-burgundy hover:bg-burgundy-light" onClick={() => navigate('/signup')}>
+            Sign Up
+          </Button>
         </div>
       )}
+    </nav>
+  );
+  
+  const renderMobileMenu = () => (
+    <div className={`lg:hidden ${mobileMenuOpen ? 'block' : 'hidden'} absolute right-0 top-16 w-full bg-white shadow-lg z-20`}>
+      <div className="flex flex-col p-4 space-y-3">
+        <NavLink onClick={closeMobileMenu} to="/" className={getMobileLinkClasses}>Home</NavLink>
+        <NavLink onClick={closeMobileMenu} to="/services" className={getMobileLinkClasses}>Services</NavLink>
+        <NavLink onClick={closeMobileMenu} to="/barbers" className={getMobileLinkClasses}>Barbers</NavLink>
+        <NavLink onClick={closeMobileMenu} to="/about" className={getMobileLinkClasses}>About</NavLink>
+        <NavLink onClick={closeMobileMenu} to="/book" className={getMobileLinkClasses}>Book Now</NavLink>
+        <NavLink onClick={closeMobileMenu} to="/verify-booking" className={getMobileLinkClasses}>Manage Booking</NavLink>
+        {user ? (
+          <>
+            <NavLink onClick={closeMobileMenu} to="/profile" className={getMobileLinkClasses}>Profile</NavLink>
+            {profile?.is_admin && (
+              <NavLink onClick={closeMobileMenu} to="/admin" className={getMobileLinkClasses}>Admin Dashboard</NavLink>
+            )}
+            <button 
+              onClick={() => {
+                handleSignOut();
+                closeMobileMenu();
+              }} 
+              className="py-2 px-4 text-left text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Log out
+            </button>
+          </>
+        ) : (
+          <div className="flex flex-col space-y-2 pt-2">
+            <Button variant="outline" onClick={() => {
+              navigate('/login');
+              closeMobileMenu();
+            }}>
+              Login
+            </Button>
+            <Button className="bg-burgundy hover:bg-burgundy-light" onClick={() => {
+              navigate('/signup');
+              closeMobileMenu();
+            }}>
+              Sign Up
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <header className={cn(
+      "sticky top-0 z-50 w-full transition-all duration-200",
+      scrolled ? "bg-white shadow-md py-2" : "bg-white/80 backdrop-blur-sm py-4"
+    )}>
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <NavLink to="/" className="text-2xl font-bold text-burgundy">
+              <img src="/logo.png" alt="Barber Shop Logo" className="h-10" />
+            </NavLink>
+          </div>
+          
+          {renderDesktopMenu()}
+          
+          <button
+            className="md:hidden p-2"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6 text-gray-700" />
+            ) : (
+              <Menu className="h-6 w-6 text-gray-700" />
+            )}
+          </button>
+        </div>
+      </div>
+      
+      {renderMobileMenu()}
     </header>
   );
 };
