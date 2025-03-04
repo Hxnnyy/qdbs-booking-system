@@ -23,11 +23,12 @@ const AssignAdmin = () => {
     setIsLoading(true);
     
     try {
-      // First check if the user exists in profiles with a simple query
+      // First check if the user exists in profiles with a simplified query
       const { data, error } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', email);
+        .eq('email', email)
+        .limit(1);
       
       if (error) {
         throw new Error('Error checking user profile');
