@@ -9,8 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/AdminLayout';
 
 // Define explicit types for Supabase responses to avoid deep type instantiation
+interface ProfileData {
+  id: string;
+}
+
 type ProfileQueryResponse = { 
-  data: { id: string }[] | null; 
+  data: ProfileData[] | null; 
   error: Error | null 
 };
 
@@ -39,11 +43,13 @@ const AssignAdmin = () => {
     
     try {
       // First check if the user exists in profiles
-      const { data: profileData, error: profileError } = await supabase
+      const profileQuery: ProfileQueryResponse = await supabase
         .from('profiles')
         .select('id')
         .eq('email', email)
-        .limit(1) as ProfileQueryResponse;
+        .limit(1);
+      
+      const { data: profileData, error: profileError } = profileQuery;
       
       if (profileError) {
         throw new Error('Error checking user profile');
@@ -53,12 +59,12 @@ const AssignAdmin = () => {
       if (profileData && profileData.length > 0) {
         const profileId = profileData[0].id;
         
-        const { error: updateError } = await supabase
+        const updateResult: MutationResponse = await supabase
           .from('profiles')
           .update({ is_admin: true })
-          .eq('id', profileId) as MutationResponse;
+          .eq('id', profileId);
           
-        if (updateError) {
+        if (updateResult.error) {
           throw new Error('Failed to update user profile');
         }
         
@@ -68,24 +74,26 @@ const AssignAdmin = () => {
       }
       
       // If no profile, try to get user ID by email
-      const { data: userId, error: userIdError } = await supabase.rpc('get_user_id_by_email', {
+      const rpcResult: RPCResponse = await supabase.rpc('get_user_id_by_email', {
         user_email: email
-      }) as RPCResponse;
+      });
+      
+      const { data: userId, error: userIdError } = rpcResult;
       
       if (userIdError || !userId) {
         throw new Error('User not found');
       }
       
       // Create a profile for the user
-      const { error: insertError } = await supabase
+      const insertResult: MutationResponse = await supabase
         .from('profiles')
         .insert({
           id: userId,
           email: email,
           is_admin: true
-        }) as MutationResponse;
+        });
         
-      if (insertError) {
+      if (insertResult.error) {
         throw new Error('Failed to create user profile');
       }
       
