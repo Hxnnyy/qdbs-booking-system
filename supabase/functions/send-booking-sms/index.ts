@@ -13,8 +13,11 @@ async function sendTwilioSMS(to: string, body: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
   
-  // Check if Twilio is fully configured
-  const isTwilioConfigured = accountSid && authToken && twilioPhoneNumber && twilioPhoneNumber.trim() !== '';
+  // Improved check for Twilio configuration
+  const isTwilioConfigured = accountSid && authToken && twilioPhoneNumber && 
+                            accountSid.trim() !== '' && 
+                            authToken.trim() !== '' && 
+                            twilioPhoneNumber.trim() !== '';
   
   if (!isTwilioConfigured) {
     console.log('Twilio not fully configured. Would send SMS to:', to);
@@ -27,6 +30,7 @@ async function sendTwilioSMS(to: string, body: string) {
   }
   
   try {
+    console.log('Attempting to send SMS to:', to);
     // Auth header for Twilio API
     const auth = btoa(`${accountSid}:${authToken}`);
     
@@ -48,6 +52,7 @@ async function sendTwilioSMS(to: string, body: string) {
     );
     
     const result = await response.json();
+    console.log('Twilio SMS response:', JSON.stringify(result));
     
     if (!response.ok) {
       throw new Error(result.message || 'Error sending SMS');
@@ -64,7 +69,8 @@ async function sendTwilioSMS(to: string, body: string) {
     return {
       success: false,
       message: error.message || 'Error sending SMS',
-      isTwilioConfigured: true
+      isTwilioConfigured: true,
+      error: error.toString()
     };
   }
 }
@@ -80,6 +86,14 @@ serve(async (req) => {
 
   try {
     const { phone, name, bookingCode, bookingId, bookingDate, bookingTime } = await req.json();
+    console.log('Processing SMS request for:', { phone, name, bookingCode, bookingId });
+
+    // Log environment variables (without showing sensitive values)
+    console.log('Environment check:', {
+      TWILIO_ACCOUNT_SID: !!Deno.env.get('TWILIO_ACCOUNT_SID'),
+      TWILIO_AUTH_TOKEN: !!Deno.env.get('TWILIO_AUTH_TOKEN'),
+      TWILIO_PHONE_NUMBER: !!Deno.env.get('TWILIO_PHONE_NUMBER')
+    });
 
     // Validate input
     if (!phone || !name || !bookingCode || !bookingId || !bookingDate || !bookingTime) {

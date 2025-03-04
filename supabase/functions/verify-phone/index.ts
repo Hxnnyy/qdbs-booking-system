@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.131.0/http/server.ts';
 
 // CORS headers for browser clients
@@ -12,8 +13,9 @@ async function sendVerificationCode(phoneNumber: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  // Check if Twilio is fully configured
-  if (!accountSid || !authToken || !verifySid) {
+  // Improved check to make sure all required Twilio variables are set and non-empty
+  if (!accountSid || !authToken || !verifySid || 
+      accountSid.trim() === '' || authToken.trim() === '' || verifySid.trim() === '') {
     console.log('Twilio Verify not fully configured. Would send verification to:', phoneNumber);
     return {
       success: false,
@@ -24,6 +26,7 @@ async function sendVerificationCode(phoneNumber: string) {
   }
   
   try {
+    console.log('Attempting to send verification code to:', phoneNumber);
     // Auth header for Twilio API
     const auth = btoa(`${accountSid}:${authToken}`);
     
@@ -44,6 +47,7 @@ async function sendVerificationCode(phoneNumber: string) {
     );
     
     const result = await response.json();
+    console.log('Twilio verification response:', JSON.stringify(result));
     
     if (!response.ok) {
       throw new Error(result.message || 'Error sending verification code');
@@ -61,7 +65,8 @@ async function sendVerificationCode(phoneNumber: string) {
     return {
       success: false,
       message: error.message || 'Error sending verification code',
-      isTwilioConfigured: true
+      isTwilioConfigured: true,
+      error: error.toString()
     };
   }
 }
@@ -72,8 +77,9 @@ async function checkVerificationCode(phoneNumber: string, code: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  // Check if Twilio is fully configured
-  if (!accountSid || !authToken || !verifySid) {
+  // Improved check to make sure all required Twilio variables are set and non-empty
+  if (!accountSid || !authToken || !verifySid || 
+      accountSid.trim() === '' || authToken.trim() === '' || verifySid.trim() === '') {
     console.log('Twilio Verify not fully configured. Would check code:', code, 'for phone:', phoneNumber);
     // For testing without Twilio, accept any 6-digit code
     return {
@@ -86,6 +92,7 @@ async function checkVerificationCode(phoneNumber: string, code: string) {
   }
   
   try {
+    console.log('Attempting to verify code for phone:', phoneNumber);
     // Auth header for Twilio API
     const auth = btoa(`${accountSid}:${authToken}`);
     
@@ -106,6 +113,7 @@ async function checkVerificationCode(phoneNumber: string, code: string) {
     );
     
     const result = await response.json();
+    console.log('Twilio verification check response:', JSON.stringify(result));
     
     if (!response.ok) {
       throw new Error(result.message || 'Error checking verification code');
@@ -123,7 +131,8 @@ async function checkVerificationCode(phoneNumber: string, code: string) {
     return {
       success: false,
       message: error.message || 'Error checking verification code',
-      isTwilioConfigured: true
+      isTwilioConfigured: true,
+      error: error.toString()
     };
   }
 }
@@ -139,6 +148,7 @@ serve(async (req) => {
 
   try {
     const { action, phone, code } = await req.json();
+    console.log(`Processing ${action} request for phone: ${phone}${code ? ' with code' : ''}`);
 
     // Validate action
     if (!action || !['send', 'check'].includes(action)) {
@@ -182,6 +192,13 @@ serve(async (req) => {
       );
     }
 
+    // Log environment variables (without showing sensitive values)
+    console.log('Environment check:', {
+      TWILIO_ACCOUNT_SID: !!Deno.env.get('TWILIO_ACCOUNT_SID'),
+      TWILIO_AUTH_TOKEN: !!Deno.env.get('TWILIO_AUTH_TOKEN'),
+      TWILIO_VERIFY_SID: !!Deno.env.get('TWILIO_VERIFY_SID')
+    });
+
     let result;
     if (action === 'send') {
       // Send verification code
@@ -190,6 +207,8 @@ serve(async (req) => {
       // Check verification code
       result = await checkVerificationCode(phone, code);
     }
+    
+    console.log(`${action} result:`, JSON.stringify(result));
     
     return new Response(
       JSON.stringify(result),
