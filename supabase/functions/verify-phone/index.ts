@@ -9,14 +9,17 @@ const corsHeaders = {
 
 // Function to send verification code via Twilio Verify
 async function sendVerificationCode(phoneNumber: string) {
-  // Get environment variables directly without trimming
+  console.log('Starting sendVerificationCode function...');
+  console.log('All environment variables keys:', Object.keys(Deno.env.toObject()));
+  
+  // Get environment variables directly
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  console.log('Environment variables for sending verification:');
+  console.log('Raw environment variable values:');
   console.log('TWILIO_ACCOUNT_SID:', accountSid);
-  console.log('TWILIO_AUTH_TOKEN:', authToken ? '********' : undefined);
+  console.log('TWILIO_AUTH_TOKEN:', authToken ? '[REDACTED]' : undefined);
   console.log('TWILIO_VERIFY_SID:', verifySid);
   
   // Enhanced check for Twilio Verify configuration
@@ -100,14 +103,16 @@ async function sendVerificationCode(phoneNumber: string) {
 
 // Function to check verification code via Twilio Verify
 async function checkVerificationCode(phoneNumber: string, code: string) {
-  // Get environment variables directly without trimming
+  console.log('Starting checkVerificationCode function...');
+  
+  // Get environment variables directly
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  console.log('Environment variables for verification:');
+  console.log('Raw environment variable values:');
   console.log('TWILIO_ACCOUNT_SID:', accountSid);
-  console.log('TWILIO_AUTH_TOKEN:', authToken ? '********' : undefined);
+  console.log('TWILIO_AUTH_TOKEN:', authToken ? '[REDACTED]' : undefined);
   console.log('TWILIO_VERIFY_SID:', verifySid);
   
   // Enhanced check for Twilio Verify configuration
@@ -201,8 +206,18 @@ serve(async (req) => {
   }
 
   try {
-    // Log all env variables for debugging
-    console.log('All Deno.env keys:', Object.keys(Deno.env.toObject()));
+    console.log('=== STARTING VERIFY-PHONE FUNCTION ===');
+    console.log('All environment variables available to the function:');
+    try {
+      const envVars = Deno.env.toObject();
+      console.log('Environment variables keys:', Object.keys(envVars));
+      // Don't log values for security, just show if they exist
+      console.log('TWILIO_ACCOUNT_SID exists:', !!envVars.TWILIO_ACCOUNT_SID);
+      console.log('TWILIO_AUTH_TOKEN exists:', !!envVars.TWILIO_AUTH_TOKEN);
+      console.log('TWILIO_VERIFY_SID exists:', !!envVars.TWILIO_VERIFY_SID);
+    } catch (e) {
+      console.error('Error listing environment variables:', e);
+    }
     
     const { action, phone, code } = await req.json();
     console.log(`Processing ${action} request for phone: ${phone}${code ? ' with code' : ''}`);
