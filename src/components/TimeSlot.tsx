@@ -1,48 +1,26 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-
-export interface TimeSlotData {
-  id: string;
-  startTime: Date;
-  endTime: Date;
-  isAvailable: boolean;
-}
 
 interface TimeSlotProps {
-  slot: TimeSlotData;
+  time: string;
   selected: boolean;
-  onSelect: (slot: TimeSlotData) => void;
+  onClick: () => void;
+  disabled?: boolean;
 }
 
-const TimeSlot: React.FC<TimeSlotProps> = ({ slot, selected, onSelect }) => {
-  const formattedTime = format(slot.startTime, 'h:mm a');
-  
-  // Determine the appropriate styling based on status
-  const baseClass = "rounded-full py-2 px-4 text-sm font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary";
-  
-  const statusClass = slot.isAvailable
-    ? selected
-      ? "bg-primary text-primary-foreground"
-      : "bg-secondary text-foreground hover:bg-primary/10"
-    : "bg-muted text-muted-foreground cursor-not-allowed opacity-60";
-  
+const TimeSlot: React.FC<TimeSlotProps> = ({ time, selected, onClick, disabled = false }) => {
   return (
-    <motion.button
-      type="button"
-      disabled={!slot.isAvailable}
-      onClick={() => slot.isAvailable && onSelect(slot)}
-      className={cn(baseClass, statusClass)}
-      whileHover={slot.isAvailable && !selected ? { scale: 1.05 } : {}}
-      whileTap={slot.isAvailable ? { scale: 0.95 } : {}}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+    <button
+      className={`p-2 rounded border transition-colors ${
+        selected 
+          ? 'bg-burgundy text-white border-burgundy' 
+          : 'bg-secondary text-foreground border-input hover:bg-secondary/80'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      onClick={onClick}
+      disabled={disabled}
     >
-      {formattedTime}
-    </motion.button>
+      {time}
+    </button>
   );
 };
 
