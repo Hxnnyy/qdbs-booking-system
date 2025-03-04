@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -58,7 +57,6 @@ const Book = () => {
   const today = startOfToday();
   const maxDate = addDays(today, 30);
 
-  // Available time slots
   const timeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
     '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
@@ -67,12 +65,10 @@ const Book = () => {
 
   const isLoading = barbersLoading || servicesLoading || bookingLoading || isLoadingBarberServices;
 
-  // Fetch services for a specific barber
   const fetchBarberServices = async (barberId: string) => {
     try {
       setIsLoadingBarberServices(true);
       
-      // First, fetch the services this barber provides
       const { data: barberServiceLinks, error: barberServicesError } = await supabase
         .from('barber_services')
         .select('service_id')
@@ -81,10 +77,8 @@ const Book = () => {
       if (barberServicesError) throw barberServicesError;
       
       if (barberServiceLinks && barberServiceLinks.length > 0) {
-        // Get the service IDs
         const serviceIds = barberServiceLinks.map(item => item.service_id);
         
-        // Then fetch the actual service details
         const { data: serviceDetails, error: serviceDetailsError } = await supabase
           .from('services')
           .select('*')
@@ -96,13 +90,11 @@ const Book = () => {
         
         setBarberServices(serviceDetails || []);
       } else {
-        // If the barber has no specific services, show all active services
         setBarberServices(services.filter(service => service.active));
       }
     } catch (error) {
       console.error('Error fetching barber services:', error);
       toast.error('Failed to load services for this barber');
-      // Fallback to all services
       setBarberServices(services.filter(service => service.active));
     } finally {
       setIsLoadingBarberServices(false);
@@ -111,7 +103,7 @@ const Book = () => {
 
   const handleSelectBarber = (barberId: string) => {
     setSelectedBarber(barberId);
-    setSelectedService(null); // Reset service when barber changes
+    setSelectedService(null);
     fetchBarberServices(barberId);
     setStep('service');
   };
@@ -345,7 +337,7 @@ const Book = () => {
                 
                 <div className="pt-4">
                   <h3 className="text-xl font-bold mb-4 font-playfair">Review Your Booking</h3>
-                  <div className="bg-gray-50 p-4 rounded-md border">
+                  <div className="bg-gray-100 p-4 rounded-md border text-gray-800">
                     <div className="grid grid-cols-2 gap-2">
                       <div className="text-sm font-medium">Barber</div>
                       <div className="text-sm">{barbers.find(b => b.id === selectedBarber)?.name}</div>
