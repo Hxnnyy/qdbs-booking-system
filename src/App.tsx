@@ -45,7 +45,9 @@ function App() {
         } />
         <Route path="/admin" element={
           <AdminRoute>
-            <AdminLayout />
+            <AdminLayout>
+              <Dashboard />
+            </AdminLayout>
           </AdminRoute>
         }>
           <Route index element={<Dashboard />} />
