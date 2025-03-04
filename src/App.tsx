@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Index';
@@ -6,7 +7,7 @@ import Services from './pages/Services';
 import Barbers from './pages/Barbers';
 import Book from './pages/Book';
 import GuestBooking from './pages/GuestBooking';
-import VerifyGuestBooking from './pages/VerifyGuestBooking';
+import VerifyGuestBooking from './pages/guestBooking/VerifyGuestBooking';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -18,7 +19,7 @@ import ManageBookings from './pages/admin/ManageBookings';
 import SetupShop from './pages/admin/SetupShop';
 import AssignAdmin from './pages/admin/AssignAdmin';
 import MakeJosephAdmin from './pages/admin/MakeJosephAdmin';
-import AdminLayout from './components/AdminLayout';
+import { AdminLayout } from './components/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import './App.css';
