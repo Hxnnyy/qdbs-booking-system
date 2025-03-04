@@ -30,6 +30,12 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
     setGuestPhone(e.target.value);
   };
 
+  // Create a specific handler for the continue button to prevent automatic navigation
+  const handleContinue = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault(); // Prevent any default form submission
+    onNext();
+  };
+
   return (
     <>
       <div className="max-w-md mx-auto">
@@ -83,8 +89,9 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
         </Button>
         
         <Button 
-          onClick={onNext}
+          onClick={handleContinue}
           className="bg-burgundy hover:bg-burgundy-light flex items-center gap-2"
+          type="button"
         >
           Continue <ArrowRight className="h-4 w-4" />
         </Button>

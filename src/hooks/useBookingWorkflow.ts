@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -124,7 +123,7 @@ export const useBookingWorkflow = (
       return;
     }
     
-    // Go to verification step
+    // Go to verification step only when the continue button is clicked
     setStep('verify-phone');
   };
 
