@@ -3,31 +3,46 @@
 
 // Function to format phone number to E.164 format (required by Twilio)
 function formatPhoneNumber(phoneNumber: string): string {
-  // Remove any non-digit characters
-  const digits = phoneNumber.replace(/\D/g, '');
+  console.log('Formatting phone number:', phoneNumber);
   
-  // Check if the number starts with + or country code
-  if (phoneNumber.startsWith('+')) {
-    return phoneNumber; // Already in E.164 format
+  // Remove any non-digit characters except the leading +
+  const cleaned = phoneNumber.replace(/[^\d+]/g, '');
+  console.log('After cleaning:', cleaned);
+  
+  // Check if the number already starts with +
+  if (cleaned.startsWith('+')) {
+    console.log('Number already has + prefix:', cleaned);
+    return cleaned;
   }
   
   // If it starts with 0, assume UK number (replace 0 with +44)
-  if (digits.startsWith('0')) {
-    return '+44' + digits.substring(1);
+  if (cleaned.startsWith('0')) {
+    const formatted = '+44' + cleaned.substring(1);
+    console.log('UK format detected, formatted as:', formatted);
+    return formatted;
   }
   
-  // If it doesn't have country code, assume US/Canada and add +1
-  if (digits.length === 10) {
-    return '+1' + digits;
+  // If it has 10 digits, assume US/Canada and add +1
+  if (cleaned.length === 10) {
+    const formatted = '+1' + cleaned;
+    console.log('US format detected, formatted as:', formatted);
+    return formatted;
   }
   
-  // Otherwise, just add + to the beginning if missing
-  return '+' + digits;
+  // If it doesn't have a +, add it
+  if (!cleaned.startsWith('+')) {
+    const formatted = '+' + cleaned;
+    console.log('Adding + prefix:', formatted);
+    return formatted;
+  }
+  
+  console.log('Returning as is:', cleaned);
+  return cleaned;
 }
 
 // Function to send verification code via Twilio Verify
 export async function sendVerificationCode(phoneNumber: string) {
-  console.log('Starting sendVerificationCode function...');
+  console.log('Starting sendVerificationCode function with phone:', phoneNumber);
   
   try {
     // Get environment variables directly
@@ -64,6 +79,12 @@ export async function sendVerificationCode(phoneNumber: string) {
     const formattedPhone = formatPhoneNumber(phoneNumber);
     console.log('Original phone:', phoneNumber);
     console.log('Formatted phone for Twilio:', formattedPhone);
+    
+    // Validate the phone number format before sending
+    if (!formattedPhone.match(/^\+[1-9]\d{1,14}$/)) {
+      console.error('Invalid phone number format after formatting:', formattedPhone);
+      throw new Error('Invalid phone number format. Must be in E.164 format.');
+    }
     
     // Auth header for Twilio API
     const auth = btoa(`${accountSid}:${authToken}`);
@@ -104,7 +125,12 @@ export async function sendVerificationCode(phoneNumber: string) {
     if (!response.ok) {
       // Log detailed error information
       console.error('Twilio API error details:', JSON.stringify(result));
-      throw new Error(result.message || `Error sending verification code (Status: ${response.status})`);
+      return {
+        success: false,
+        message: result.message || `Error from Twilio: ${response.status}`,
+        isTwilioConfigured: true,
+        error: result.message || `HTTP error: ${response.status}`
+      };
     }
     
     console.log('Verification request successful:', result.sid);
@@ -129,7 +155,7 @@ export async function sendVerificationCode(phoneNumber: string) {
 
 // Function to check verification code via Twilio Verify
 export async function checkVerificationCode(phoneNumber: string, code: string) {
-  console.log('Starting checkVerificationCode function...');
+  console.log('Starting checkVerificationCode function with phone:', phoneNumber, 'and code:', code);
   
   try {
     // Get environment variables directly
@@ -208,7 +234,12 @@ export async function checkVerificationCode(phoneNumber: string, code: string) {
     if (!response.ok) {
       // Log detailed error information
       console.error('Twilio API error details:', JSON.stringify(result));
-      throw new Error(result.message || `Error checking verification code (Status: ${response.status})`);
+      return {
+        success: false,
+        message: result.message || `Error from Twilio: ${response.status}`,
+        isTwilioConfigured: true,
+        error: result.message || `HTTP error: ${response.status}`
+      };
     }
     
     return {

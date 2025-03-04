@@ -9,26 +9,41 @@ const corsHeaders = {
 
 // Function to format phone number to E.164 format (required by Twilio)
 function formatPhoneNumber(phoneNumber: string): string {
-  // Remove any non-digit characters
-  const digits = phoneNumber.replace(/\D/g, '');
+  console.log('Formatting phone number:', phoneNumber);
   
-  // Check if the number starts with + or country code
-  if (phoneNumber.startsWith('+')) {
-    return phoneNumber; // Already in E.164 format
+  // Remove any non-digit characters except the leading +
+  const cleaned = phoneNumber.replace(/[^\d+]/g, '');
+  console.log('After cleaning:', cleaned);
+  
+  // Check if the number already starts with +
+  if (cleaned.startsWith('+')) {
+    console.log('Number already has + prefix:', cleaned);
+    return cleaned;
   }
   
   // If it starts with 0, assume UK number (replace 0 with +44)
-  if (digits.startsWith('0')) {
-    return '+44' + digits.substring(1);
+  if (cleaned.startsWith('0')) {
+    const formatted = '+44' + cleaned.substring(1);
+    console.log('UK format detected, formatted as:', formatted);
+    return formatted;
   }
   
-  // If it doesn't have country code, assume US/Canada and add +1
-  if (digits.length === 10) {
-    return '+1' + digits;
+  // If it has 10 digits, assume US/Canada and add +1
+  if (cleaned.length === 10) {
+    const formatted = '+1' + cleaned;
+    console.log('US format detected, formatted as:', formatted);
+    return formatted;
   }
   
-  // Otherwise, just add + to the beginning if missing
-  return '+' + digits;
+  // If it doesn't have a +, add it
+  if (!cleaned.startsWith('+')) {
+    const formatted = '+' + cleaned;
+    console.log('Adding + prefix:', formatted);
+    return formatted;
+  }
+  
+  console.log('Returning as is:', cleaned);
+  return cleaned;
 }
 
 serve(async (req) => {
@@ -100,10 +115,22 @@ serve(async (req) => {
     console.log('Original phone:', phone);
     console.log('Attempting to send SMS to formatted number:', formattedPhone);
     
+    // Validate the phone number format before sending
+    if (!formattedPhone.match(/^\+[1-9]\d{1,14}$/)) {
+      console.error('Invalid phone number format after formatting:', formattedPhone);
+      throw new Error('Invalid phone number format. Must be in E.164 format.');
+    }
+    
     // Create auth header
     const auth = btoa(`${accountSid}:${authToken}`);
     
     // Send SMS using Twilio API
+    console.log('Sending SMS to Twilio API with payload:', {
+      From: fromNumber,
+      To: formattedPhone,
+      Body: message
+    });
+    
     const twilioResponse = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
       {
@@ -120,11 +147,36 @@ serve(async (req) => {
       }
     );
     
-    const twilioData = await twilioResponse.json();
+    // Log the complete response for debugging
+    const responseText = await twilioResponse.text();
+    console.log('Twilio response status:', twilioResponse.status);
+    console.log('Twilio response headers:', JSON.stringify(Object.fromEntries(twilioResponse.headers)));
+    console.log('Twilio response text:', responseText);
+    
+    let twilioData;
+    try {
+      twilioData = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Error parsing JSON response:', e);
+      twilioData = { error: 'Failed to parse response' };
+    }
     
     if (!twilioResponse.ok) {
       console.error('Twilio API error:', twilioData);
-      throw new Error(twilioData.message || 'Failed to send SMS');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: twilioData.message || 'Failed to send SMS',
+          error: twilioData
+        }),
+        { 
+          status: 400, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
     }
     
     console.log('SMS sent successfully:', twilioData.sid);
