@@ -6,7 +6,7 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ time, selected, onClick, disabled =
   return (
     <button
       className={`p-2 rounded border transition-colors ${
-        selected === "true" 
+        selected === time 
           ? 'bg-burgundy text-white border-burgundy' 
           : 'bg-secondary text-foreground border-input hover:bg-secondary/80'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}

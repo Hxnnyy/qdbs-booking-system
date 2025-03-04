@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { Calendar } from '@/components/ui/calendar';
 import { format, parse, addDays, isAfter, isBefore, endOfDay } from 'date-fns';
-import { TimeSlot } from '@/components/booking/TimeSlot';
+import TimeSlot from '@/components/booking/TimeSlot';
 import { Phone, KeyRound, Calendar as CalendarIcon } from 'lucide-react';
 import { useGuestBookings } from '@/hooks/useGuestBookings';
 import { useBarbers } from '@/hooks/useBarbers';

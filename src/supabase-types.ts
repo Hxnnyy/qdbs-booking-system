@@ -28,6 +28,7 @@ export interface Booking {
   status: string;
   notes?: string;
   created_at?: string;
+  guest_booking?: boolean;
   barber?: {
     name: string;
   };
