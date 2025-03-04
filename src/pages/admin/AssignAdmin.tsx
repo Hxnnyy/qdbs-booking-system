@@ -23,20 +23,21 @@ const AssignAdmin = () => {
     setIsLoading(true);
     
     try {
-      // First check if the user exists in profiles with a simplified query
-      const { data, error } = await supabase
+      // First check if the user exists in profiles with a different query approach
+      // Using explicit type annotations to avoid deep type instantiation
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', email)
-        .limit(1);
+        .limit(1) as { data: { id: string }[] | null, error: Error | null };
       
-      if (error) {
+      if (profileError) {
         throw new Error('Error checking user profile');
       }
       
       // If profile exists, update it
-      if (data && data.length > 0) {
-        const profileId = data[0].id;
+      if (profileData && profileData.length > 0) {
+        const profileId = profileData[0].id;
         
         const { error: updateError } = await supabase
           .from('profiles')
