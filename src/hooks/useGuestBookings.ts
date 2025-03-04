@@ -32,7 +32,7 @@ export const useGuestBookings = () => {
 
       const { guest_name, guest_phone, ...bookingDetails } = bookingData;
 
-      // 1. Create a temporary profile for the guest
+      // 1. Create a temporary profile for the guest without requiring auth
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
