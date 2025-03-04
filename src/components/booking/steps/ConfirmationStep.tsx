@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { BookingFormState } from '@/types/booking';
+import { BookingFormState, TwilioSMSResult } from '@/types/booking';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
 
@@ -22,6 +22,7 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
 }) => {
   const navigate = useNavigate();
   const { selectedBarber, selectedService, selectedDate, selectedTime, guestPhone } = formData;
+  const twilioResult = bookingResult.twilioResult as TwilioSMSResult;
   
   return (
     <div className="text-center space-y-6">
@@ -35,7 +36,9 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
       
       <div className="max-w-md mx-auto bg-gray-50 rounded-lg p-6 border border-gray-200">
         <p className="text-gray-600 mb-4">
-          We've sent a confirmation SMS to <span className="font-semibold">{guestPhone}</span> with your booking details.
+          {twilioResult?.isTwilioConfigured 
+            ? `We've sent a confirmation SMS to ${guestPhone} with your booking details.`
+            : `Your booking is confirmed. SMS notifications will be enabled soon.`}
         </p>
         
         <div className="mb-4">

@@ -33,3 +33,10 @@ export interface ExistingBooking {
     duration: number;
   };
 }
+
+export interface TwilioSMSResult {
+  success: boolean;
+  message: string;
+  isTwilioConfigured?: boolean;
+  sid?: string;
+}

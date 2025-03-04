@@ -7,8 +7,68 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// This would use a real SMS service like Twilio in production.
-// For now, we'll just log the message that would be sent.
+// Function to send SMS using Twilio API
+async function sendTwilioSMS(to: string, body: string) {
+  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+  const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+  
+  // Check if Twilio is fully configured
+  const isTwilioConfigured = accountSid && authToken && twilioPhoneNumber && twilioPhoneNumber.trim() !== '';
+  
+  if (!isTwilioConfigured) {
+    console.log('Twilio not fully configured. Would send SMS to:', to);
+    console.log('Message:', body);
+    return {
+      success: false,
+      message: 'Twilio not fully configured. SMS not sent.',
+      isTwilioConfigured: false
+    };
+  }
+  
+  try {
+    // Auth header for Twilio API
+    const auth = btoa(`${accountSid}:${authToken}`);
+    
+    // Make request to Twilio API
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          'To': to,
+          'From': twilioPhoneNumber,
+          'Body': body,
+        }),
+      }
+    );
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.message || 'Error sending SMS');
+    }
+    
+    return {
+      success: true,
+      message: 'SMS sent successfully',
+      sid: result.sid,
+      isTwilioConfigured: true
+    };
+  } catch (error) {
+    console.error('Error sending SMS via Twilio:', error);
+    return {
+      success: false,
+      message: error.message || 'Error sending SMS',
+      isTwilioConfigured: true
+    };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
@@ -38,18 +98,18 @@ serve(async (req) => {
     // Format message
     const message = `Hi ${name}, your booking at TheCut is confirmed for ${bookingDate} at ${bookingTime}. Your booking code is ${bookingCode}. Use this code to manage your booking at our website.`;
 
-    // This would send an SMS in production using a service like Twilio
-    console.log('Would send SMS:', message);
-    console.log('To phone number:', phone);
-
-    // For now, just return a success response
-    // In production, replace this with actual SMS sending logic and return the provider's response
+    // Send SMS through Twilio
+    const smsResult = await sendTwilioSMS(phone, message);
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'SMS notification would be sent in production',
+        message: smsResult.isTwilioConfigured ? 
+          'SMS notification sent successfully' : 
+          'SMS notification would be sent when Twilio is fully configured',
         to: phone,
-        smsContent: message
+        smsContent: message,
+        twilioResult: smsResult
       }),
       { 
         status: 200, 
