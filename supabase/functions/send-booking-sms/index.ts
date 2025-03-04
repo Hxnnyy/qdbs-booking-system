@@ -13,13 +13,15 @@ async function sendTwilioSMS(to: string, body: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
   
-  // Improved check for Twilio configuration
-  const isTwilioConfigured = accountSid && authToken && twilioPhoneNumber && 
-                            accountSid.trim() !== '' && 
-                            authToken.trim() !== '' && 
-                            twilioPhoneNumber.trim() !== '';
+  // Log what we have for debugging
+  console.log('Twilio configuration check:', {
+    accountSid: accountSid ? 'set' : 'not set',
+    authToken: authToken ? 'set' : 'not set',
+    twilioPhoneNumber: twilioPhoneNumber ? 'set' : 'not set'
+  });
   
-  if (!isTwilioConfigured) {
+  // Improved check for Twilio SMS (needs account SID, auth token, and phone number)
+  if (!accountSid || !authToken || !twilioPhoneNumber) {
     console.log('Twilio not fully configured. Would send SMS to:', to);
     console.log('Message:', body);
     return {

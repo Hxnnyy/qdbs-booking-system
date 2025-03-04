@@ -13,9 +13,15 @@ async function sendVerificationCode(phoneNumber: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  // Improved check to make sure all required Twilio variables are set and non-empty
-  if (!accountSid || !authToken || !verifySid || 
-      accountSid.trim() === '' || authToken.trim() === '' || verifySid.trim() === '') {
+  // Log what we have for debugging
+  console.log('Twilio configuration check:', {
+    accountSid: accountSid ? 'set' : 'not set',
+    authToken: authToken ? 'set' : 'not set',
+    verifySid: verifySid ? 'set' : 'not set'
+  });
+  
+  // Improved check for Twilio Verify (only needs SIDs and auth token)
+  if (!accountSid || !authToken || !verifySid) {
     console.log('Twilio Verify not fully configured. Would send verification to:', phoneNumber);
     return {
       success: false,
@@ -77,9 +83,8 @@ async function checkVerificationCode(phoneNumber: string, code: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  // Improved check to make sure all required Twilio variables are set and non-empty
-  if (!accountSid || !authToken || !verifySid || 
-      accountSid.trim() === '' || authToken.trim() === '' || verifySid.trim() === '') {
+  // Improved check for Twilio Verify (only needs SIDs and auth token)
+  if (!accountSid || !authToken || !verifySid) {
     console.log('Twilio Verify not fully configured. Would check code:', code, 'for phone:', phoneNumber);
     // For testing without Twilio, accept any 6-digit code
     return {
