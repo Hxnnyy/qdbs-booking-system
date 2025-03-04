@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Layout from '@/components/Layout';
 import { useBarbers } from '@/hooks/useBarbers';
@@ -24,7 +23,6 @@ const GuestBooking = () => {
 
   const isLoading = barbersLoading || servicesLoading || isLoadingBarberServices || isLoadingBookings;
   
-  // Determine the current step based on the form state
   const getCurrentStep = (): BookingStep => {
     if (formState.selectedBarber === null) return 'barber';
     if (formState.selectedService === null) return 'service';
@@ -32,8 +30,7 @@ const GuestBooking = () => {
     if (formState.guestName === '' || formState.guestPhone === '') return 'guest-info';
     if (!formState.isPhoneVerified) return 'verify-phone';
     
-    // At this point we have all the info and verified phone, so we're at notes or confirmation
-    return formState.notes !== undefined ? 'confirmation' : 'notes';
+    return formState.bookingComplete === true ? 'confirmation' : 'notes';
   };
 
   return (

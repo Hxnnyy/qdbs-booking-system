@@ -28,33 +28,41 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
   
   return (
     <div className="flex items-center justify-center mb-8">
-      {steps.map((step, index) => (
-        <React.Fragment key={step}>
-          {/* Step Circle */}
-          <div 
-            className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center",
-              isStepActiveOrComplete(index, currentStepIndex)
-                ? "bg-burgundy text-white"
-                : "bg-gray-200 text-gray-600"
-            )}
-          >
-            {index + 1}
-          </div>
+      {steps.map((step, index) => {
+        // For the confirmation step, only show it as active if we're on that step
+        // For other steps, show them as active if we're on or past them
+        const isActive = step === 'confirmation' 
+          ? step === currentStep 
+          : isStepActiveOrComplete(index, currentStepIndex);
           
-          {/* Connector Line (don't render after the last step) */}
-          {index < steps.length - 1 && (
+        return (
+          <React.Fragment key={step}>
+            {/* Step Circle */}
             <div 
               className={cn(
-                "h-1 w-8",
-                isStepActiveOrComplete(index + 1, currentStepIndex)
-                  ? "bg-burgundy"
-                  : "bg-gray-200"
+                "w-8 h-8 rounded-full flex items-center justify-center",
+                isActive
+                  ? "bg-burgundy text-white"
+                  : "bg-gray-200 text-gray-600"
               )}
-            />
-          )}
-        </React.Fragment>
-      ))}
+            >
+              {index + 1}
+            </div>
+            
+            {/* Connector Line (don't render after the last step) */}
+            {index < steps.length - 1 && (
+              <div 
+                className={cn(
+                  "h-1 w-8",
+                  isActive && (index < currentStepIndex || (step === 'notes' && currentStep === 'confirmation'))
+                    ? "bg-burgundy"
+                    : "bg-gray-200"
+                )}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { Service } from '@/supabase-types';
 
 export interface TimeSlotProps {
@@ -23,6 +22,7 @@ export interface BookingFormState {
   notes: string;
   selectedServiceDetails: Service | null;
   isPhoneVerified: boolean;
+  bookingComplete?: boolean;
 }
 
 export type BookingStep = 'barber' | 'service' | 'datetime' | 'guest-info' | 'verify-phone' | 'notes' | 'confirmation';

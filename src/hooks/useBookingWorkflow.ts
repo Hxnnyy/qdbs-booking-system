@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -171,6 +172,7 @@ export const useBookingWorkflow = (
         setBookingResult(result);
         setShowSuccess(true);
         setStep('confirmation');
+        updateFormState({ bookingComplete: true });
       }
     } catch (error) {
       console.error('Booking error:', error);
