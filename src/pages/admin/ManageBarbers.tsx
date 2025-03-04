@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -9,8 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { Barber, InsertableBarber, UpdatableBarber } from '@/supabase-types';
+import { OpeningHoursForm } from '@/components/admin/OpeningHoursForm';
+import { BarberServicesForm } from '@/components/admin/BarberServicesForm';
 
 const ManageBarbers = () => {
   const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -20,6 +24,8 @@ const ManageBarbers = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isServicesDialogOpen, setIsServicesDialogOpen] = useState(false);
+  const [isHoursDialogOpen, setIsHoursDialogOpen] = useState(false);
   
   const [currentBarber, setCurrentBarber] = useState<Barber | null>(null);
   const [formData, setFormData] = useState({
@@ -159,6 +165,16 @@ const ManageBarbers = () => {
     setCurrentBarber(barber);
     setIsDeleteDialogOpen(true);
   };
+
+  const openServicesDialog = (barber: Barber) => {
+    setCurrentBarber(barber);
+    setIsServicesDialogOpen(true);
+  };
+
+  const openHoursDialog = (barber: Barber) => {
+    setCurrentBarber(barber);
+    setIsHoursDialogOpen(true);
+  };
   
   return (
     <Layout>
@@ -210,13 +226,27 @@ const ManageBarbers = () => {
                       <p className="text-sm mb-4 line-clamp-3">{barber.bio}</p>
                     )}
                     
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex flex-wrap gap-2 mt-4">
                       <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={() => openEditDialog(barber)}
                       >
                         Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => openServicesDialog(barber)}
+                      >
+                        Services
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => openHoursDialog(barber)}
+                      >
+                        Hours
                       </Button>
                       {barber.active && (
                         <Button 
@@ -370,6 +400,36 @@ const ManageBarbers = () => {
                 Deactivate
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Services Dialog */}
+        <Dialog open={isServicesDialogOpen} onOpenChange={setIsServicesDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manage {currentBarber?.name}'s Services</DialogTitle>
+            </DialogHeader>
+            {currentBarber && (
+              <BarberServicesForm 
+                barberId={currentBarber.id} 
+                onSaved={() => setIsServicesDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Hours Dialog */}
+        <Dialog open={isHoursDialogOpen} onOpenChange={setIsHoursDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manage {currentBarber?.name}'s Hours</DialogTitle>
+            </DialogHeader>
+            {currentBarber && (
+              <OpeningHoursForm 
+                barberId={currentBarber.id} 
+                onSaved={() => setIsHoursDialogOpen(false)}
+              />
+            )}
           </DialogContent>
         </Dialog>
       </AdminLayout>

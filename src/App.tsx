@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +20,7 @@ import ManageBarbers from "./pages/admin/ManageBarbers";
 import ManageServices from "./pages/admin/ManageServices";
 import ManageBookings from "./pages/admin/ManageBookings";
 import AssignAdmin from "./pages/admin/AssignAdmin";
+import SetupShop from './pages/admin/SetupShop';
 
 const queryClient = new QueryClient();
 
@@ -91,6 +91,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AssignAdmin />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/setup" 
+              element={
+                <AdminRoute>
+                  <SetupShop />
                 </AdminRoute>
               } 
             />

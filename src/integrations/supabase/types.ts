@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      barber_services: {
+        Row: {
+          barber_id: string
+          id: string
+          service_id: string
+        }
+        Insert: {
+          barber_id: string
+          id?: string
+          service_id: string
+        }
+        Update: {
+          barber_id?: string
+          id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_services_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       barbers: {
         Row: {
           active: boolean | null
@@ -87,8 +120,44 @@ export type Database = {
           },
         ]
       }
+      opening_hours: {
+        Row: {
+          barber_id: string
+          close_time: string
+          day_of_week: number
+          id: string
+          is_closed: boolean | null
+          open_time: string
+        }
+        Insert: {
+          barber_id: string
+          close_time: string
+          day_of_week: number
+          id?: string
+          is_closed?: boolean | null
+          open_time: string
+        }
+        Update: {
+          barber_id?: string
+          close_time?: string
+          day_of_week?: number
+          id?: string
+          is_closed?: boolean | null
+          open_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opening_hours_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          email: string | null
           first_name: string | null
           id: string
           is_admin: boolean | null
@@ -96,6 +165,7 @@ export type Database = {
           phone: string | null
         }
         Insert: {
+          email?: string | null
           first_name?: string | null
           id: string
           is_admin?: boolean | null
@@ -103,6 +173,7 @@ export type Database = {
           phone?: string | null
         }
         Update: {
+          email?: string | null
           first_name?: string | null
           id?: string
           is_admin?: boolean | null
