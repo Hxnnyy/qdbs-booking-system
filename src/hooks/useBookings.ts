@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -53,7 +52,7 @@ export const useBookings = () => {
     }
   };
 
-  const getUserBookings = async (retryCount = 0, maxRetries = 3) => {
+  const getUserBookings = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -78,16 +77,6 @@ export const useBookings = () => {
 
       if (error) {
         console.error('Supabase error:', error);
-        
-        // Retry on network errors
-        if (retryCount < maxRetries && (error.message.includes('Failed to fetch') || error.message.includes('network'))) {
-          console.log(`Retrying fetch (${retryCount + 1}/${maxRetries})...`);
-          // Exponential backoff
-          const delay = Math.pow(2, retryCount) * 1000; 
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return getUserBookings(retryCount + 1, maxRetries);
-        }
-        
         throw new Error(error.message || 'Failed to fetch bookings');
       }
 
@@ -96,6 +85,54 @@ export const useBookings = () => {
     } catch (err: any) {
       console.error('Error in getUserBookings:', err);
       setError(err.message);
+      toast.error(err.message || 'Failed to fetch your bookings');
+      
+      // Return empty array instead of throwing so UI can handle it
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getUserBookingsWithRetry = async (retryCount = 0, maxRetries = 3) => {
+    try {
+      if (!user) {
+        throw new Error('You must be logged in to view your bookings');
+      }
+
+      console.log('Fetching bookings for user (with retry):', user.id);
+
+      // @ts-ignore - Supabase types issue
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          barber:barber_id(name),
+          service:service_id(name, price, duration)
+        `)
+        .eq('user_id', user.id)
+        .order('booking_date', { ascending: true })
+        .order('booking_time', { ascending: true });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        
+        // Retry on network errors
+        if (retryCount < maxRetries && (error.message.includes('Failed to fetch') || error.message.includes('network'))) {
+          console.log(`Retrying fetch (${retryCount + 1}/${maxRetries})...`);
+          // Exponential backoff
+          const delay = Math.pow(2, retryCount) * 1000; 
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return getUserBookingsWithRetry(retryCount + 1, maxRetries);
+        }
+        
+        throw new Error(error.message || 'Failed to fetch bookings');
+      }
+
+      console.log('Fetched user bookings:', data);
+      return data || [];
+    } catch (err: any) {
+      console.error('Error in getUserBookingsWithRetry:', err);
       
       // Don't show toast for network errors if we're retrying
       if (retryCount >= maxRetries || (!err.message.includes('Failed to fetch') && !err.message.includes('network'))) {
@@ -104,8 +141,6 @@ export const useBookings = () => {
       
       // Return empty array instead of throwing so UI can handle it
       return [];
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -149,6 +184,7 @@ export const useBookings = () => {
   return {
     createBooking,
     getUserBookings,
+    getUserBookingsWithRetry,
     cancelBooking,
     isLoading,
     error
