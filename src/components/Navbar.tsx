@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Scissors, Menu, X, User, LogOut, Calendar, Settings } from 'lucide-react';
+import { Scissors, Menu, X, User, LogOut, Calendar, Settings, CalendarCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,6 +72,17 @@ const Navbar = () => {
             }`}
           >
             About
+          </Link>
+          <Link
+            to="/verify-booking"
+            className={`text-sm font-medium transition-colors hover:text-foreground/80 ${
+              isActive('/verify-booking') ? 'text-foreground' : 'text-foreground/60'
+            }`}
+          >
+            <span className="flex items-center">
+              <CalendarCheck className="mr-1 h-4 w-4" />
+              Manage Booking
+            </span>
           </Link>
           <Link to="/book">
             <Button size="sm" className="ml-2 bg-burgundy hover:bg-burgundy-light">
@@ -196,6 +207,18 @@ const Navbar = () => {
               onClick={closeMobileMenu}
             >
               About
+            </Link>
+            <Link
+              to="/verify-booking"
+              className={`text-lg font-medium transition-colors hover:text-foreground/80 ${
+                isActive('/verify-booking') ? 'text-foreground' : 'text-foreground/60'
+              }`}
+              onClick={closeMobileMenu}
+            >
+              <span className="flex items-center">
+                <CalendarCheck className="mr-2 h-5 w-5" />
+                Manage Booking
+              </span>
             </Link>
             <Link to="/book" onClick={closeMobileMenu}>
               <Button className="w-full bg-burgundy hover:bg-burgundy-light">
