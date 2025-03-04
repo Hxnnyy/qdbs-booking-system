@@ -32,11 +32,10 @@ export const useGuestBookings = () => {
 
       const { guest_name, guest_phone, ...bookingDetails } = bookingData;
 
-      // Create the booking without creating a profile
       // Store guest info in the notes field
       const newBooking: Omit<InsertableBooking, 'status'> = {
         ...bookingDetails,
-        user_id: guestUserId, // Use the generated UUID as user_id but don't create a profile
+        user_id: guestUserId,
         notes: bookingData.notes 
           ? `${bookingData.notes}\nGuest booking by ${guest_name} (${guest_phone}). Verification code: ${bookingCode}`
           : `Guest booking by ${guest_name} (${guest_phone}). Verification code: ${bookingCode}`
@@ -47,7 +46,8 @@ export const useGuestBookings = () => {
         .from('bookings')
         .insert({
           ...newBooking,
-          status: 'confirmed'
+          status: 'confirmed',
+          guest_booking: true // Mark this as a guest booking
         })
         .select();
 
@@ -103,6 +103,7 @@ export const useGuestBookings = () => {
           barber:barber_id(name),
           service:service_id(name, price, duration)
         `)
+        .eq('guest_booking', true)
         .ilike('notes', `%Verification code: ${code}%`)
         .order('booking_date', { ascending: true })
         .order('booking_time', { ascending: true });
