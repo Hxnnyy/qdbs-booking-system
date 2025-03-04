@@ -43,7 +43,7 @@ const Navbar = () => {
       </div>
 
       {/* Mobile Navigation */}
-      {isMobileMenuOpen && <MobileMenu closeMobileMenu={closeMobileMenu} />}
+      <MobileMenu isOpen={isMobileMenuOpen} closeMobileMenu={closeMobileMenu} />
     </header>
   );
 };

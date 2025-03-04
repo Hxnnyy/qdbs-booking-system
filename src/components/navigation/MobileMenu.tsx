@@ -7,14 +7,17 @@ import { useAuth } from '@/context/AuthContext';
 import NavLink from './NavLink';
 
 interface MobileMenuProps {
+  isOpen: boolean;
   closeMobileMenu: () => void;
 }
 
-const MobileMenu = ({ closeMobileMenu }: MobileMenuProps) => {
+const MobileMenu = ({ isOpen, closeMobileMenu }: MobileMenuProps) => {
   const { user, signOut, isAdmin } = useAuth();
 
+  if (!isOpen) return null;
+
   return (
-    <div className="md:hidden fixed inset-0 z-50 bg-background pt-16 px-4">
+    <div className="md:hidden fixed inset-0 z-40 bg-background pt-16 px-4">
       <nav className="flex flex-col space-y-4 pt-6 pb-8 bg-background">
         <NavLink to="/" onClick={closeMobileMenu} isMobile>Home</NavLink>
         <NavLink to="/services" onClick={closeMobileMenu} isMobile>Services</NavLink>
