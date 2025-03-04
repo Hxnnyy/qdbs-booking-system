@@ -95,9 +95,12 @@ const AssignAdmin = () => {
       setEmail('');
     } catch (error) {
       console.error('Error assigning admin:', error);
-      toast.error(typeof error === 'object' && error !== null && 'message' in error 
-        ? String(error.message) 
-        : 'Error assigning admin privileges');
+      // Fix for the TypeScript error - use type assertion instead of complex conditionals
+      let errorMessage = 'Error assigning admin privileges';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
