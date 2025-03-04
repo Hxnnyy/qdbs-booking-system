@@ -92,10 +92,10 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
         </div>
       </div>
       
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 flex flex-col items-center space-y-4">
         <Button 
           onClick={handleManageBooking} 
-          className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
+          className="bg-burgundy hover:bg-burgundy-dark text-white flex items-center gap-2"
         >
           <CalendarDays className="h-4 w-4" />
           Manage My Booking
