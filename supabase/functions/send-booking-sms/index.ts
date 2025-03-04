@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
 
 // CORS headers for all responses
@@ -96,6 +97,7 @@ serve(async (req) => {
     
     // Format the phone number to E.164 for Twilio
     const formattedPhone = formatPhoneNumber(phone);
+    console.log('Original phone:', phone);
     console.log('Attempting to send SMS to formatted number:', formattedPhone);
     
     // Create auth header
