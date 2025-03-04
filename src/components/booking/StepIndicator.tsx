@@ -18,11 +18,6 @@ const steps: BookingStep[] = [
   'confirmation'
 ];
 
-// Helper function to determine if a step is active or complete
-const isStepActiveOrComplete = (stepIndex: number, currentStepIndex: number): boolean => {
-  return stepIndex <= currentStepIndex;
-};
-
 const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
   const currentStepIndex = steps.indexOf(currentStep);
   
@@ -33,7 +28,10 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
         // For other steps, show them as active if we're on or past them
         const isActive = step === 'confirmation' 
           ? step === currentStep 
-          : isStepActiveOrComplete(index, currentStepIndex);
+          : index <= currentStepIndex;
+          
+        const isConnectorActive = index < currentStepIndex || 
+          (index === currentStepIndex && currentStep === 'confirmation' && step === 'notes');
           
         return (
           <React.Fragment key={step}>
@@ -54,7 +52,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
               <div 
                 className={cn(
                   "h-1 w-8",
-                  isActive && (index < currentStepIndex || (step === 'notes' && currentStep === 'confirmation'))
+                  isConnectorActive
                     ? "bg-burgundy"
                     : "bg-gray-200"
                 )}

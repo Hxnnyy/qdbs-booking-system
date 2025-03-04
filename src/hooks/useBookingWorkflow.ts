@@ -28,6 +28,9 @@ export const useBookingWorkflow = (
 
   // Update step when form state changes
   useEffect(() => {
+    // Only automatically navigate to confirmation step when showSuccess is true
+    // or from earlier steps to later ones when selections are made
+    // Do NOT auto-navigate from guest-info to verify-phone
     if (showSuccess) {
       setStep('confirmation');
       return;
@@ -48,18 +51,25 @@ export const useBookingWorkflow = (
       return;
     }
     
-    if (formState.guestName === '' || formState.guestPhone === '') {
+    // Don't automatically move to verify-phone from guest-info
+    // Let the user click continue instead
+    if ((formState.guestName === '' || formState.guestPhone === '') && 
+        step !== 'verify-phone' && step !== 'notes' && step !== 'confirmation') {
       setStep('guest-info');
       return;
     }
     
-    if (!formState.isPhoneVerified) {
-      setStep('verify-phone');
+    // Only stay on verify-phone if we're already there, don't auto-navigate to it
+    if (!formState.isPhoneVerified && step === 'verify-phone') {
       return;
     }
     
-    setStep('notes');
-  }, [formState, showSuccess]);
+    // Only move to notes if we're coming from verify-phone or later steps
+    if (formState.isPhoneVerified && 
+        (step === 'verify-phone' || step === 'notes' || step === 'confirmation')) {
+      setStep('notes');
+    }
+  }, [formState, showSuccess, step]);
 
   // Step handlers
   const handleSelectBarber = (barberId: string) => {
