@@ -171,7 +171,7 @@ const Navbar = () => {
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-background pt-16 px-4">
-          <nav className="flex flex-col space-y-4 pt-6 pb-8">
+          <nav className="flex flex-col space-y-4 pt-6 pb-8 bg-background">
             <Link
               to="/"
               className={`text-lg font-medium transition-colors hover:text-foreground/80 ${
@@ -226,7 +226,7 @@ const Navbar = () => {
               </Button>
             </Link>
             
-            <div className="border-t border-border/30 my-4 pt-4">
+            <div className="border-t border-border/30 my-4 pt-4 bg-background">
               {user ? (
                 <>
                   <Link 
