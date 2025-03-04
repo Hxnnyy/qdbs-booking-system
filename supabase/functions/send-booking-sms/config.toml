@@ -1,3 +1,15 @@
 
 [project_id]
 value = "mvcqywuqkeerlmodohgw"
+
+# This must be a valid Twilio SID
+[TWILIO_ACCOUNT_SID]
+value = ""
+
+# This must be a valid Twilio Auth Token
+[TWILIO_AUTH_TOKEN]
+value = ""
+
+# This must be a valid Twilio phone number
+[TWILIO_PHONE_NUMBER]
+value = ""
