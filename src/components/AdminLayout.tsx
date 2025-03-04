@@ -37,7 +37,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Dashboard">
-                      <Link to="/admin/dashboard">
+                      <Link to="/admin">
                         <ChartBarIcon />
                         <span>Dashboard</span>
                       </Link>
@@ -85,7 +85,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Assign Admin">
-                      <Link to="/admin/assign">
+                      <Link to="/admin/assign-admin">
                         <ShieldIcon />
                         <span>Assign Admin</span>
                       </Link>
