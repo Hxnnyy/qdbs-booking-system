@@ -64,14 +64,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchProfile = async (userId: string) => {
     try {
       // @ts-ignore - Supabase types issue
-      const { data, error } = await supabase
+      const { data, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) {
-        throw error;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError.message);
+        return;
       }
 
       setProfile(data || null);

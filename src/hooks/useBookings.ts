@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -29,14 +30,14 @@ export const useBookings = () => {
       console.log('Creating booking with data:', newBooking);
 
       // @ts-ignore - Supabase types issue
-      const { data, error } = await supabase
+      const { data, error: insertError } = await supabase
         .from('bookings')
         .insert(newBooking)
         .select();
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw new Error(error.message || 'Failed to create booking');
+      if (insertError) {
+        console.error('Supabase error:', insertError);
+        throw new Error(insertError.message || 'Failed to create booking');
       }
 
       console.log('Booking created successfully:', data);
