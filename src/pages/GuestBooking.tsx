@@ -6,6 +6,7 @@ import { useServices } from '@/hooks/useServices';
 import { useGuestBookingForm } from '@/hooks/useGuestBookingForm';
 import StepIndicator from '@/components/booking/StepIndicator';
 import GuestBookingWorkflow from '@/components/booking/GuestBookingWorkflow';
+import { BookingStep } from '@/types/booking';
 
 const GuestBooking = () => {
   const { barbers, isLoading: barbersLoading } = useBarbers();
@@ -22,6 +23,18 @@ const GuestBooking = () => {
   } = useGuestBookingForm();
 
   const isLoading = barbersLoading || servicesLoading || isLoadingBarberServices || isLoadingBookings;
+  
+  // Determine the current step based on the form state
+  const getCurrentStep = (): BookingStep => {
+    if (formState.selectedBarber === null) return 'barber';
+    if (formState.selectedService === null) return 'service';
+    if (formState.selectedDate === undefined || formState.selectedTime === null) return 'datetime';
+    if (formState.guestName === '' || formState.guestPhone === '') return 'guest-info';
+    if (!formState.isPhoneVerified) return 'verify-phone';
+    
+    // At this point we have all the info and verified phone, so we're at notes or confirmation
+    return formState.notes !== undefined ? 'confirmation' : 'notes';
+  };
 
   return (
     <Layout>
@@ -29,7 +42,7 @@ const GuestBooking = () => {
         <h1 className="text-3xl font-bold mb-4 font-playfair">Book as Guest</h1>
         <p className="text-muted-foreground mb-8 font-playfair">No account needed - just provide your name and phone number</p>
         
-        <StepIndicator currentStep={formState.isPhoneVerified ? 'notes' : formState.selectedTime ? 'guest-info' : formState.selectedService ? 'datetime' : formState.selectedBarber ? 'service' : 'barber'} />
+        <StepIndicator currentStep={getCurrentStep()} />
         
         <GuestBookingWorkflow
           barbers={barbers}

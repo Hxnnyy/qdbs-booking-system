@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { BookingStep, BookingFormState } from '@/types/booking';
@@ -11,10 +11,55 @@ export const useBookingWorkflow = (
   fetchBarberServices: (barberId: string) => Promise<void>,
   services: Service[]
 ) => {
-  const [step, setStep] = useState<BookingStep>('barber');
+  // Initialize step based on form state
+  const getInitialStep = (): BookingStep => {
+    if (formState.selectedBarber === null) return 'barber';
+    if (formState.selectedService === null) return 'service';
+    if (formState.selectedDate === undefined || formState.selectedTime === null) return 'datetime';
+    if (formState.guestName === '' || formState.guestPhone === '') return 'guest-info';
+    if (!formState.isPhoneVerified) return 'verify-phone';
+    return 'notes';
+  };
+
+  const [step, setStep] = useState<BookingStep>(getInitialStep());
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
   const { createGuestBooking, isLoading: bookingLoading } = useGuestBookings();
+
+  // Update step when form state changes
+  useEffect(() => {
+    if (showSuccess) {
+      setStep('confirmation');
+      return;
+    }
+    
+    if (formState.selectedBarber === null) {
+      setStep('barber');
+      return;
+    }
+    
+    if (formState.selectedService === null) {
+      setStep('service');
+      return;
+    }
+    
+    if (formState.selectedDate === undefined || formState.selectedTime === null) {
+      setStep('datetime');
+      return;
+    }
+    
+    if (formState.guestName === '' || formState.guestPhone === '') {
+      setStep('guest-info');
+      return;
+    }
+    
+    if (!formState.isPhoneVerified) {
+      setStep('verify-phone');
+      return;
+    }
+    
+    setStep('notes');
+  }, [formState, showSuccess]);
 
   // Step handlers
   const handleSelectBarber = (barberId: string) => {
