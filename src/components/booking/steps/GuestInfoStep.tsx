@@ -21,6 +21,15 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
   onNext,
   onBack
 }) => {
+  // Create handler functions to update state without triggering navigation
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGuestName(e.target.value);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGuestPhone(e.target.value);
+  };
+
   return (
     <>
       <div className="max-w-md mx-auto">
@@ -35,7 +44,7 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
                 id="guestName"
                 type="text"
                 value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
+                onChange={handleNameChange}
                 placeholder="Enter your full name"
                 className="pl-10"
               />
@@ -52,7 +61,7 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
                 id="guestPhone"
                 type="tel"
                 value={guestPhone}
-                onChange={(e) => setGuestPhone(e.target.value)}
+                onChange={handlePhoneChange}
                 placeholder="Enter your phone number"
                 className="pl-10"
               />
