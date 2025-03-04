@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { useBookings } from '@/hooks/useBookings';
@@ -14,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { Booking } from '@/supabase-types';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Profile = () => {
   const { user, profile, refreshProfile } = useAuth();
@@ -23,11 +25,23 @@ const Profile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Bookings state
-  const { getUserBookings, cancelBooking, isLoading: bookingsLoading } = useBookings();
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const { getUserBookings, cancelBooking } = useBookings();
   const [isCancelling, setIsCancelling] = useState(false);
-  const [retryAttempt, setRetryAttempt] = useState(0);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Use React Query for better data fetching
+  const { 
+    data: bookings = [], 
+    isLoading: bookingsLoading, 
+    error: fetchError, 
+    refetch: refetchBookings,
+    isRefetching
+  } = useQuery({
+    queryKey: ['userBookings', user?.id],
+    queryFn: getUserBookings,
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
 
   useEffect(() => {
     if (profile) {
@@ -36,23 +50,6 @@ const Profile = () => {
       setPhone(profile.phone || '');
     }
   }, [profile]);
-
-  const fetchBookings = useCallback(async () => {
-    if (user) {
-      setFetchError(null);
-      try {
-        const userBookings = await getUserBookings();
-        setBookings(userBookings || []);
-      } catch (error: any) {
-        console.error('Error fetching bookings in Profile component:', error);
-        setFetchError(error.message || 'Failed to load your bookings');
-      }
-    }
-  }, [user, getUserBookings]);
-
-  useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,18 +85,13 @@ const Profile = () => {
       
       if (success) {
         // Refresh bookings after cancellation
-        await fetchBookings();
+        refetchBookings();
       }
     } catch (error) {
       console.error('Error cancelling booking:', error);
     } finally {
       setIsCancelling(false);
     }
-  };
-
-  const handleRetryFetch = () => {
-    setRetryAttempt(prev => prev + 1);
-    fetchBookings();
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -118,10 +110,20 @@ const Profile = () => {
   };
 
   const renderBookings = () => {
-    if (bookingsLoading) {
+    if (bookingsLoading && !isRefetching) {
       return (
-        <div className="flex justify-center py-12">
-          <Spinner className="w-8 h-8" />
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="flex flex-col space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-1/3" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       );
     }
@@ -131,13 +133,15 @@ const Profile = () => {
         <div className="text-center py-8">
           <div className="bg-red-50 text-red-700 p-4 mb-4 rounded-md flex flex-col items-center">
             <AlertCircle className="h-6 w-6 mb-2" />
-            <p className="mb-4">{fetchError}</p>
+            <p className="mb-4">{fetchError instanceof Error ? fetchError.message : 'Error loading bookings'}</p>
             <Button 
               variant="outline" 
-              onClick={handleRetryFetch}
+              onClick={() => refetchBookings()}
               className="flex items-center gap-2"
+              disabled={isRefetching}
             >
-              <RefreshCw className="h-4 w-4" /> Retry
+              {isRefetching ? <Spinner className="h-4 w-4 mr-2" /> : <RefreshCw className="h-4 w-4" />}
+              {isRefetching ? 'Loading...' : 'Retry'}
             </Button>
           </div>
         </div>
@@ -213,6 +217,12 @@ const Profile = () => {
             </Card>
           );
         })}
+        
+        {isRefetching && (
+          <div className="flex justify-center py-2">
+            <Spinner className="h-6 w-6" />
+          </div>
+        )}
       </div>
     );
   };
@@ -229,7 +239,21 @@ const Profile = () => {
           </TabsList>
           
           <TabsContent value="bookings" className="mt-0">
-            <h2 className="text-2xl font-bold mb-4">Your Appointments</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Your Appointments</h2>
+              {bookings.length > 0 && !bookingsLoading && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => refetchBookings()}
+                  disabled={isRefetching}
+                  className="flex items-center gap-2"
+                >
+                  {isRefetching ? <Spinner className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
+                  {isRefetching ? 'Refreshing...' : 'Refresh'}
+                </Button>
+              )}
+            </div>
             {renderBookings()}
           </TabsContent>
           

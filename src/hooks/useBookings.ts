@@ -102,6 +102,7 @@ export const useBookings = () => {
         toast.error(err.message || 'Failed to fetch your bookings');
       }
       
+      // Return empty array instead of throwing so UI can handle it
       return [];
     } finally {
       setIsLoading(false);
