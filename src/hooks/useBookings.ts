@@ -32,7 +32,7 @@ export const useBookings = () => {
       // @ts-ignore - Supabase types issue
       const { data, error: insertError } = await supabase
         .from('bookings')
-        .insert(newBooking)
+        .insert([newBooking]) // Wrap in array to fix potential Supabase issue
         .select();
 
       if (insertError) {
