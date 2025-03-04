@@ -13,29 +13,32 @@ async function sendTwilioSMS(to: string, body: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
   
-  // Detailed logging for debugging environment variables
-  console.log('Detailed Twilio configuration check:', {
-    accountSid: accountSid || 'not set',
-    accountSidType: typeof accountSid,
-    accountSidLength: accountSid ? accountSid.length : 0,
-    
-    authToken: authToken ? '**present**' : 'not set',
-    authTokenType: typeof authToken,
-    authTokenLength: authToken ? authToken.length : 0,
-    
-    twilioPhoneNumber: twilioPhoneNumber || 'not set',
-    twilioPhoneNumberType: typeof twilioPhoneNumber,
-    twilioPhoneNumberLength: twilioPhoneNumber ? twilioPhoneNumber.length : 0
-  });
+  console.log('Environment variables check for SMS:');
+  console.log('TWILIO_ACCOUNT_SID present:', !!accountSid);
+  console.log('TWILIO_AUTH_TOKEN present:', !!authToken);
+  console.log('TWILIO_PHONE_NUMBER present:', !!twilioPhoneNumber);
+  
+  // Print actual values for debugging (redacted for security)
+  if (accountSid) console.log('TWILIO_ACCOUNT_SID:', accountSid.substring(0, 4) + '...' + accountSid.substring(accountSid.length - 4));
+  if (twilioPhoneNumber) console.log('TWILIO_PHONE_NUMBER:', twilioPhoneNumber);
   
   // Enhanced check for Twilio SMS configuration
   if (!accountSid || !authToken || !twilioPhoneNumber) {
-    console.log('Twilio not fully configured. Would send SMS to:', to);
+    // Log exactly which values are missing
+    const missing = [];
+    if (!accountSid) missing.push('TWILIO_ACCOUNT_SID');
+    if (!authToken) missing.push('TWILIO_AUTH_TOKEN');
+    if (!twilioPhoneNumber) missing.push('TWILIO_PHONE_NUMBER');
+    
+    console.log(`Twilio SMS missing config: ${missing.join(', ')}`);
+    console.log('Would send SMS to:', to);
     console.log('Message:', body);
+    
     return {
       success: false,
       message: 'Twilio not fully configured. SMS not sent.',
-      isTwilioConfigured: false
+      isTwilioConfigured: false,
+      missingConfig: missing
     };
   }
   
@@ -111,20 +114,12 @@ serve(async (req) => {
     const { phone, name, bookingCode, bookingId, bookingDate, bookingTime } = await req.json();
     console.log('Processing SMS request for:', { phone, name, bookingCode, bookingId });
 
-    // Log environment variables (without showing sensitive values)
-    console.log('Environment check:', {
-      TWILIO_ACCOUNT_SID: !!Deno.env.get('TWILIO_ACCOUNT_SID'),
-      TWILIO_AUTH_TOKEN: !!Deno.env.get('TWILIO_AUTH_TOKEN'),
-      TWILIO_PHONE_NUMBER: !!Deno.env.get('TWILIO_PHONE_NUMBER')
-    });
-    
-    // Attempt to log all available environment variables (names only, not values)
+    // Log all environment variables (names only, not values) for debugging
     try {
-      // @ts-ignore - Deno.env.toObject() might not be available in all Deno versions
-      const envVars = Deno.env.toObject ? Object.keys(Deno.env.toObject()) : [];
-      console.log('Available environment variables:', envVars);
+      const envKeys = Object.keys(Deno.env.toObject());
+      console.log('All available environment variables:', envKeys);
     } catch (e) {
-      console.log('Could not list environment variables:', e.message);
+      console.log('Could not list environment variables:', e);
     }
 
     // Validate input

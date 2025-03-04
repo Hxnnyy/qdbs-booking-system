@@ -13,29 +13,32 @@ async function sendVerificationCode(phoneNumber: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  // Detailed logging for debugging environment variables
-  console.log('Detailed Twilio configuration check:', {
-    accountSid: accountSid || 'not set',
-    accountSidType: typeof accountSid,
-    accountSidLength: accountSid ? accountSid.length : 0,
-    
-    authToken: authToken ? '**present**' : 'not set',
-    authTokenType: typeof authToken,
-    authTokenLength: authToken ? authToken.length : 0,
-    
-    verifySid: verifySid || 'not set',
-    verifySidType: typeof verifySid,
-    verifySidLength: verifySid ? verifySid.length : 0
-  });
+  console.log('Environment variables check for sending verification:');
+  console.log('TWILIO_ACCOUNT_SID present:', !!accountSid);
+  console.log('TWILIO_AUTH_TOKEN present:', !!authToken);
+  console.log('TWILIO_VERIFY_SID present:', !!verifySid);
+  
+  // Print actual values for debugging (redacted for security)
+  if (accountSid) console.log('TWILIO_ACCOUNT_SID:', accountSid.substring(0, 4) + '...' + accountSid.substring(accountSid.length - 4));
+  if (verifySid) console.log('TWILIO_VERIFY_SID:', verifySid.substring(0, 4) + '...' + verifySid.substring(verifySid.length - 4));
   
   // Enhanced check for Twilio Verify configuration
   if (!accountSid || !authToken || !verifySid) {
-    console.log('Twilio Verify not fully configured. Would send verification to:', phoneNumber);
+    // Log exactly which values are missing
+    const missing = [];
+    if (!accountSid) missing.push('TWILIO_ACCOUNT_SID');
+    if (!authToken) missing.push('TWILIO_AUTH_TOKEN');
+    if (!verifySid) missing.push('TWILIO_VERIFY_SID');
+    
+    console.log(`Twilio Verify missing config: ${missing.join(', ')}`);
+    console.log('Would send verification to:', phoneNumber);
+    
     return {
       success: false,
       message: 'Twilio Verify not fully configured.',
       isTwilioConfigured: false,
-      mockVerificationCode: '123456' // Mock code for testing when Twilio isn't configured
+      mockVerificationCode: '123456', // Mock code for testing
+      missingConfig: missing
     };
   }
   
@@ -104,31 +107,30 @@ async function checkVerificationCode(phoneNumber: string, code: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  // Detailed logging for debugging environment variables
-  console.log('Detailed Twilio configuration check for verification:', {
-    accountSid: accountSid || 'not set',
-    accountSidType: typeof accountSid,
-    accountSidLength: accountSid ? accountSid.length : 0,
-    
-    authToken: authToken ? '**present**' : 'not set',
-    authTokenType: typeof authToken,
-    authTokenLength: authToken ? authToken.length : 0,
-    
-    verifySid: verifySid || 'not set',
-    verifySidType: typeof verifySid,
-    verifySidLength: verifySid ? verifySid.length : 0
-  });
+  console.log('Environment variables check for verification:');
+  console.log('TWILIO_ACCOUNT_SID present:', !!accountSid);
+  console.log('TWILIO_AUTH_TOKEN present:', !!authToken);
+  console.log('TWILIO_VERIFY_SID present:', !!verifySid);
   
   // Enhanced check for Twilio Verify configuration
   if (!accountSid || !authToken || !verifySid) {
-    console.log('Twilio Verify not fully configured. Would check code:', code, 'for phone:', phoneNumber);
+    // Log exactly which values are missing
+    const missing = [];
+    if (!accountSid) missing.push('TWILIO_ACCOUNT_SID');
+    if (!authToken) missing.push('TWILIO_AUTH_TOKEN');
+    if (!verifySid) missing.push('TWILIO_VERIFY_SID');
+    
+    console.log(`Twilio Verify missing config: ${missing.join(', ')}`);
+    console.log('Would check code:', code, 'for phone:', phoneNumber);
+    
     // For testing without Twilio, accept any 6-digit code
     return {
       success: true,
       message: 'Verification successful (mock)',
       isTwilioConfigured: false,
       status: 'approved',
-      mockMode: true
+      mockMode: true,
+      missingConfig: missing
     };
   }
   
@@ -246,20 +248,12 @@ serve(async (req) => {
       );
     }
 
-    // Log environment variables (without showing sensitive values)
-    console.log('Environment check:', {
-      TWILIO_ACCOUNT_SID: !!Deno.env.get('TWILIO_ACCOUNT_SID'),
-      TWILIO_AUTH_TOKEN: !!Deno.env.get('TWILIO_AUTH_TOKEN'),
-      TWILIO_VERIFY_SID: !!Deno.env.get('TWILIO_VERIFY_SID')
-    });
-    
-    // Attempt to log all available environment variables (names only, not values)
+    // Log all environment variables (names only, not values) for debugging
     try {
-      // @ts-ignore - Deno.env.toObject() might not be available in all Deno versions
-      const envVars = Deno.env.toObject ? Object.keys(Deno.env.toObject()) : [];
-      console.log('Available environment variables:', envVars);
+      const envKeys = Object.keys(Deno.env.toObject());
+      console.log('All available environment variables:', envKeys);
     } catch (e) {
-      console.log('Could not list environment variables:', e.message);
+      console.log('Could not list environment variables:', e);
     }
 
     let result;

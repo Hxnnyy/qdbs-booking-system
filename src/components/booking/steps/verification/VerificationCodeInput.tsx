@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { Lock } from 'lucide-react';
+import { Lock, AlertTriangle } from 'lucide-react';
 
 interface VerificationCodeInputProps {
   verificationCode: string;
@@ -42,9 +42,19 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
 
         {mockCode && (
           <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
-            <p className="text-sm text-blue-700">
-              Test Mode: Use code <span className="font-bold">{mockCode}</span>
-            </p>
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-blue-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  Test Mode: Use code <span className="font-bold">{mockCode}</span>
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Twilio is not fully configured, but you can proceed with this test code.
+                </p>
+              </div>
+            </div>
           </div>
         )}
         
