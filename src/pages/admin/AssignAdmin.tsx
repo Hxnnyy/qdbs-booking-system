@@ -95,8 +95,9 @@ const AssignAdmin = () => {
       setEmail('');
     } catch (error) {
       console.error('Error assigning admin:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error assigning admin privileges';
-      toast.error(errorMessage);
+      toast.error(typeof error === 'object' && error !== null && 'message' in error 
+        ? String(error.message) 
+        : 'Error assigning admin privileges');
     } finally {
       setIsLoading(false);
     }
