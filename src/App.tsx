@@ -14,6 +14,8 @@ import Services from "./pages/Services";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import Book from "./pages/Book";
+import GuestBooking from "./pages/GuestBooking";
+import VerifyGuestBooking from "./pages/VerifyGuestBooking";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/admin/Dashboard";
 import ManageBarbers from "./pages/admin/ManageBarbers";
@@ -38,14 +40,9 @@ const App = () => (
             <Route path="/services" element={<Services />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
-            <Route 
-              path="/book" 
-              element={
-                <ProtectedRoute>
-                  <Book />
-                </ProtectedRoute>
-              } 
-            />
+            <Route path="/book" element={<Book />} />
+            <Route path="/book-guest" element={<GuestBooking />} />
+            <Route path="/verify-booking" element={<VerifyGuestBooking />} />
             <Route 
               path="/profile" 
               element={
@@ -102,7 +99,6 @@ const App = () => (
                 </AdminRoute>
               } 
             />
-            {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

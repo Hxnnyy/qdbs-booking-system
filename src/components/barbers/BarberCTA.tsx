@@ -19,9 +19,14 @@ const BarberCTA: React.FC = () => {
           <p className="text-muted-foreground text-lg mb-8 font-playfair">
             Choose your preferred barber and book your appointment today
           </p>
-          <Button asChild size="lg" className="rounded-none bg-burgundy hover:bg-burgundy-light">
-            <Link to="/book">Book Appointment</Link>
-          </Button>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Button asChild size="lg" className="rounded-none bg-burgundy hover:bg-burgundy-light">
+              <Link to="/book">Book Appointment</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-none border-burgundy text-burgundy hover:bg-burgundy/10">
+              <Link to="/book-guest">Book as Guest</Link>
+            </Button>
+          </div>
         </motion.div>
       </div>
     </section>
