@@ -79,9 +79,9 @@ serve(async (req) => {
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const fromNumber = Deno.env.get('TWILIO_PHONE_NUMBER') || '+15005550006'; // Default to Twilio test number
     
-    console.log('Environment variable check:');
-    console.log('TWILIO_ACCOUNT_SID:', accountSid ? 'exists' : 'missing');
-    console.log('TWILIO_AUTH_TOKEN:', authToken ? 'exists' : 'missing');
+    console.log('Environment variable values (masked):');
+    console.log('TWILIO_ACCOUNT_SID:', accountSid ? `${accountSid.substring(0, 3)}...${accountSid.substring(accountSid.length - 3)}` : 'missing');
+    console.log('TWILIO_AUTH_TOKEN:', authToken ? `${authToken.substring(0, 3)}...${authToken.substring(authToken.length - 3)}` : 'missing');
     console.log('TWILIO_PHONE_NUMBER:', Deno.env.get('TWILIO_PHONE_NUMBER') || 'using default');
     
     // Format message
@@ -131,8 +131,11 @@ serve(async (req) => {
       Body: message
     });
     
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    console.log(`Making request to Twilio API at ${twilioUrl}`);
+    
     const twilioResponse = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      twilioUrl,
       {
         method: 'POST',
         headers: {
@@ -156,6 +159,7 @@ serve(async (req) => {
     let twilioData;
     try {
       twilioData = JSON.parse(responseText);
+      console.log('Parsed Twilio response:', twilioData);
     } catch (e) {
       console.error('Error parsing JSON response:', e);
       twilioData = { error: 'Failed to parse response' };
@@ -163,6 +167,16 @@ serve(async (req) => {
     
     if (!twilioResponse.ok) {
       console.error('Twilio API error:', twilioData);
+      
+      // Check for specific error codes and provide more helpful messages
+      if (twilioData.code === 21608) {
+        console.error('Unregistered or non-SMS capable phone number detected.');
+      } else if (twilioData.code === 21211) {
+        console.error('Invalid phone number format detected.');
+      } else if (twilioData.code === 21606) {
+        console.error('The From phone number is not a valid, SMS-capable Twilio phone number.');
+      }
+      
       return new Response(
         JSON.stringify({
           success: false,

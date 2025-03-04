@@ -50,10 +50,10 @@ export async function sendVerificationCode(phoneNumber: string) {
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
     
-    console.log('Environment variable check:');
-    console.log('TWILIO_ACCOUNT_SID:', accountSid ? 'exists' : 'missing');
-    console.log('TWILIO_AUTH_TOKEN:', authToken ? 'exists' : 'missing');
-    console.log('TWILIO_VERIFY_SID:', verifySid ? 'exists' : 'missing');
+    console.log('Environment variable values (masked):');
+    console.log('TWILIO_ACCOUNT_SID:', accountSid ? `${accountSid.substring(0, 3)}...${accountSid.substring(accountSid.length - 3)}` : 'missing');
+    console.log('TWILIO_AUTH_TOKEN:', authToken ? `${authToken.substring(0, 3)}...${authToken.substring(authToken.length - 3)}` : 'missing');
+    console.log('TWILIO_VERIFY_SID:', verifySid ? `${verifySid.substring(0, 3)}...${verifySid.substring(verifySid.length - 3)}` : 'missing');
     
     // Enhanced check for Twilio Verify configuration
     if (!accountSid || !authToken || !verifySid) {
@@ -90,21 +90,25 @@ export async function sendVerificationCode(phoneNumber: string) {
     const auth = btoa(`${accountSid}:${authToken}`);
     
     // Make request to Twilio Verify API to send code with detailed logs
-    console.log(`Making request to Twilio Verify API at https://verify.twilio.com/v2/Services/${verifySid}/Verifications`);
-    console.log('Request payload:', { To: formattedPhone, Channel: 'sms' });
+    const url = `https://verify.twilio.com/v2/Services/${verifySid}/Verifications`;
+    console.log(`Making request to Twilio Verify API at ${url}`);
+    
+    const payload = {
+      'To': formattedPhone,
+      'Channel': 'sms',
+      'Locale': 'en'  // Adding locale explicitly
+    };
+    console.log('Request payload:', payload);
     
     const response = await fetch(
-      `https://verify.twilio.com/v2/Services/${verifySid}/Verifications`,
+      url,
       {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${auth}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({
-          'To': formattedPhone,
-          'Channel': 'sms'
-        }),
+        body: new URLSearchParams(payload),
       }
     );
     
@@ -117,6 +121,7 @@ export async function sendVerificationCode(phoneNumber: string) {
     let result;
     try {
       result = JSON.parse(responseText);
+      console.log('Parsed Twilio response:', result);
     } catch (e) {
       console.error('Error parsing JSON response:', e);
       result = { error: 'Failed to parse response' };
@@ -125,11 +130,22 @@ export async function sendVerificationCode(phoneNumber: string) {
     if (!response.ok) {
       // Log detailed error information
       console.error('Twilio API error details:', JSON.stringify(result));
+      
+      // Check for specific error codes and provide more helpful messages
+      if (result.code === 60200) {
+        console.error('Invalid parameter error detected. This could be due to:');
+        console.error('- Invalid phone number format');
+        console.error('- Invalid Verify service SID');
+        console.error('- Missing required parameters');
+      }
+      
       return {
         success: false,
         message: result.message || `Error from Twilio: ${response.status}`,
         isTwilioConfigured: true,
-        error: result.message || `HTTP error: ${response.status}`
+        error: result.message || `HTTP error: ${response.status}`,
+        errorCode: result.code,
+        errorDetails: result
       };
     }
     
@@ -163,10 +179,10 @@ export async function checkVerificationCode(phoneNumber: string, code: string) {
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
     
-    console.log('Environment variable check:');
-    console.log('TWILIO_ACCOUNT_SID:', accountSid ? 'exists' : 'missing');
-    console.log('TWILIO_AUTH_TOKEN:', authToken ? 'exists' : 'missing');
-    console.log('TWILIO_VERIFY_SID:', verifySid ? 'exists' : 'missing');
+    console.log('Environment variable values (masked):');
+    console.log('TWILIO_ACCOUNT_SID:', accountSid ? `${accountSid.substring(0, 3)}...${accountSid.substring(accountSid.length - 3)}` : 'missing');
+    console.log('TWILIO_AUTH_TOKEN:', authToken ? `${authToken.substring(0, 3)}...${authToken.substring(authToken.length - 3)}` : 'missing');
+    console.log('TWILIO_VERIFY_SID:', verifySid ? `${verifySid.substring(0, 3)}...${verifySid.substring(verifySid.length - 3)}` : 'missing');
     
     // Enhanced check for Twilio Verify configuration
     if (!accountSid || !authToken || !verifySid) {
@@ -199,21 +215,24 @@ export async function checkVerificationCode(phoneNumber: string, code: string) {
     const auth = btoa(`${accountSid}:${authToken}`);
     
     // Make request to Twilio Verify API to check code with detailed logs
-    console.log(`Making request to Twilio Verify API at https://verify.twilio.com/v2/Services/${verifySid}/VerificationCheck`);
-    console.log('Request payload:', { To: formattedPhone, Code: code });
+    const url = `https://verify.twilio.com/v2/Services/${verifySid}/VerificationCheck`;
+    console.log(`Making request to Twilio Verify API at ${url}`);
+    
+    const payload = {
+      'To': formattedPhone,
+      'Code': code
+    };
+    console.log('Request payload:', payload);
     
     const response = await fetch(
-      `https://verify.twilio.com/v2/Services/${verifySid}/VerificationCheck`,
+      url,
       {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${auth}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({
-          'To': formattedPhone,
-          'Code': code
-        }),
+        body: new URLSearchParams(payload),
       }
     );
     
@@ -226,6 +245,7 @@ export async function checkVerificationCode(phoneNumber: string, code: string) {
     let result;
     try {
       result = JSON.parse(responseText);
+      console.log('Parsed Twilio response:', result);
     } catch (e) {
       console.error('Error parsing JSON response:', e);
       result = { error: 'Failed to parse response' };
@@ -234,11 +254,22 @@ export async function checkVerificationCode(phoneNumber: string, code: string) {
     if (!response.ok) {
       // Log detailed error information
       console.error('Twilio API error details:', JSON.stringify(result));
+      
+      // Check for specific error codes and provide more helpful messages
+      if (result.code === 60200) {
+        console.error('Invalid parameter error detected. This could be due to:');
+        console.error('- Invalid phone number format');
+        console.error('- Invalid Verify service SID');
+        console.error('- Missing required parameters');
+      }
+      
       return {
         success: false,
         message: result.message || `Error from Twilio: ${response.status}`,
         isTwilioConfigured: true,
-        error: result.message || `HTTP error: ${response.status}`
+        error: result.message || `HTTP error: ${response.status}`,
+        errorCode: result.code,
+        errorDetails: result
       };
     }
     
