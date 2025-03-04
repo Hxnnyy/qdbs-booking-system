@@ -315,10 +315,10 @@ const VerifyGuestBooking = () => {
                       </div>
                       
                       {booking.status === 'confirmed' && (
-                        <div className="flex flex-col space-y-2">
+                        <div className="flex flex-col space-y-2 items-center">
                           <Button
                             variant="default"
-                            className="w-full"
+                            className="bg-burgundy hover:bg-burgundy-light w-full"
                             onClick={() => handleOpenModifyDialog(booking)}
                           >
                             Modify Booking
@@ -411,6 +411,7 @@ const VerifyGuestBooking = () => {
             <Button 
               onClick={handleModifyBooking} 
               disabled={isModifying || !newBookingDate || !newBookingTime}
+              className="bg-burgundy hover:bg-burgundy-light"
             >
               {isModifying ? (
                 <>
