@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { useBookings } from '@/hooks/useBookings';
@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { Booking } from '@/supabase-types';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const Profile = () => {
   const { user, profile, refreshProfile } = useAuth();
@@ -25,6 +26,8 @@ const Profile = () => {
   const { getUserBookings, cancelBooking, isLoading: bookingsLoading } = useBookings();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -34,16 +37,22 @@ const Profile = () => {
     }
   }, [profile]);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      if (user) {
+  const fetchBookings = useCallback(async () => {
+    if (user) {
+      setFetchError(null);
+      try {
         const userBookings = await getUserBookings();
         setBookings(userBookings || []);
+      } catch (error: any) {
+        console.error('Error fetching bookings in Profile component:', error);
+        setFetchError(error.message || 'Failed to load your bookings');
       }
-    };
-    
-    fetchBookings();
+    }
   }, [user, getUserBookings]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,14 +88,18 @@ const Profile = () => {
       
       if (success) {
         // Refresh bookings after cancellation
-        const userBookings = await getUserBookings();
-        setBookings(userBookings || []);
+        await fetchBookings();
       }
     } catch (error) {
       console.error('Error cancelling booking:', error);
     } finally {
       setIsCancelling(false);
     }
+  };
+
+  const handleRetryFetch = () => {
+    setRetryAttempt(prev => prev + 1);
+    fetchBookings();
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -109,6 +122,24 @@ const Profile = () => {
       return (
         <div className="flex justify-center py-12">
           <Spinner className="w-8 h-8" />
+        </div>
+      );
+    }
+
+    if (fetchError) {
+      return (
+        <div className="text-center py-8">
+          <div className="bg-red-50 text-red-700 p-4 mb-4 rounded-md flex flex-col items-center">
+            <AlertCircle className="h-6 w-6 mb-2" />
+            <p className="mb-4">{fetchError}</p>
+            <Button 
+              variant="outline" 
+              onClick={handleRetryFetch}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" /> Retry
+            </Button>
+          </div>
         </div>
       );
     }
