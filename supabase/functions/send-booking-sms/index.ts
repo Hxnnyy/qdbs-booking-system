@@ -13,14 +13,22 @@ async function sendTwilioSMS(to: string, body: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
   
-  // Log what we have for debugging
-  console.log('Twilio configuration check:', {
-    accountSid: accountSid ? 'set' : 'not set',
-    authToken: authToken ? 'set' : 'not set',
-    twilioPhoneNumber: twilioPhoneNumber ? 'set' : 'not set'
+  // Detailed logging for debugging environment variables
+  console.log('Detailed Twilio configuration check:', {
+    accountSid: accountSid || 'not set',
+    accountSidType: typeof accountSid,
+    accountSidLength: accountSid ? accountSid.length : 0,
+    
+    authToken: authToken ? '**present**' : 'not set',
+    authTokenType: typeof authToken,
+    authTokenLength: authToken ? authToken.length : 0,
+    
+    twilioPhoneNumber: twilioPhoneNumber || 'not set',
+    twilioPhoneNumberType: typeof twilioPhoneNumber,
+    twilioPhoneNumberLength: twilioPhoneNumber ? twilioPhoneNumber.length : 0
   });
   
-  // Improved check for Twilio SMS (needs account SID, auth token, and phone number)
+  // Enhanced check for Twilio SMS configuration
   if (!accountSid || !authToken || !twilioPhoneNumber) {
     console.log('Twilio not fully configured. Would send SMS to:', to);
     console.log('Message:', body);
@@ -53,11 +61,24 @@ async function sendTwilioSMS(to: string, body: string) {
       }
     );
     
-    const result = await response.json();
-    console.log('Twilio SMS response:', JSON.stringify(result));
+    // Log the complete response for debugging
+    const responseText = await response.text();
+    console.log('Twilio SMS response status:', response.status);
+    console.log('Twilio SMS response headers:', JSON.stringify(Object.fromEntries(response.headers)));
+    console.log('Twilio SMS response text:', responseText);
+    
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Error parsing JSON response:', e);
+      result = { error: 'Failed to parse response' };
+    }
+    
+    console.log('Parsed Twilio SMS response:', JSON.stringify(result));
     
     if (!response.ok) {
-      throw new Error(result.message || 'Error sending SMS');
+      throw new Error(result.message || `Error sending SMS (Status: ${response.status})`);
     }
     
     return {
@@ -96,6 +117,15 @@ serve(async (req) => {
       TWILIO_AUTH_TOKEN: !!Deno.env.get('TWILIO_AUTH_TOKEN'),
       TWILIO_PHONE_NUMBER: !!Deno.env.get('TWILIO_PHONE_NUMBER')
     });
+    
+    // Attempt to log all available environment variables (names only, not values)
+    try {
+      // @ts-ignore - Deno.env.toObject() might not be available in all Deno versions
+      const envVars = Deno.env.toObject ? Object.keys(Deno.env.toObject()) : [];
+      console.log('Available environment variables:', envVars);
+    } catch (e) {
+      console.log('Could not list environment variables:', e.message);
+    }
 
     // Validate input
     if (!phone || !name || !bookingCode || !bookingId || !bookingDate || !bookingTime) {

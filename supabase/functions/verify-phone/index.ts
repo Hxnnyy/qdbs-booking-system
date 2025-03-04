@@ -13,14 +13,22 @@ async function sendVerificationCode(phoneNumber: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  // Log what we have for debugging
-  console.log('Twilio configuration check:', {
-    accountSid: accountSid ? 'set' : 'not set',
-    authToken: authToken ? 'set' : 'not set',
-    verifySid: verifySid ? 'set' : 'not set'
+  // Detailed logging for debugging environment variables
+  console.log('Detailed Twilio configuration check:', {
+    accountSid: accountSid || 'not set',
+    accountSidType: typeof accountSid,
+    accountSidLength: accountSid ? accountSid.length : 0,
+    
+    authToken: authToken ? '**present**' : 'not set',
+    authTokenType: typeof authToken,
+    authTokenLength: authToken ? authToken.length : 0,
+    
+    verifySid: verifySid || 'not set',
+    verifySidType: typeof verifySid,
+    verifySidLength: verifySid ? verifySid.length : 0
   });
   
-  // Improved check for Twilio Verify (only needs SIDs and auth token)
+  // Enhanced check for Twilio Verify configuration
   if (!accountSid || !authToken || !verifySid) {
     console.log('Twilio Verify not fully configured. Would send verification to:', phoneNumber);
     return {
@@ -52,11 +60,24 @@ async function sendVerificationCode(phoneNumber: string) {
       }
     );
     
-    const result = await response.json();
-    console.log('Twilio verification response:', JSON.stringify(result));
+    // Log the complete response for debugging
+    const responseText = await response.text();
+    console.log('Twilio response status:', response.status);
+    console.log('Twilio response headers:', JSON.stringify(Object.fromEntries(response.headers)));
+    console.log('Twilio response text:', responseText);
+    
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Error parsing JSON response:', e);
+      result = { error: 'Failed to parse response' };
+    }
+    
+    console.log('Parsed Twilio response:', JSON.stringify(result));
     
     if (!response.ok) {
-      throw new Error(result.message || 'Error sending verification code');
+      throw new Error(result.message || `Error sending verification code (Status: ${response.status})`);
     }
     
     return {
@@ -83,7 +104,22 @@ async function checkVerificationCode(phoneNumber: string, code: string) {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const verifySid = Deno.env.get('TWILIO_VERIFY_SID');
   
-  // Improved check for Twilio Verify (only needs SIDs and auth token)
+  // Detailed logging for debugging environment variables
+  console.log('Detailed Twilio configuration check for verification:', {
+    accountSid: accountSid || 'not set',
+    accountSidType: typeof accountSid,
+    accountSidLength: accountSid ? accountSid.length : 0,
+    
+    authToken: authToken ? '**present**' : 'not set',
+    authTokenType: typeof authToken,
+    authTokenLength: authToken ? authToken.length : 0,
+    
+    verifySid: verifySid || 'not set',
+    verifySidType: typeof verifySid,
+    verifySidLength: verifySid ? verifySid.length : 0
+  });
+  
+  // Enhanced check for Twilio Verify configuration
   if (!accountSid || !authToken || !verifySid) {
     console.log('Twilio Verify not fully configured. Would check code:', code, 'for phone:', phoneNumber);
     // For testing without Twilio, accept any 6-digit code
@@ -117,11 +153,24 @@ async function checkVerificationCode(phoneNumber: string, code: string) {
       }
     );
     
-    const result = await response.json();
-    console.log('Twilio verification check response:', JSON.stringify(result));
+    // Log the complete response for debugging
+    const responseText = await response.text();
+    console.log('Twilio verification check status:', response.status);
+    console.log('Twilio verification check headers:', JSON.stringify(Object.fromEntries(response.headers)));
+    console.log('Twilio verification check text:', responseText);
+    
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Error parsing JSON response:', e);
+      result = { error: 'Failed to parse response' };
+    }
+    
+    console.log('Parsed Twilio verification check response:', JSON.stringify(result));
     
     if (!response.ok) {
-      throw new Error(result.message || 'Error checking verification code');
+      throw new Error(result.message || `Error checking verification code (Status: ${response.status})`);
     }
     
     return {
@@ -203,6 +252,15 @@ serve(async (req) => {
       TWILIO_AUTH_TOKEN: !!Deno.env.get('TWILIO_AUTH_TOKEN'),
       TWILIO_VERIFY_SID: !!Deno.env.get('TWILIO_VERIFY_SID')
     });
+    
+    // Attempt to log all available environment variables (names only, not values)
+    try {
+      // @ts-ignore - Deno.env.toObject() might not be available in all Deno versions
+      const envVars = Deno.env.toObject ? Object.keys(Deno.env.toObject()) : [];
+      console.log('Available environment variables:', envVars);
+    } catch (e) {
+      console.log('Could not list environment variables:', e.message);
+    }
 
     let result;
     if (action === 'send') {
