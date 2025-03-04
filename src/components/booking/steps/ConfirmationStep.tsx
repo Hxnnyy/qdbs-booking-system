@@ -32,7 +32,7 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
         </svg>
       </div>
       
-      <h3 className="text-2xl font-bold text-gray-800">Booking Confirmed!</h3>
+      <h3 className="text-2xl font-bold text-burgundy">Booking Confirmed!</h3>
       
       <div className="max-w-md mx-auto bg-gray-50 rounded-lg p-6 border border-gray-200">
         <p className="text-gray-600 mb-4">
@@ -43,8 +43,8 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
         
         <div className="mb-4">
           <h4 className="text-lg font-semibold mb-2">Your Booking Code</h4>
-          <div className="bg-white p-3 rounded border border-gray-300 text-center">
-            <span className="text-xl font-mono font-bold tracking-wider">{bookingResult.bookingCode}</span>
+          <div className="bg-burgundy p-3 rounded border border-burgundy-dark text-center">
+            <span className="text-xl font-mono font-bold tracking-wider text-white">{bookingResult.bookingCode}</span>
           </div>
           <p className="text-sm text-gray-500 mt-2">
             Keep this code safe. You'll need it to manage your booking.
