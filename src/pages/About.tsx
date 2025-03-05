@@ -156,12 +156,9 @@ const About = () => {
             <p className="text-muted-foreground text-lg mb-8 font-playfair">
               Experience premium barbering services in a welcoming Rossendale environment
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button asChild size="lg" className="rounded-full">
+            <div className="flex justify-center">
+              <Button asChild size="lg" className="rounded-full w-full max-w-md">
                 <Link to="/book" className="font-playfair">Book an Appointment</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full">
-                <Link to="/contact" className="font-playfair">Contact Us</Link>
               </Button>
             </div>
           </motion.div>

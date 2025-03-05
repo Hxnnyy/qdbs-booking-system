@@ -102,11 +102,6 @@ const Footer: React.FC = () => {
                   Book Appointment
                 </Link>
               </li>
-              <li>
-                <Link to="/contact" className="text-sm text-muted-foreground hover:text-burgundy transition-colors font-playfair">
-                  Contact
-                </Link>
-              </li>
             </ul>
           </div>
           
