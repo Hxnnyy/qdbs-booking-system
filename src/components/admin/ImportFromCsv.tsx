@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { FileUp, Download, HelpCircle } from 'lucide-react';
 import { Barber, Service } from '@/supabase-types';
 import { useBookingImport } from '@/hooks/useBookingImport';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import { 
   Table, 
   TableBody, 
