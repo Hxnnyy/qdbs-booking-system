@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -32,7 +31,6 @@ const VerifyGuestBooking = () => {
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [isModifying, setIsModifying] = useState<boolean>(false);
   
-  // Modification state
   const [isModifyDialogOpen, setIsModifyDialogOpen] = useState<boolean>(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [newBookingDate, setNewBookingDate] = useState<Date | undefined>(undefined);
@@ -40,7 +38,6 @@ const VerifyGuestBooking = () => {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [existingBookings, setExistingBookings] = useState<any[]>([]);
 
-  // Generate time slots from 9 AM to 6 PM
   const timeSlots = Array.from({ length: 18 }, (_, i) => {
     const hour = Math.floor(i / 2) + 9;
     const minute = i % 2 === 0 ? '00' : '30';
@@ -79,7 +76,6 @@ const VerifyGuestBooking = () => {
       const success = await cancelGuestBooking(bookingId, phone, code);
       
       if (success) {
-        // Update the status in the local state
         setBookings(prevBookings => 
           prevBookings.map(booking => 
             booking.id === bookingId 
@@ -89,7 +85,6 @@ const VerifyGuestBooking = () => {
         );
       }
     } catch (error) {
-      // Error is handled in the hook
     } finally {
       setIsCancelling(false);
     }
@@ -101,17 +96,13 @@ const VerifyGuestBooking = () => {
     setNewBookingTime(null);
     setIsModifyDialogOpen(true);
     
-    // Fetch existing bookings for the barber on that date
     fetchExistingBookings(booking.barber_id, booking.booking_date);
   };
 
   const fetchExistingBookings = async (barberId: string, date: string) => {
     try {
-      // This would typically be a function that gets bookings for a specific date/barber
-      // For now, we're just setting a placeholder
       setExistingBookings([]);
       
-      // Generate available time slots
       updateAvailableTimeSlots(date);
     } catch (error) {
       console.error('Error fetching existing bookings:', error);
@@ -119,9 +110,6 @@ const VerifyGuestBooking = () => {
   };
 
   const updateAvailableTimeSlots = (dateString: string) => {
-    // Filter out times that are already booked
-    // In a real implementation, you would compare with existing bookings
-    // For now, we're just providing all time slots
     setAvailableTimeSlots(timeSlots);
   };
 
@@ -130,7 +118,6 @@ const VerifyGuestBooking = () => {
       setNewBookingDate(date);
       setNewBookingTime(null);
       
-      // Update available time slots based on the new date
       if (selectedBooking) {
         updateAvailableTimeSlots(format(date, 'yyyy-MM-dd'));
       }
@@ -161,7 +148,6 @@ const VerifyGuestBooking = () => {
       );
       
       if (success) {
-        // Update the booking in the local state
         setBookings(prevBookings => 
           prevBookings.map(booking => 
             booking.id === selectedBooking.id 
@@ -349,7 +335,6 @@ const VerifyGuestBooking = () => {
         )}
       </div>
 
-      {/* Modify Booking Dialog */}
       <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
