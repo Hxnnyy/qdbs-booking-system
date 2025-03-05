@@ -24,6 +24,7 @@ import ManageServices from "./pages/admin/ManageServices";
 import ManageBookings from "./pages/admin/ManageBookings";
 import AssignAdmin from "./pages/admin/AssignAdmin";
 import SetupShop from './pages/admin/SetupShop';
+import ImportBookings from './pages/admin/ImportBookings';
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <ManageBookings />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/import-bookings" 
+              element={
+                <AdminRoute>
+                  <ImportBookings />
                 </AdminRoute>
               } 
             />

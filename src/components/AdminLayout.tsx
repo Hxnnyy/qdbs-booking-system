@@ -14,7 +14,7 @@ import {
   SidebarProvider
 } from '@/components/ui/sidebar';
 import { Link } from 'react-router-dom';
-import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, Settings2Icon, ShieldIcon } from 'lucide-react';
+import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, Settings2Icon, ShieldIcon, FileUpIcon } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -48,6 +48,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       <Link to="/admin/bookings">
                         <CalendarIcon />
                         <span>Bookings</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Import Bookings">
+                      <Link to="/admin/import-bookings">
+                        <FileUpIcon />
+                        <span>Import Bookings</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
