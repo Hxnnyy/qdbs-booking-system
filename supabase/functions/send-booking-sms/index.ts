@@ -56,10 +56,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Check if Twilio credentials are available
     const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+    const twilioPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
 
     // If Twilio isn't configured, return mock response
-    if (!accountSid || !authToken) {
-      console.log("Twilio not configured, would have sent SMS to", formattedPhone);
+    if (!accountSid || !authToken || !twilioPhone) {
+      console.log("Twilio not configured or missing phone number, would have sent SMS to", formattedPhone);
       
       // Return a successful response but indicate Twilio wasn't configured
       return new Response(
@@ -75,6 +76,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Log Twilio configuration (without exposing auth token)
+    console.log(`Using Twilio: Account ${accountSid}, Phone ${twilioPhone}`);
+
     // Prepare the message
     let messageBody;
     
@@ -89,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send the SMS using Twilio
     const twilioEndpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     
-    console.log(`Sending SMS to ${formattedPhone} via Twilio...`);
+    console.log(`Sending SMS to ${formattedPhone} from ${twilioPhone} via Twilio...`);
     
     const twilioResponse = await fetch(twilioEndpoint, {
       method: 'POST',
@@ -99,7 +103,7 @@ const handler = async (req: Request): Promise<Response> => {
       },
       body: new URLSearchParams({
         'To': formattedPhone,
-        'From': Deno.env.get("TWILIO_PHONE_NUMBER") || '+15005550006', // Use a test number if not configured
+        'From': twilioPhone,
         'Body': messageBody
       })
     });
