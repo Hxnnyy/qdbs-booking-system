@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { BookingFormState, TwilioSMSResult } from '@/types/booking';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
-import { Clipboard, CalendarDays } from 'lucide-react';
+import { Clipboard, CalendarDays, MessageSquare, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ConfirmationStepProps {
@@ -48,11 +48,14 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
       <h3 className="text-2xl font-bold text-burgundy">Booking Confirmed!</h3>
       
       <div className="max-w-md mx-auto bg-gray-50 rounded-lg p-6 border border-gray-200">
-        <p className="text-gray-600 mb-4">
-          {twilioResult?.isTwilioConfigured 
-            ? `We've sent a confirmation SMS to ${guestPhone} with your booking details.`
-            : `Your booking is confirmed. SMS notifications will be enabled soon.`}
-        </p>
+        <div className="flex items-center justify-center mb-4 text-green-600">
+          <MessageSquare className="h-5 w-5 mr-2" />
+          <p className="text-sm">
+            {twilioResult?.isTwilioConfigured 
+              ? `We've sent a confirmation SMS to ${guestPhone} with your booking details.`
+              : `Your booking is confirmed. SMS notifications will be enabled soon.`}
+          </p>
+        </div>
         
         <div className="mb-4">
           <h4 className="text-lg font-semibold mb-2">Your Booking Code</h4>
@@ -88,6 +91,13 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
           <div className="grid grid-cols-3 gap-2">
             <div className="font-medium">Time:</div>
             <div className="col-span-2">{selectedTime}</div>
+          </div>
+        </div>
+        
+        <div className="mt-4 text-xs text-gray-500 border-t border-gray-200 pt-3">
+          <div className="flex items-center justify-center">
+            <Check className="h-3 w-3 mr-1 text-green-600" />
+            <span>You'll receive a reminder 24 hours before your appointment</span>
           </div>
         </div>
       </div>

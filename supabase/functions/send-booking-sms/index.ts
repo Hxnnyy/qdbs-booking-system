@@ -11,6 +11,7 @@ interface SMSRequestBody {
   bookingDate: string;
   bookingTime: string;
   isUpdate?: boolean;
+  isReminder?: boolean;
 }
 
 interface TwilioSMSResult {
@@ -27,7 +28,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { phone, name, bookingCode, bookingId, bookingDate, bookingTime, isUpdate } = await req.json() as SMSRequestBody;
+    const { phone, name, bookingCode, bookingId, bookingDate, bookingTime, isUpdate, isReminder } = await req.json() as SMSRequestBody;
 
     // Format the phone number if needed
     let formattedPhone = phone;
@@ -69,7 +70,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Prepare the message
     let messageBody;
     
-    if (isUpdate) {
+    if (isReminder) {
+      messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: https://yourwebsite.com/verify-booking`;
+    } else if (isUpdate) {
       messageBody = `Hi ${name}, your booking has been rescheduled for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: https://yourwebsite.com/verify-booking`;
     } else {
       messageBody = `Hi ${name}, your booking is confirmed for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: https://yourwebsite.com/verify-booking`;
@@ -101,7 +104,9 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: isUpdate ? "Booking update notification sent" : "Booking confirmation sent",
+        message: isReminder ? "Booking reminder sent" : 
+                 isUpdate ? "Booking update notification sent" : 
+                 "Booking confirmation sent",
         isTwilioConfigured: true,
         sid: twilioData.sid
       }),
