@@ -11,9 +11,9 @@ const Index: React.FC = () => {
   return (
     <Layout>
       <Hero />
-      <Features />
-      <HowItWorks />
       <FeaturedBarbers />
+      <HowItWorks />
+      <Features />
       <CTASection />
     </Layout>
   );
