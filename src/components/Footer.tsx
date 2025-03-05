@@ -1,14 +1,10 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Facebook, Instagram, Twitter, Scissors, MapPin, Phone, Mail } from 'lucide-react';
-
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
-  
-  return (
-    <footer className="bg-secondary border-t border-border">
+  return <footer className="bg-secondary border-t border-border">
       <div className="container mx-auto px-4 md:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <div className="space-y-4">
@@ -34,25 +30,13 @@ const Footer: React.FC = () => {
               </div>
             </div>
             <div className="flex space-x-4">
-              <a 
-                href="#" 
-                className="text-muted-foreground hover:text-burgundy transition-colors"
-                aria-label="Facebook"
-              >
+              <a href="#" className="text-muted-foreground hover:text-burgundy transition-colors" aria-label="Facebook">
                 <Facebook size={18} />
               </a>
-              <a 
-                href="#" 
-                className="text-muted-foreground hover:text-burgundy transition-colors"
-                aria-label="Instagram"
-              >
+              <a href="#" className="text-muted-foreground hover:text-burgundy transition-colors" aria-label="Instagram">
                 <Instagram size={18} />
               </a>
-              <a 
-                href="#" 
-                className="text-muted-foreground hover:text-burgundy transition-colors"
-                aria-label="Twitter"
-              >
+              <a href="#" className="text-muted-foreground hover:text-burgundy transition-colors" aria-label="Twitter">
                 <Twitter size={18} />
               </a>
             </div>
@@ -108,20 +92,31 @@ const Footer: React.FC = () => {
           <div className="space-y-4">
             <h3 className="text-sm font-semibold uppercase tracking-wider font-playfair">Opening Hours</h3>
             <ul className="space-y-2">
-              {[
-                { day: "Monday", hours: "Closed" },
-                { day: "Tuesday", hours: "9:00 AM - 6:00 PM" },
-                { day: "Wednesday", hours: "9:00 AM - 5:00 PM" },
-                { day: "Thursday", hours: "10:00 AM - 8:00 PM" },
-                { day: "Friday", hours: "9:00 AM - 6:00 PM" },
-                { day: "Saturday", hours: "8:00 AM - 4:00 PM" },
-                { day: "Sunday", hours: "Closed" }
-              ].map((schedule, index) => (
-                <li key={index} className="text-sm font-playfair">
+              {[{
+              day: "Monday",
+              hours: "Closed"
+            }, {
+              day: "Tuesday",
+              hours: "9:00 AM - 6:00 PM"
+            }, {
+              day: "Wednesday",
+              hours: "9:00 AM - 5:00 PM"
+            }, {
+              day: "Thursday",
+              hours: "10:00 AM - 8:00 PM"
+            }, {
+              day: "Friday",
+              hours: "9:00 AM - 6:00 PM"
+            }, {
+              day: "Saturday",
+              hours: "8:00 AM - 4:00 PM"
+            }, {
+              day: "Sunday",
+              hours: "Closed"
+            }].map((schedule, index) => <li key={index} className="text-sm font-playfair">
                   <span className="text-muted-foreground">{schedule.day}: </span>
                   <span className="text-foreground">{schedule.hours}</span>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
         </div>
@@ -131,19 +126,21 @@ const Footer: React.FC = () => {
             © {currentYear} Queens Dock Barbershop. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0">
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="bg-burgundy/20 text-burgundy text-xs px-3 py-1 rounded-full font-playfair"
-            >
+            <motion.div initial={{
+            opacity: 0,
+            y: 10
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            delay: 0.2,
+            duration: 0.5
+          }} className="text-burgundy text-xs px-3 py-1 rounded-full font-playfair bg-slate-50">
               Traditional Barbering Since 2015
             </motion.div>
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
