@@ -33,6 +33,22 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
 );
 
+// Function to format phone number to E.164 format
+const formatPhoneNumber = (phone: string): string => {
+  if (!phone) return "";
+  
+  // If the number starts with 0, replace with +44 (UK)
+  if (phone.startsWith('0')) {
+    return `+44${phone.substring(1)}`;
+  } 
+  // If it doesn't already have a + prefix, assume it needs one
+  else if (!phone.startsWith('+')) {
+    return `+${phone}`;
+  }
+  
+  return phone;
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
@@ -130,6 +146,10 @@ const handler = async (req: Request): Promise<Response> => {
             return { booking_id: booking.id, success: false, message: "No phone number available" };
           }
           
+          // Format the phone number to E.164 format
+          const formattedPhone = formatPhoneNumber(phone);
+          console.log(`Formatting phone number from ${phone} to ${formattedPhone}`);
+          
           // Format the date for human-readable display
           const dateObj = new Date(booking.booking_date);
           const formattedDate = dateObj.toLocaleDateString('en-GB', {
@@ -139,13 +159,10 @@ const handler = async (req: Request): Promise<Response> => {
             day: 'numeric'
           });
           
-          // Prepare and send the SMS
-          const messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${booking.booking_time} with ${booking.barber.name}. Your booking code is ${bookingCode}. To manage your booking, visit: https://yourwebsite.com/verify-booking`;
-          
-          // Send the SMS via the send-booking-sms function
+          // Prepare and send the SMS via the send-booking-sms function
           const { error: smsError } = await supabase.functions.invoke('send-booking-sms', {
             body: {
-              phone: phone,
+              phone: formattedPhone,
               name: name,
               bookingCode: bookingCode,
               bookingId: booking.id,

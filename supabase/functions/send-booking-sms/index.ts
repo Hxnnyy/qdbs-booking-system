@@ -30,11 +30,19 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { phone, name, bookingCode, bookingId, bookingDate, bookingTime, isUpdate, isReminder } = await req.json() as SMSRequestBody;
 
-    // Format the phone number if needed
+    // Properly format the phone number for Twilio (E.164 format)
     let formattedPhone = phone;
-    if (!phone.startsWith('+')) {
-      formattedPhone = `+${phone.replace(/\D/g, '')}`;
+    
+    // If the number starts with 0, replace with +44 (UK)
+    if (phone.startsWith('0')) {
+      formattedPhone = `+44${phone.substring(1)}`;
+    } 
+    // If it doesn't already have a + prefix, assume it needs one
+    else if (!phone.startsWith('+')) {
+      formattedPhone = `+${phone}`;
     }
+
+    console.log(`Formatted phone from ${phone} to ${formattedPhone}`);
 
     // Format the date for human-readable display
     const dateObj = new Date(bookingDate);
@@ -81,6 +89,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Send the SMS using Twilio
     const twilioEndpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     
+    console.log(`Sending SMS to ${formattedPhone} via Twilio...`);
+    
     const twilioResponse = await fetch(twilioEndpoint, {
       method: 'POST',
       headers: {
@@ -97,8 +107,11 @@ const handler = async (req: Request): Promise<Response> => {
     const twilioData = await twilioResponse.json();
     
     if (!twilioResponse.ok) {
+      console.error(`Twilio error response: ${JSON.stringify(twilioData)}`);
       throw new Error(`Twilio error: ${JSON.stringify(twilioData)}`);
     }
+
+    console.log(`SMS sent successfully with SID: ${twilioData.sid}`);
 
     // Return successful response
     return new Response(
