@@ -1,25 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Spinner } from '@/components/ui/spinner';
-import { Calendar } from '@/components/ui/calendar';
-import { format, parse, addDays, isAfter, isBefore, endOfDay } from 'date-fns';
-import TimeSlot from '@/components/booking/TimeSlot';
-import { Phone, KeyRound, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import Layout from '@/components/Layout';
 import { useGuestBookings } from '@/hooks/useGuestBookings';
 import { useBarbers } from '@/hooks/useBarbers';
 import { useServices } from '@/hooks/useServices';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import VerificationForm from '@/components/guest-booking/VerificationForm';
+import BookingsList from '@/components/guest-booking/BookingsList';
+import ModifyBookingDialog from '@/components/guest-booking/ModifyBookingDialog';
 
 const VerifyGuestBooking = () => {
-  const navigate = useNavigate();
   const { getGuestBookingByCode, cancelGuestBooking, updateGuestBooking, isLoading } = useGuestBookings();
   const { barbers } = useBarbers();
   const { services } = useServices();
@@ -85,6 +76,7 @@ const VerifyGuestBooking = () => {
         );
       }
     } catch (error) {
+      // Error is handled by the hook
     } finally {
       setIsCancelling(false);
     }
@@ -92,7 +84,7 @@ const VerifyGuestBooking = () => {
 
   const handleOpenModifyDialog = (booking: any) => {
     setSelectedBooking(booking);
-    setNewBookingDate(parse(booking.booking_date, 'yyyy-MM-dd', new Date()));
+    setNewBookingDate(new Date(booking.booking_date));
     setNewBookingTime(null);
     setIsModifyDialogOpen(true);
     
@@ -102,7 +94,6 @@ const VerifyGuestBooking = () => {
   const fetchExistingBookings = async (barberId: string, date: string) => {
     try {
       setExistingBookings([]);
-      
       updateAvailableTimeSlots(date);
     } catch (error) {
       console.error('Error fetching existing bookings:', error);
@@ -179,236 +170,40 @@ const VerifyGuestBooking = () => {
         </p>
         
         {!isVerified ? (
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-xl">Verify Your Booking</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleVerify} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <Phone className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Enter the phone number used for booking"
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="code">Booking Code</Label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <KeyRound className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <Input
-                      id="code"
-                      type="text"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      placeholder="Enter your 6-digit booking code"
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-burgundy hover:bg-burgundy-light"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4 border-2 border-white" /> Verifying...
-                    </>
-                  ) : (
-                    'Verify Booking'
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <VerificationForm 
+            phone={phone}
+            code={code}
+            isLoading={isLoading}
+            onPhoneChange={setPhone}
+            onCodeChange={setCode}
+            onSubmit={handleVerify}
+          />
         ) : (
-          <div className="space-y-8">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold font-playfair">Your Bookings</h2>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsVerified(false);
-                  setBookings([]);
-                }}
-              >
-                Verify Another Booking
-              </Button>
-            </div>
-            
-            {bookings.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-lg text-muted-foreground">No bookings found</p>
-              </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {bookings.map((booking) => (
-                  <Card key={booking.id} className="overflow-hidden">
-                    <div 
-                      className={`h-2 ${
-                        booking.status === 'confirmed' 
-                          ? 'bg-green-500' 
-                          : booking.status === 'cancelled' 
-                            ? 'bg-red-500' 
-                            : 'bg-yellow-500'
-                      }`}
-                    />
-                    <CardContent className="p-6">
-                      <div className="mb-4">
-                        <p className="text-sm text-muted-foreground">Appointment with</p>
-                        <h3 className="text-lg font-semibold">{booking.barber?.name}</h3>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-4">
-                        <div className="text-muted-foreground">Service:</div>
-                        <div>{booking.service?.name}</div>
-                        
-                        <div className="text-muted-foreground">Date:</div>
-                        <div>
-                          {format(new Date(booking.booking_date), 'MMMM d, yyyy')}
-                        </div>
-                        
-                        <div className="text-muted-foreground">Time:</div>
-                        <div>{booking.booking_time}</div>
-                        
-                        <div className="text-muted-foreground">Price:</div>
-                        <div>£{booking.service?.price.toFixed(2)}</div>
-                        
-                        <div className="text-muted-foreground">Status:</div>
-                        <div className={`font-medium ${
-                          booking.status === 'confirmed' 
-                            ? 'text-green-600' 
-                            : booking.status === 'cancelled' 
-                              ? 'text-red-600' 
-                              : 'text-yellow-600'
-                        }`}>
-                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                        </div>
-                      </div>
-                      
-                      {booking.status === 'confirmed' && (
-                        <div className="flex flex-col space-y-2 items-center">
-                          <Button
-                            variant="default"
-                            className="bg-burgundy hover:bg-burgundy-light w-full"
-                            onClick={() => handleOpenModifyDialog(booking)}
-                          >
-                            Modify Booking
-                          </Button>
-                          
-                          <Button
-                            variant="destructive"
-                            className="w-full"
-                            onClick={() => handleCancelBooking(booking.id)}
-                            disabled={isCancelling}
-                          >
-                            {isCancelling ? (
-                              <>
-                                <Spinner className="mr-2 h-4 w-4 border-2 border-white" /> Cancelling...
-                              </>
-                            ) : (
-                              'Cancel Booking'
-                            )}
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+          <BookingsList 
+            bookings={bookings}
+            onResetVerification={() => {
+              setIsVerified(false);
+              setBookings([]);
+            }}
+            onModify={handleOpenModifyDialog}
+            onCancel={handleCancelBooking}
+            isCancelling={isCancelling}
+          />
         )}
       </div>
 
-      <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Reschedule Appointment</DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Select New Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newBookingDate ? format(newBookingDate, 'PPP') : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newBookingDate}
-                      onSelect={handleDateChange}
-                      initialFocus
-                      disabled={(date) => 
-                        isBefore(date, addDays(new Date(), 0)) || 
-                        isAfter(date, addDays(new Date(), 30))
-                      }
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              {newBookingDate && (
-                <div className="space-y-2">
-                  <Label>Select New Time</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {availableTimeSlots.map((time) => (
-                      <TimeSlot
-                        key={time}
-                        time={time}
-                        selected={newBookingTime || ''}
-                        onClick={() => handleTimeSelection(time)}
-                        disabled={false}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModifyDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleModifyBooking} 
-              disabled={isModifying || !newBookingDate || !newBookingTime}
-              className="bg-burgundy hover:bg-burgundy-light"
-            >
-              {isModifying ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4 border-2 border-white" /> Updating...
-                </>
-              ) : (
-                'Update Booking'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ModifyBookingDialog 
+        isOpen={isModifyDialogOpen}
+        onOpenChange={setIsModifyDialogOpen}
+        selectedBooking={selectedBooking}
+        newBookingDate={newBookingDate}
+        newBookingTime={newBookingTime}
+        availableTimeSlots={availableTimeSlots}
+        isModifying={isModifying}
+        onDateChange={handleDateChange}
+        onTimeSelection={handleTimeSelection}
+        onModifyBooking={handleModifyBooking}
+      />
     </Layout>
   );
 };
