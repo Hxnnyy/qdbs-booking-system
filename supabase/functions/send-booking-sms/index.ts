@@ -79,15 +79,18 @@ const handler = async (req: Request): Promise<Response> => {
     // Log Twilio configuration (without exposing auth token)
     console.log(`Using Twilio: Account ${accountSid}, Phone ${twilioPhone}`);
 
+    // Set the correct verification URL
+    const verifyUrl = "https://your-website.com/verify-booking";
+
     // Prepare the message
     let messageBody;
     
     if (isReminder) {
-      messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: https://yourwebsite.com/verify-booking`;
+      messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
     } else if (isUpdate) {
-      messageBody = `Hi ${name}, your booking has been rescheduled for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: https://yourwebsite.com/verify-booking`;
+      messageBody = `Hi ${name}, your booking has been rescheduled for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
     } else {
-      messageBody = `Hi ${name}, your booking is confirmed for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: https://yourwebsite.com/verify-booking`;
+      messageBody = `Hi ${name}, your booking is confirmed for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
     }
 
     // Send the SMS using Twilio
