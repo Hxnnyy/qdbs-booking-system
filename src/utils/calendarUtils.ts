@@ -1,4 +1,3 @@
-
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -76,9 +75,35 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
   }
 };
 
-// Generate a color based on barber ID for consistency
-export const getBarberColor = (barberId: string): string => {
-  // Simple hash function to generate a hue value (0-360)
+// Define default barber colors mapping
+const barberDefaultColors: Record<string, string> = {
+  // Default colors for specific barbers by name
+  'Chris': '#0EA5E9', // Ocean Blue
+  'Thomas': '#4ade80', // Green
+  'Conor': '#facc15', // Yellow
+};
+
+// Store custom barber colors (will be loaded from database in the future)
+let customBarberColors: Record<string, string> = {};
+
+// Set a custom color for a barber
+export const setBarberColor = (barberId: string, color: string): void => {
+  customBarberColors[barberId] = color;
+};
+
+// Generate a color based on barber ID or name
+export const getBarberColor = (barberId: string, barberName?: string): string => {
+  // First check if there's a custom color set for this barber
+  if (customBarberColors[barberId]) {
+    return customBarberColors[barberId];
+  }
+  
+  // Then check if there's a default color by name
+  if (barberName && barberDefaultColors[barberName]) {
+    return barberDefaultColors[barberName];
+  }
+  
+  // Otherwise, calculate a color from the barber ID
   const hash = Array.from(barberId).reduce(
     (acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0
   );
@@ -89,7 +114,9 @@ export const getBarberColor = (barberId: string): string => {
 
 // Filter events for calendar view based on date
 export const filterEventsByDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
-  return events.filter(event => isSameDay(event.start, date));
+  return events.filter(event => 
+    isSameDay(event.start, date) && event.status !== 'cancelled'
+  );
 };
 
 // Filter events for a week view
@@ -99,7 +126,7 @@ export const filterEventsByWeek = (events: CalendarEvent[], date: Date): Calenda
   
   return events.filter(event => {
     const eventDate = event.start;
-    return eventDate >= weekStart && eventDate <= weekEnd;
+    return eventDate >= weekStart && eventDate <= weekEnd && event.status !== 'cancelled';
   });
 };
 

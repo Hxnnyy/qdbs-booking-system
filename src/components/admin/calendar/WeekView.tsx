@@ -10,6 +10,7 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 const START_HOUR = 8; // 8 AM
 const END_HOUR = 20; // 8 PM
 const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
+const HOUR_HEIGHT = 120; // Doubled height (was 60px)
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -33,9 +34,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   // Filter events when barber selection changes
   useEffect(() => {
     if (selectedBarberId) {
-      setFilteredEvents(events.filter(event => event.barberId === selectedBarberId));
+      setFilteredEvents(events.filter(event => 
+        event.barberId === selectedBarberId && event.status !== 'cancelled'
+      ));
     } else {
-      setFilteredEvents(events);
+      setFilteredEvents(events.filter(event => event.status !== 'cancelled'));
     }
   }, [events, selectedBarberId]);
 
@@ -73,14 +76,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex h-[840px] relative border border-border rounded-md overflow-hidden bg-white">
+    <div className="flex h-[1440px] relative border border-border rounded-md overflow-hidden bg-white">
       {/* Time column */}
       <div className="w-20 flex-shrink-0 border-r border-border bg-background">
         {/* Empty cell for header alignment */}
         <div className="h-12 border-b border-border"></div>
         
         {timeSlots.map((slot) => (
-          <div key={slot.time} className="h-[60px] border-b border-border flex items-start pl-2 pt-1">
+          <div key={slot.time} className={`h-[${HOUR_HEIGHT}px] border-b border-border flex items-start pl-2 pt-1`}>
             <span className="text-xs text-muted-foreground">{slot.label}</span>
           </div>
         ))}
@@ -107,8 +110,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               onDrop={(e) => {
                 const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
                 // Calculate hours and raw minutes
-                const hours = Math.floor(y / 60) + START_HOUR;
-                const rawMinutes = Math.round((y % 60) / 60 * 60);
+                const hours = Math.floor(y / HOUR_HEIGHT) + START_HOUR;
+                const rawMinutes = Math.round((y % HOUR_HEIGHT) / HOUR_HEIGHT * 60);
                 
                 // Snap to 15-minute intervals
                 const snappedMinutes = Math.round(rawMinutes / 15) * 15;
@@ -122,13 +125,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               {timeSlots.map((slot) => (
                 <div 
                   key={slot.time} 
-                  className="h-[60px] border-b border-border hover:bg-muted/40 transition-colors"
+                  className={`h-[${HOUR_HEIGHT}px] border-b border-border hover:bg-muted/40 transition-colors`}
                   onDragOver={(e) => e.preventDefault()}
                 >
                   {/* 15-minute markers */}
-                  <div className="h-[15px] border-b border-border/20"></div>
-                  <div className="h-[15px] border-b border-border/30"></div>
-                  <div className="h-[15px] border-b border-border/20"></div>
+                  <div className={`h-[${HOUR_HEIGHT/4}px] border-b border-border/20`}></div>
+                  <div className={`h-[${HOUR_HEIGHT/4}px] border-b border-border/30`}></div>
+                  <div className={`h-[${HOUR_HEIGHT/4}px] border-b border-border/20`}></div>
                 </div>
               ))}
               
@@ -150,7 +153,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               
               {/* Current time indicator */}
               {isSameDay(day, new Date()) && (
-                <CurrentTimeIndicator />
+                <CurrentTimeIndicator hourHeight={HOUR_HEIGHT} />
               )}
             </div>
           </div>
@@ -160,7 +163,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   );
 };
 
-const CurrentTimeIndicator: React.FC = () => {
+interface CurrentTimeIndicatorProps {
+  hourHeight: number;
+}
+
+const CurrentTimeIndicator: React.FC<CurrentTimeIndicatorProps> = ({ hourHeight }) => {
   const now = new Date();
   const hours = now.getHours();
   const minutes = now.getMinutes();
@@ -170,7 +177,7 @@ const CurrentTimeIndicator: React.FC = () => {
     return null;
   }
   
-  const position = (hours - START_HOUR) * 60 + minutes;
+  const position = (hours - START_HOUR) * hourHeight + (minutes / 60) * hourHeight;
   
   return (
     <motion.div 

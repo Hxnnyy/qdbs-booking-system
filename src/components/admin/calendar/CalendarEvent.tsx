@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarEvent } from '@/types/calendar';
 import { getBarberColor } from '@/utils/calendarUtils';
-import { CalendarIcon, Clock, Star, UserCircle2, Users } from 'lucide-react';
+import { CalendarIcon, Clock, Star, UserCircle2, Users, Scissors } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -17,18 +17,18 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   onEventClick 
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const barberColor = getBarberColor(event.barberId);
+  const barberColor = getBarberColor(event.barberId, event.barber);
   const startTime = format(event.start, 'h:mm a');
   const endTime = format(event.end, 'h:mm a');
   const duration = (event.end.getTime() - event.start.getTime()) / (1000 * 60); // in minutes
   
-  // Height based on duration (1 minute = 1px)
-  const height = Math.max(duration, 30); // Minimum height of 30px
+  // Height based on duration (1 minute = 2px since we doubled the row height)
+  const height = Math.max(duration * 2, 60); // Minimum height of 60px (was 30px)
   
-  // Calculate top position (hours * 60 + minutes)
+  // Calculate top position (hours * 120 + minutes * 2) - adjusted for the new row height
   const hours = event.start.getHours();
   const minutes = event.start.getMinutes();
-  const topPosition = (hours - 8) * 60 + minutes; // Offset by 8 hours since we start at 8AM
+  const topPosition = (hours - 8) * 120 + minutes * 2; // Offset by 8 hours, multiply by 120px per hour
   
   // Determine background color based on status
   const getStatusBackground = () => {
@@ -60,7 +60,8 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
               zIndex: isHovered ? 10 : 5,
               width: 'calc(100% - 8px)',
               marginLeft: '4px',
-              marginRight: '4px'
+              marginRight: '4px',
+              borderLeftColor: barberColor,
             }}
             whileHover={{ 
               scale: 1.02,
@@ -74,30 +75,37 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
           >
             <div className="flex flex-col h-full overflow-hidden p-2">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900">
                   {startTime} - {endTime}
                 </span>
                 {event.isGuest ? (
-                  <Users size={14} className="shrink-0 text-gray-600" />
+                  <Users size={16} className="shrink-0 text-gray-600" />
                 ) : (
-                  <UserCircle2 size={14} className="shrink-0 text-gray-600" />
+                  <UserCircle2 size={16} className="shrink-0 text-gray-600" />
                 )}
               </div>
               
-              <p className="text-sm font-medium text-gray-900 truncate mt-1">
+              <p className="text-md font-medium text-gray-900 truncate mt-1">
                 {getClientName()}
               </p>
               
-              {height > 50 && (
-                <p className="text-xs text-gray-700 truncate">
+              <div className="flex items-center gap-1 mt-1">
+                <Scissors size={14} className="text-gray-500" />
+                <p className="text-sm text-gray-700 truncate">
                   {event.service}
                 </p>
-              )}
+              </div>
               
-              {height > 70 && (
+              {height > 100 && (
                 <div className="mt-auto flex items-center justify-between">
-                  <span className="text-xs text-gray-500">{event.barber}</span>
-                  {event.notes && <Star size={12} className="text-amber-400" />}
+                  <div className="flex items-center gap-1">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: barberColor }} 
+                    />
+                    <span className="text-xs text-gray-500">{event.barber}</span>
+                  </div>
+                  {event.notes && <Star size={14} className="text-amber-400" />}
                 </div>
               )}
             </div>

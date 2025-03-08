@@ -8,7 +8,7 @@ import { Clock, Calendar as CalendarIcon, User, Users, ClipboardList, Tag, Edit 
 import { Badge } from '@/components/ui/badge';
 import { getBarberColor } from '@/utils/calendarUtils';
 import { toast } from 'sonner';
-import { useRouter } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface EventDetailsDialogProps {
   event: CalendarEvent | null;
@@ -21,7 +21,7 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
   isOpen, 
   onClose 
 }) => {
-  const router = useRouter();
+  const navigate = useNavigate();
   
   if (!event) return null;
   
@@ -29,7 +29,7 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
   
   const handleEditClick = () => {
     // Redirect to the booking edit page
-    router.navigate(`/admin/bookings/edit/${event.id}`);
+    navigate(`/admin/bookings/edit/${event.id}`);
     onClose();
     toast.info("Navigating to booking edit page");
   };
