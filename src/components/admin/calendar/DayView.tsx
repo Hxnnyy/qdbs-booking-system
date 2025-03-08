@@ -52,8 +52,11 @@ export const DayView: React.FC<CalendarViewProps> = ({
     
     // Parse the dropped time
     const [hours, minutes] = droppedTime.split(':').map(Number);
+    
+    // Snap minutes to 15-minute intervals (0, 15, 30, 45)
+    const snappedMinutes = Math.round(minutes / 15) * 15;
     const newStart = new Date(date);
-    newStart.setHours(hours, minutes, 0, 0);
+    newStart.setHours(hours, snappedMinutes, 0, 0);
     
     // Calculate new end time based on original duration
     const duration = (draggingEvent.end.getTime() - draggingEvent.start.getTime());
@@ -65,7 +68,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex h-[720px] relative border border-border rounded-md overflow-hidden bg-white">
+    <div className="flex h-[840px] relative border border-border rounded-md overflow-hidden bg-white">
       {/* Time column */}
       <div className="w-20 flex-shrink-0 border-r border-border bg-background">
         {/* Empty cell for header alignment (for consistency with WeekView) */}
@@ -94,9 +97,15 @@ export const DayView: React.FC<CalendarViewProps> = ({
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+            // Calculate hours and raw minutes
             const hours = Math.floor(y / 60) + START_HOUR;
-            const minutes = Math.round((y % 60) / 60 * 60);
-            const droppedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            const rawMinutes = Math.round((y % 60) / 60 * 60);
+            
+            // Snap to 15-minute intervals
+            const snappedMinutes = Math.round(rawMinutes / 15) * 15;
+            
+            // Format the time string
+            const droppedTime = `${hours.toString().padStart(2, '0')}:${snappedMinutes.toString().padStart(2, '0')}`;
             handleDragEnd(e, droppedTime);
           }}
         >
@@ -107,8 +116,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
               className="h-[60px] border-b border-border hover:bg-muted/40 transition-colors"
               onDragOver={(e) => e.preventDefault()}
             >
-              {/* Half-hour marker */}
-              <div className="h-[30px] border-b border-border/30"></div>
+              {/* 15-minute markers */}
+              <div className="h-[15px] border-b border-border/20"></div>
+              <div className="h-[15px] border-b border-border/30"></div>
+              <div className="h-[15px] border-b border-border/20"></div>
             </div>
           ))}
           

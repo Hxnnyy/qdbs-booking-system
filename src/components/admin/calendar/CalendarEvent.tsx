@@ -88,13 +88,13 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
                 {getClientName()}
               </p>
               
-              {height > 60 && (
+              {height > 50 && (
                 <p className="text-xs text-gray-700 truncate">
                   {event.service}
                 </p>
               )}
               
-              {height > 80 && (
+              {height > 70 && (
                 <div className="mt-auto flex items-center justify-between">
                   <span className="text-xs text-gray-500">{event.barber}</span>
                   {event.notes && <Star size={12} className="text-amber-400" />}
