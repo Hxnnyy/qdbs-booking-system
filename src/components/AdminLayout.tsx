@@ -52,6 +52,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Calendar">
+                      <Link to="/admin/calendar">
+                        <CalendarIcon className="text-primary" />
+                        <span>Calendar</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Import Bookings">
                       <Link to="/admin/import-bookings">
                         <FileUpIcon />
