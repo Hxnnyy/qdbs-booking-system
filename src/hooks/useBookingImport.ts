@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { InsertableBooking } from '@/supabase-types';
+import { useAuth } from '@/context/AuthContext';
 
 interface BookingEntry {
   id: string;
@@ -39,6 +40,7 @@ interface ImportResult {
 
 export const useBookingImport = () => {
   const [isImporting, setIsImporting] = useState(false);
+  const { isAdmin } = useAuth();
   
   const importBookings = async (entries: BookingEntry[]): Promise<ImportResult> => {
     setIsImporting(true);
@@ -47,6 +49,10 @@ export const useBookingImport = () => {
     const errors: string[] = [];
     
     try {
+      if (!isAdmin) {
+        throw new Error("Only admins can import bookings");
+      }
+      
       const validEntries = entries.filter(
         entry => entry.guestName && entry.barberId && entry.serviceId && entry.date && entry.time
       );
@@ -56,7 +62,7 @@ export const useBookingImport = () => {
       }
       
       // Process in smaller batches to prevent timeouts
-      const batchSize = 25;
+      const batchSize = 10;
       const batches = [];
       
       for (let i = 0; i < validEntries.length; i += batchSize) {
@@ -116,6 +122,10 @@ export const useBookingImport = () => {
     const errors: string[] = [];
     
     try {
+      if (!isAdmin) {
+        throw new Error("Only admins can import bookings");
+      }
+      
       const validEntries = entries.filter(entry => entry.isValid);
       
       if (validEntries.length === 0) {
@@ -123,7 +133,7 @@ export const useBookingImport = () => {
       }
       
       // Process in smaller batches to prevent timeouts
-      const batchSize = 25;
+      const batchSize = 10;
       const batches = [];
       
       for (let i = 0; i < validEntries.length; i += batchSize) {

@@ -108,5 +108,6 @@ export const parseCSV = (text: string, barbers: Barber[], services: Service[]): 
     });
   }
   
+  console.log("Parsed CSV results:", results);
   return results;
 };
