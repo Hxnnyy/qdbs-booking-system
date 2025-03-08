@@ -22,11 +22,9 @@ const CalendarView = () => {
     <Layout>
       <AdminLayout>
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold">Calendar View</h1>
-          
-          <p className="text-muted-foreground">
-            View and manage appointments in calendar format. Drag and drop to reschedule.
-          </p>
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">Calendar</h1>
+          </div>
           
           <CalendarViewComponent
             events={calendarEvents}

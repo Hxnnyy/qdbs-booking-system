@@ -1,32 +1,47 @@
 
 import React, { useState, useEffect } from 'react';
-import { format, addHours, startOfDay, addDays, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
+import { format, addHours, startOfDay, addDays, startOfWeek, endOfWeek, isSameDay, setHours } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEventComponent } from './CalendarEvent';
 import { motion } from 'framer-motion';
-import { filterEventsByDate, getBarberColor } from '@/utils/calendarUtils';
+import { filterEventsByDate } from '@/utils/calendarUtils';
+
+// Constants for time display
+const START_HOUR = 8; // 8 AM
+const END_HOUR = 20; // 8 PM
+const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
   onDateChange,
   events, 
   onEventDrop,
-  onEventClick
+  onEventClick,
+  selectedBarberId
 }) => {
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
+  const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]);
 
   // Calculate the start and end of the week
   const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Week starts on Monday
-  const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
   
   // Generate days for the week
   const weekDays = Array.from({ length: 7 }).map((_, index) => {
     return addDays(weekStart, index);
   });
 
-  // Generate time slots for the day (24 hours)
-  const timeSlots = Array.from({ length: 24 }).map((_, index) => {
-    const slotTime = addHours(startOfDay(date), index);
+  // Filter events when barber selection changes
+  useEffect(() => {
+    if (selectedBarberId) {
+      setFilteredEvents(events.filter(event => event.barberId === selectedBarberId));
+    } else {
+      setFilteredEvents(events);
+    }
+  }, [events, selectedBarberId]);
+
+  // Generate time slots for the day (8AM to 8PM)
+  const timeSlots = Array.from({ length: HOURS_TO_DISPLAY }).map((_, index) => {
+    const slotTime = addHours(setHours(startOfDay(date), START_HOUR), index);
     return {
       time: format(slotTime, 'HH:mm'),
       label: format(slotTime, 'h a')
@@ -54,17 +69,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     setDraggingEvent(null);
   };
 
-  // Log events for debugging
-  useEffect(() => {
-    console.log('WeekView events:', events.length);
-    weekDays.forEach(day => {
-      const dayEvents = filterEventsByDate(events, day);
-      console.log(`Events for ${format(day, 'yyyy-MM-dd')}:`, dayEvents.length);
-    });
-  }, [events, weekDays]);
-
   return (
-    <div className="flex h-[1500px] relative border border-border rounded-md">
+    <div className="flex h-[720px] relative border border-border rounded-md overflow-hidden bg-white">
       {/* Time column */}
       <div className="w-20 flex-shrink-0 border-r border-border bg-background">
         {/* Empty cell for header alignment */}
@@ -80,7 +86,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       {/* Days columns */}
       <div className="flex-1 flex">
         {weekDays.map((day) => (
-          <div key={day.toISOString()} className="flex-1 flex flex-col min-w-[120px]">
+          <div key={day.toISOString()} className="flex-1 flex flex-col min-w-[120px] max-w-[1fr]">
             {/* Day header */}
             <div 
               className={`h-12 border-b border-r border-border font-medium flex flex-col items-center justify-center ${
@@ -97,7 +103,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-                const hours = Math.floor(y / 60);
+                const hours = Math.floor(y / 60) + START_HOUR;
                 const minutes = Math.round((y % 60) / 60 * 60);
                 const droppedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 handleDragEnd(e, day, droppedTime);
@@ -116,12 +122,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               ))}
               
               {/* Events for this day */}
-              {filterEventsByDate(events, day).map((event) => (
+              {filterEventsByDate(filteredEvents, day).map((event) => (
                 <div 
                   key={event.id}
                   draggable 
                   onDragStart={() => handleDragStart(event)}
-                  className="absolute w-full px-1"
+                  className="absolute w-full"
                   style={{ top: 0, left: 0, right: 0 }}
                 >
                   <CalendarEventComponent 
@@ -145,12 +151,20 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
 const CurrentTimeIndicator: React.FC = () => {
   const now = new Date();
-  const minutes = now.getHours() * 60 + now.getMinutes();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  
+  // Only show if within display hours
+  if (hours < START_HOUR || hours >= END_HOUR) {
+    return null;
+  }
+  
+  const position = (hours - START_HOUR) * 60 + minutes;
   
   return (
     <motion.div 
       className="absolute w-full h-[2px] bg-red-500 z-20 pointer-events-none"
-      style={{ top: `${minutes}px` }}
+      style={{ top: `${position}px` }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}

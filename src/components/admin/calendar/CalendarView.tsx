@@ -1,16 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DayView } from './DayView';
 import { WeekView } from './WeekView';
 import { CalendarEvent, ViewMode } from '@/types/calendar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Avatar } from '@/components/ui/avatar';
 import { format, addDays, subDays, startOfWeek, endOfWeek, isToday } from 'date-fns';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
+import { useBarbers } from '@/hooks/useBarbers';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CalendarViewComponentProps {
   events: CalendarEvent[];
@@ -27,6 +30,8 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
+  const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
+  const { barbers, isLoading: loadingBarbers } = useBarbers();
   
   const navigateToday = () => {
     setSelectedDate(new Date());
@@ -134,6 +139,51 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
         </div>
       </div>
       
+      {/* Barber Selection Tabs */}
+      <ScrollArea className="max-w-full pb-4">
+        <div className="flex space-x-2 min-w-max pb-2">
+          <Button 
+            variant={selectedBarberId === null ? "default" : "outline"}
+            size="sm"
+            className="rounded-full px-4"
+            onClick={() => setSelectedBarberId(null)}
+          >
+            All Barbers
+          </Button>
+          
+          {loadingBarbers ? (
+            <div className="flex items-center justify-center px-4">
+              <Spinner className="h-4 w-4" />
+            </div>
+          ) : (
+            barbers.map(barber => (
+              <Button
+                key={barber.id}
+                variant={selectedBarberId === barber.id ? "default" : "outline"}
+                size="sm"
+                className="rounded-full px-4 flex items-center space-x-2"
+                onClick={() => setSelectedBarberId(barber.id)}
+              >
+                <Avatar className="h-6 w-6">
+                  {barber.image_url ? (
+                    <img 
+                      src={barber.image_url} 
+                      alt={barber.name} 
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="bg-muted h-full w-full flex items-center justify-center text-xs font-medium">
+                      {barber.name.charAt(0)}
+                    </div>
+                  )}
+                </Avatar>
+                <span>{barber.name}</span>
+              </Button>
+            ))
+          )}
+        </div>
+      </ScrollArea>
+      
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Spinner className="w-8 h-8" />
@@ -147,6 +197,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
               events={events}
               onEventDrop={onEventDrop}
               onEventClick={onEventClick}
+              selectedBarberId={selectedBarberId}
             />
           )}
           {viewMode === 'week' && (
@@ -156,6 +207,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
               events={events}
               onEventDrop={onEventDrop}
               onEventClick={onEventClick}
+              selectedBarberId={selectedBarberId}
             />
           )}
         </div>

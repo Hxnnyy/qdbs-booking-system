@@ -21,6 +21,7 @@ export interface CalendarViewProps {
   events: CalendarEvent[];
   onEventDrop: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  selectedBarberId?: string | null;
 }
 
 export interface EventProps {

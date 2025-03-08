@@ -112,3 +112,14 @@ export const formatNewBookingTime = (date: Date): string => {
 export const formatNewBookingDate = (date: Date): string => {
   return format(date, 'yyyy-MM-dd');
 };
+
+// Get color based on booking status
+export const getStatusColor = (status: string): string => {
+  switch(status) {
+    case 'confirmed': return 'blue';
+    case 'completed': return 'green';
+    case 'cancelled': return 'red';
+    case 'no-show': return 'amber';
+    default: return 'gray';
+  }
+};

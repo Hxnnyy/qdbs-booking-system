@@ -1,32 +1,42 @@
 
 import React, { useState, useEffect } from 'react';
-import { format, addHours, startOfDay, isToday } from 'date-fns';
+import { format, addHours, startOfDay, isToday, setHours, setMinutes } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEventComponent } from './CalendarEvent';
 import { motion } from 'framer-motion';
 import { filterEventsByDate } from '@/utils/calendarUtils';
+
+// Constants for time display
+const START_HOUR = 8; // 8 AM
+const END_HOUR = 20; // 8 PM
+const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
   onDateChange,
   events, 
   onEventDrop,
-  onEventClick
+  onEventClick,
+  selectedBarberId
 }) => {
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
 
   // Apply filtering when events or date changes
   useEffect(() => {
-    console.log('DayView events:', events.length);
-    const filtered = filterEventsByDate(events, date);
-    console.log('Filtered events for day:', filtered.length, date);
+    let filtered = filterEventsByDate(events, date);
+    
+    // If a barber is selected, filter by barber ID
+    if (selectedBarberId) {
+      filtered = filtered.filter(event => event.barberId === selectedBarberId);
+    }
+    
     setDisplayEvents(filtered);
-  }, [events, date]);
+  }, [events, date, selectedBarberId]);
   
-  // Generate time slots for the day (24 hours)
-  const timeSlots = Array.from({ length: 24 }).map((_, index) => {
-    const slotTime = addHours(startOfDay(date), index);
+  // Generate time slots for the day (8AM to 8PM)
+  const timeSlots = Array.from({ length: HOURS_TO_DISPLAY }).map((_, index) => {
+    const slotTime = addHours(setHours(startOfDay(date), START_HOUR), index);
     return {
       time: format(slotTime, 'HH:mm'),
       label: format(slotTime, 'h a')
@@ -55,7 +65,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex h-[1500px] relative border border-border rounded-md">
+    <div className="flex h-[720px] relative border border-border rounded-md overflow-hidden bg-white">
       {/* Time column */}
       <div className="w-20 flex-shrink-0 border-r border-border bg-background">
         {/* Empty cell for header alignment (for consistency with WeekView) */}
@@ -84,7 +94,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-            const hours = Math.floor(y / 60);
+            const hours = Math.floor(y / 60) + START_HOUR;
             const minutes = Math.round((y % 60) / 60 * 60);
             const droppedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             handleDragEnd(e, droppedTime);
@@ -108,7 +118,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
               key={event.id}
               draggable 
               onDragStart={() => handleDragStart(event)}
-              className="absolute w-full px-1"
+              className="absolute w-full"
               style={{ top: 0, left: 0, right: 0 }}
             >
               <CalendarEventComponent 
@@ -128,12 +138,20 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
 const CurrentTimeIndicator: React.FC = () => {
   const now = new Date();
-  const minutes = now.getHours() * 60 + now.getMinutes();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  
+  // Only show if within display hours
+  if (hours < START_HOUR || hours >= END_HOUR) {
+    return null;
+  }
+  
+  const position = (hours - START_HOUR) * 60 + minutes;
   
   return (
     <motion.div 
       className="absolute w-full h-[2px] bg-red-500 z-20 pointer-events-none"
-      style={{ top: `${minutes}px` }}
+      style={{ top: `${position}px` }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
