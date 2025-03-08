@@ -87,13 +87,27 @@ export const BatchEntryForm: React.FC<BatchEntryFormProps> = ({ barbers, service
     }
     
     try {
-      await importBookings(validEntries);
+      console.log("Submitting entries:", validEntries);
+      const result = await importBookings(validEntries);
+      
+      console.log("Import result:", result);
       
       // Reset form after successful import
       setEntries([createEmptyEntry()]);
-      toast.success(`Successfully imported ${validEntries.length} booking(s)`);
+      toast.success(`Successfully imported ${result.successCount} booking(s)`);
+      
+      if (result.failedCount > 0) {
+        toast.error(`Failed to import ${result.failedCount} booking(s)`);
+        console.error("Import errors:", result.errors);
+      }
+      
+      // Refresh page to show updated bookings after a short delay
+      setTimeout(() => {
+        window.location.href = '/admin/calendar';
+      }, 2000);
     } catch (error: any) {
       toast.error("Failed to import bookings: " + error.message);
+      console.error("Import error:", error);
     }
   };
   

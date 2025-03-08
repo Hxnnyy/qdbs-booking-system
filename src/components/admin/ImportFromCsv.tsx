@@ -23,6 +23,7 @@ export const ImportFromCsv: React.FC<ImportFromCsvProps> = ({ barbers, services 
   const handleFileProcessed = (file: File, data: ParsedBookingEntry[]) => {
     setFile(file);
     setParsedData(data);
+    console.log("Parsed CSV data:", data);
   };
   
   const handleImport = async () => {
@@ -38,18 +39,29 @@ export const ImportFromCsv: React.FC<ImportFromCsvProps> = ({ barbers, services 
     }
     
     try {
+      console.log("Importing CSV entries:", validEntries);
       const result = await importBookingsFromCsv(validEntries);
+      
+      console.log("CSV import result:", result);
+      
       toast.success(`Successfully imported ${result.successCount} bookings`);
       
       if (result.failedCount > 0) {
         toast.warning(`Failed to import ${result.failedCount} bookings`);
+        console.error("CSV import errors:", result.errors);
       }
       
       // Reset after successful import
       setFile(null);
       setParsedData([]);
+      
+      // Refresh page to show updated bookings after a short delay
+      setTimeout(() => {
+        window.location.href = '/admin/calendar';
+      }, 2000);
     } catch (error: any) {
       toast.error(`Import failed: ${error.message}`);
+      console.error("CSV import error:", error);
     }
   };
   

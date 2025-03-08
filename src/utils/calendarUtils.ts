@@ -9,10 +9,19 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
   const duration = booking.service?.duration || 30; // Default to 30 minutes if no duration
   const endDate = addMinutes(startDate, duration);
   
+  // Extract guest name from notes if it's a guest booking
+  let guestName = 'Guest';
+  if (booking.guest_booking && booking.notes) {
+    const guestMatch = booking.notes.match(/Guest booking by ([^(]+)/);
+    if (guestMatch && guestMatch[1]) {
+      guestName = guestMatch[1].trim();
+    }
+  }
+  
   return {
     id: booking.id,
     title: booking.guest_booking 
-      ? `Guest: ${booking.notes?.split('\n')[0]?.split('by ')[1]?.split(' (')[0] || 'Guest'}`
+      ? `Guest: ${guestName}`
       : `Client Booking`,
     start: startDate,
     end: endDate,

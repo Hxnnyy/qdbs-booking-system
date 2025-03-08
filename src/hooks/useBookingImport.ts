@@ -67,19 +67,22 @@ export const useBookingImport = () => {
         const bookingsToInsert = batch.map(entry => {
           const formattedDate = format(entry.date!, 'yyyy-MM-dd');
           
+          // Create guest booking with proper structure
           const booking: InsertableBooking = {
-            user_id: '00000000-0000-0000-0000-000000000000', // Placeholder for guest bookings
+            user_id: null, // Use null for guest bookings
             barber_id: entry.barberId,
             service_id: entry.serviceId,
             booking_date: formattedDate,
             booking_time: entry.time,
             status: 'confirmed',
-            notes: entry.notes,
+            notes: `Guest booking by ${entry.guestName} (${entry.guestPhone})${entry.notes ? '\n' + entry.notes : ''}`,
             guest_booking: true
           };
           
           return booking;
         });
+        
+        console.log("Inserting bookings:", bookingsToInsert);
         
         // @ts-ignore - Supabase types issue
         const { data, error } = await supabase
@@ -135,19 +138,22 @@ export const useBookingImport = () => {
           
           const formattedDate = format(entry.date, 'yyyy-MM-dd');
           
+          // Create guest booking with proper structure
           const booking: InsertableBooking = {
-            user_id: '00000000-0000-0000-0000-000000000000', // Placeholder for guest bookings
+            user_id: null, // Use null for guest bookings
             barber_id: entry.barberId,
             service_id: entry.serviceId,
             booking_date: formattedDate,
             booking_time: entry.time,
             status: 'confirmed',
-            notes: entry.notes,
+            notes: `Guest booking by ${entry.guestName} (${entry.guestPhone})${entry.notes ? '\n' + entry.notes : ''}`,
             guest_booking: true
           };
           
           return booking;
         });
+        
+        console.log("Inserting CSV bookings:", bookingsToInsert);
         
         // @ts-ignore - Supabase types issue
         const { data, error } = await supabase

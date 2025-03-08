@@ -56,7 +56,7 @@ export const parseCSV = (text: string, barbers: Barber[], services: Service[]): 
     
     const errors: string[] = [];
     
-    // Find matching barber and service
+    // Find matching barber and service (case-insensitive)
     const matchedBarber = barbers.find(b => 
       b.name.toLowerCase() === barberName.toLowerCase()
     );
@@ -87,6 +87,10 @@ export const parseCSV = (text: string, barbers: Barber[], services: Service[]): 
     if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
       errors.push("Invalid time format");
     }
+    
+    // Make sure we have all required fields
+    if (!guestName) errors.push("Guest name is required");
+    if (!guestPhone) errors.push("Phone number is required");
     
     results.push({
       guestName,
