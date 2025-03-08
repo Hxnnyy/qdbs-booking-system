@@ -114,7 +114,19 @@ export const getBarberColor = (barberId: string, barberName?: string): string =>
 };
 
 // Filter events for calendar view based on date
-export const filterEventsByDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
+export const filterEventsByDate = (events: CalendarEvent[], date: Date, isWeekView = false): CalendarEvent[] => {
+  if (isWeekView) {
+    // For week view, filter events that fall within the week
+    const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Week starts on Monday
+    const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+    
+    return events.filter(event => {
+      const eventDate = event.start;
+      return eventDate >= weekStart && eventDate <= weekEnd && event.status !== 'cancelled';
+    });
+  }
+  
+  // For day view, filter events that fall on the specific date
   return events.filter(event => 
     isSameDay(event.start, date) && event.status !== 'cancelled'
   );

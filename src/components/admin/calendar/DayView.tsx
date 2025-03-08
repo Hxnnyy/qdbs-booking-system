@@ -96,8 +96,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
         <div className="h-12 border-b border-border"></div>
         
         {timeSlots.map((slot) => (
-          <div key={slot.time} className="h-[120px] border-b border-border flex items-start pl-2 pt-1">
-            <span className="text-xs text-muted-foreground">{slot.label}</span>
+          <div key={slot.time} className="h-[120px] border-b border-border flex items-start justify-center pt-1">
+            <span className="text-xs text-muted-foreground font-medium bg-background/80 px-2 py-1 rounded-md">
+              {slot.label}
+            </span>
           </div>
         ))}
       </div>

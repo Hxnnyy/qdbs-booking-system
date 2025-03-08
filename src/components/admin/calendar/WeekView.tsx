@@ -4,7 +4,7 @@ import { format, addDays, addHours, startOfWeek, endOfWeek, isToday, getDay, set
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEventComponent } from './CalendarEvent';
 import { motion } from 'framer-motion';
-import { filterEventsByDateRange } from '@/utils/calendarUtils';
+import { filterEventsByDate } from '@/utils/calendarUtils';
 
 // Constants for time display
 const START_HOUR = 8; // 8 AM
@@ -39,7 +39,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   
   // Apply filtering when events or date changes
   useEffect(() => {
-    let filtered = filterEventsByDateRange(events, startDate, endDate);
+    // Filter events for the entire week by checking each day
+    let filtered = events.filter(event => {
+      // Check if the event date falls within the current week
+      const eventDate = event.start;
+      return eventDate >= startDate && eventDate <= endDate && event.status !== 'cancelled';
+    });
     
     // If a barber is selected, filter by barber ID
     if (selectedBarberId) {
@@ -107,13 +112,15 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   return (
     <div className="flex h-[1440px] relative border border-border rounded-md overflow-hidden bg-white">
       {/* Time column */}
-      <div className="w-20 flex-shrink-0 border-r border-border bg-background">
+      <div className="w-20 flex-shrink-0 border-r border-border bg-background relative">
         {/* Empty cell for header alignment */}
         <div className="h-12 border-b border-border"></div>
         
         {timeSlots.map((slot) => (
-          <div key={slot.time} className="h-[120px] border-b border-border flex items-start pl-2 pt-1">
-            <span className="text-xs text-muted-foreground">{slot.label}</span>
+          <div key={slot.time} className="h-[120px] border-b border-border flex items-start justify-center pt-1">
+            <span className="text-xs text-muted-foreground font-medium bg-background/80 px-2 py-1 rounded-md">
+              {slot.label}
+            </span>
           </div>
         ))}
       </div>
