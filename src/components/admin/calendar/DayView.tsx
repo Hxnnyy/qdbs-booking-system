@@ -95,11 +95,14 @@ export const DayView: React.FC<CalendarViewProps> = ({
         {/* Empty cell for header alignment (for consistency with WeekView) */}
         <div className="h-12 border-b border-border"></div>
         
-        {timeSlots.map((slot) => (
-          <div key={slot.time} className="h-[120px] border-b border-border flex items-start justify-center pt-1">
-            <span className="text-xs text-muted-foreground font-medium bg-background/80 px-2 py-1 rounded-md">
-              {slot.label}
-            </span>
+        {timeSlots.map((slot, index) => (
+          <div key={slot.time} className="relative h-[120px] border-b border-border">
+            {/* Time label positioned at the top of each hour slot */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-center pt-2">
+              <span className="text-xs text-muted-foreground font-medium bg-background/80 px-2 py-1 rounded-md">
+                {slot.label}
+              </span>
+            </div>
           </div>
         ))}
       </div>

@@ -40,11 +40,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   // Apply filtering when events or date changes
   useEffect(() => {
     // Filter events for the entire week by checking each day
-    let filtered = events.filter(event => {
-      // Check if the event date falls within the current week
-      const eventDate = event.start;
-      return eventDate >= startDate && eventDate <= endDate && event.status !== 'cancelled';
-    });
+    let filtered = filterEventsByDate(events, date, true);
     
     // If a barber is selected, filter by barber ID
     if (selectedBarberId) {
@@ -52,7 +48,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     }
     
     setDisplayEvents(filtered);
-  }, [events, startDate, endDate, selectedBarberId]);
+  }, [events, startDate, endDate, selectedBarberId, date]);
 
   // Generate time slots for the day (8AM to 8PM)
   const timeSlots = Array.from({ length: HOURS_TO_DISPLAY }).map((_, index) => {
@@ -117,10 +113,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         <div className="h-12 border-b border-border"></div>
         
         {timeSlots.map((slot) => (
-          <div key={slot.time} className="h-[120px] border-b border-border flex items-start justify-center pt-1">
-            <span className="text-xs text-muted-foreground font-medium bg-background/80 px-2 py-1 rounded-md">
-              {slot.label}
-            </span>
+          <div key={slot.time} className="relative h-[120px] border-b border-border">
+            {/* Time label positioned at the top of each hour slot */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-center pt-2">
+              <span className="text-xs text-muted-foreground font-medium bg-background/80 px-2 py-1 rounded-md">
+                {slot.label}
+              </span>
+            </div>
           </div>
         ))}
       </div>
