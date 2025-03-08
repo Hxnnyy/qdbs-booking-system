@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, addHours, startOfDay, addDays, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEventComponent } from './CalendarEvent';
@@ -53,6 +53,15 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
   };
+
+  // Log events for debugging
+  useEffect(() => {
+    console.log('WeekView events:', events.length);
+    weekDays.forEach(day => {
+      const dayEvents = filterEventsByDate(events, day);
+      console.log(`Events for ${format(day, 'yyyy-MM-dd')}:`, dayEvents.length);
+    });
+  }, [events, weekDays]);
 
   return (
     <div className="flex h-[1500px] relative border border-border rounded-md">
@@ -113,6 +122,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                   draggable 
                   onDragStart={() => handleDragStart(event)}
                   className="absolute w-full px-1"
+                  style={{ top: 0, left: 0, right: 0 }}
                 >
                   <CalendarEventComponent 
                     event={event} 

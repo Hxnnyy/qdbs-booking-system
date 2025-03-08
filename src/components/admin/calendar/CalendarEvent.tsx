@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { CalendarEvent } from '@/types/calendar';
 import { getBarberColor } from '@/utils/calendarUtils';
 import { CalendarIcon, UserCircle2, Users } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface EventComponentProps {
@@ -25,6 +25,11 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   // Height based on duration (1 minute = 1px)
   const height = Math.max(duration, 30); // Minimum height of 30px
   
+  // Calculate top position (hours * 60 + minutes)
+  const hours = event.start.getHours();
+  const minutes = event.start.getMinutes();
+  const topPosition = hours * 60 + minutes;
+  
   return (
     <TooltipProvider>
       <Tooltip>
@@ -35,7 +40,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
               backgroundColor: `${barberColor}20`, // 20% opacity
               borderLeft: `4px solid ${barberColor}`,
               height: `${height}px`,
-              top: `${event.start.getHours() * 60 + event.start.getMinutes()}px`,
+              top: `${topPosition}px`,
               zIndex: isHovered ? 10 : 5,
             }}
             whileHover={{ 

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, addHours, startOfDay, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEventComponent } from './CalendarEvent';
@@ -14,8 +14,15 @@ export const DayView: React.FC<CalendarViewProps> = ({
   onEventClick
 }) => {
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
+  const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
 
-  const filteredEvents = filterEventsByDate(events, date);
+  // Apply filtering when events or date changes
+  useEffect(() => {
+    console.log('DayView events:', events.length);
+    const filtered = filterEventsByDate(events, date);
+    console.log('Filtered events for day:', filtered.length, date);
+    setDisplayEvents(filtered);
+  }, [events, date]);
   
   // Generate time slots for the day (24 hours)
   const timeSlots = Array.from({ length: 24 }).map((_, index) => {
@@ -96,12 +103,13 @@ export const DayView: React.FC<CalendarViewProps> = ({
           ))}
           
           {/* Events */}
-          {filteredEvents.map((event) => (
+          {displayEvents.map((event) => (
             <div 
               key={event.id}
               draggable 
               onDragStart={() => handleDragStart(event)}
               className="absolute w-full px-1"
+              style={{ top: 0, left: 0, right: 0 }}
             >
               <CalendarEventComponent 
                 event={event} 

@@ -20,6 +20,8 @@ export const useCalendarBookings = () => {
       setIsLoading(true);
       setError(null);
       
+      console.log('Fetching bookings...');
+      
       // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('bookings')
@@ -33,12 +35,23 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
+      console.log(`Fetched ${data?.length || 0} bookings`);
       setBookings(data || []);
       
       // Convert bookings to calendar events
-      const events = (data || []).map(booking => bookingToCalendarEvent(booking));
+      const events = (data || []).map(booking => {
+        try {
+          return bookingToCalendarEvent(booking);
+        } catch (err) {
+          console.error('Error converting booking to event:', err, booking);
+          return null;
+        }
+      }).filter(Boolean) as CalendarEvent[];
+      
+      console.log(`Created ${events.length} calendar events`);
       setCalendarEvents(events);
     } catch (err: any) {
+      console.error('Error fetching bookings:', err);
       setError(err.message);
       toast.error('Failed to load bookings');
     } finally {
@@ -58,6 +71,8 @@ export const useCalendarBookings = () => {
       
       const newBookingDate = formatNewBookingDate(newStart);
       const newBookingTime = formatNewBookingTime(newStart);
+      
+      console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       
       // @ts-ignore - Supabase types issue
       const { error } = await supabase
@@ -94,6 +109,7 @@ export const useCalendarBookings = () => {
       
       toast.success('Booking time updated successfully');
     } catch (err: any) {
+      console.error('Error updating booking time:', err);
       setError(err.message);
       toast.error('Failed to update booking time');
     } finally {
@@ -116,6 +132,7 @@ export const useCalendarBookings = () => {
   useEffect(() => {
     // Function to handle booking updates
     const handleBookingChange = (payload: any) => {
+      console.log('Realtime booking change detected:', payload);
       // Refresh the whole list for simplicity
       fetchBookings();
     };
@@ -129,6 +146,8 @@ export const useCalendarBookings = () => {
         handleBookingChange
       )
       .subscribe();
+
+    console.log('Subscribed to booking changes');
 
     // Cleanup
     return () => {
