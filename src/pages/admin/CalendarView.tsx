@@ -5,6 +5,8 @@ import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 import { CalendarViewComponent } from '@/components/admin/calendar/CalendarView';
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const CalendarView = () => {
   const {
@@ -17,6 +19,8 @@ const CalendarView = () => {
     isDialogOpen,
     setIsDialogOpen
   } = useCalendarBookings();
+  
+  const isMobile = useIsMobile();
 
   return (
     <Layout>
@@ -26,12 +30,14 @@ const CalendarView = () => {
             <h1 className="text-3xl font-bold">Calendar</h1>
           </div>
           
-          <CalendarViewComponent
-            events={calendarEvents}
-            isLoading={isLoading}
-            onEventDrop={handleEventDrop}
-            onEventClick={handleEventClick}
-          />
+          <ScrollArea className="h-[calc(100vh-200px)] rounded-md">
+            <CalendarViewComponent
+              events={calendarEvents}
+              isLoading={isLoading}
+              onEventDrop={handleEventDrop}
+              onEventClick={handleEventClick}
+            />
+          </ScrollArea>
           
           <EventDetailsDialog
             event={selectedEvent}

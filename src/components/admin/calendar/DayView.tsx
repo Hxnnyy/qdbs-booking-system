@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addHours, startOfDay, isToday, setHours, setMinutes } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -89,17 +88,16 @@ export const DayView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex h-[1440px] relative border border-border rounded-md overflow-hidden bg-white">
+    <div className="flex h-auto overflow-y-auto border border-border rounded-md bg-white">
       {/* Time column */}
-      <div className="w-20 flex-shrink-0 border-r border-border bg-background">
-        {/* Empty cell for header alignment (for consistency with WeekView) */}
-        <div className="h-12 border-b border-border"></div>
+      <div className="w-16 flex-shrink-0 border-r border-border bg-background sticky left-0">
+        {/* Empty cell for header alignment */}
+        <div className="h-12 border-b border-border sticky top-0 bg-background z-10"></div>
         
-        {timeSlots.map((slot, index) => (
-          <div key={slot.time} className="relative h-[120px] border-b border-border">
-            {/* Time label positioned at the top of each hour slot */}
-            <div className="absolute top-0 left-0 right-0 flex items-center justify-center pt-2">
-              <span className="text-xs text-muted-foreground font-medium bg-background/80 px-2 py-1 rounded-md">
+        {timeSlots.map((slot) => (
+          <div key={slot.time} className="h-[120px] border-b border-border relative">
+            <div className="absolute -top-2.5 right-0 pr-2">
+              <span className="text-xs text-muted-foreground font-medium">
                 {slot.label}
               </span>
             </div>
@@ -109,8 +107,8 @@ export const DayView: React.FC<CalendarViewProps> = ({
       
       {/* Events column */}
       <div className="flex-1 flex flex-col">
-        {/* Day header (for consistency with WeekView) */}
-        <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center ${
+        {/* Day header */}
+        <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center sticky top-0 z-10 ${
           isToday(date) ? 'bg-primary/20' : 'bg-primary/5'
         }`}>
           <div className="text-sm font-semibold">{format(date, 'EEEE')}</div>
