@@ -71,71 +71,79 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={navigatePrevious}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+      {/* Calendar header with enhanced styling */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-lg shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={navigatePrevious}
+              className="bg-white/80 hover:bg-white"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className={cn(
+                    "pl-3 text-left font-normal bg-white/80 hover:bg-white border-primary/20",
+                    isToday(selectedDate) && "bg-primary/10 border-primary/30"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                  <span className="font-medium">{getDateDisplay()}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={navigateNext}
+              className="bg-white/80 hover:bg-white"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={navigateToday}
+              className={cn(
+                "bg-white/80 hover:bg-white", 
+                isToday(selectedDate) && "bg-primary/10 border-primary/30 font-medium"
+              )}
+            >
+              Today
+            </Button>
+          </div>
           
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className={cn(
-                  "pl-3 text-left font-normal",
-                  isToday(selectedDate) && "bg-primary/10"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {getDateDisplay()}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={navigateNext}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={navigateToday}
-            className={cn(isToday(selectedDate) && "bg-primary/10")}
-          >
-            Today
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Tabs 
-            defaultValue="day" 
-            value={viewMode} 
-            onValueChange={(value) => setViewMode(value as ViewMode)}
-            className="w-full sm:w-auto"
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="day">Day</TabsTrigger>
-              <TabsTrigger value="week">Week</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2">
+            <Tabs 
+              defaultValue="day" 
+              value={viewMode} 
+              onValueChange={(value) => setViewMode(value as ViewMode)}
+              className="w-full sm:w-auto"
+            >
+              <TabsList className="grid w-full grid-cols-2 bg-white/80">
+                <TabsTrigger value="day" className="data-[state=active]:bg-primary/10">Day</TabsTrigger>
+                <TabsTrigger value="week" className="data-[state=active]:bg-primary/10">Week</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
       </div>
       

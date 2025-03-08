@@ -68,6 +68,26 @@ export const DayView: React.FC<CalendarViewProps> = ({
     setDraggingEvent(null);
   };
 
+  // Calculate position and height for each event
+  const getEventStyle = (event: CalendarEvent) => {
+    const startHour = event.start.getHours();
+    const startMinute = event.start.getMinutes();
+    const endHour = event.end.getHours();
+    const endMinute = event.end.getMinutes();
+    
+    // Calculate position from the top (relative to START_HOUR)
+    const top = ((startHour - START_HOUR) + (startMinute / 60)) * HOUR_HEIGHT;
+    
+    // Calculate height based on duration
+    const durationHours = (endHour - startHour) + ((endMinute - startMinute) / 60);
+    const height = durationHours * HOUR_HEIGHT;
+    
+    return {
+      top: `${top}px`,
+      height: `${height}px`
+    };
+  };
+
   return (
     <div className="flex h-[1440px] relative border border-border rounded-md overflow-hidden bg-white">
       {/* Time column */}
@@ -86,10 +106,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
       <div className="flex-1 flex flex-col">
         {/* Day header (for consistency with WeekView) */}
         <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center ${
-          isToday(date) ? 'bg-primary/10' : ''
+          isToday(date) ? 'bg-primary/20' : 'bg-primary/5'
         }`}>
-          <div className="text-sm">{format(date, 'EEEE')}</div>
-          <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
+          <div className="text-sm font-semibold">{format(date, 'EEEE')}</div>
+          <div className="text-xs font-medium text-primary">{format(date, 'MMMM d')}</div>
         </div>
         
         {/* Time grid and events */}
@@ -130,8 +150,8 @@ export const DayView: React.FC<CalendarViewProps> = ({
               key={event.id}
               draggable 
               onDragStart={() => handleDragStart(event)}
-              className="absolute w-full"
-              style={{ top: 0, left: 0, right: 0 }}
+              className="absolute w-full px-2"
+              style={getEventStyle(event)}
             >
               <CalendarEventComponent 
                 event={event} 
