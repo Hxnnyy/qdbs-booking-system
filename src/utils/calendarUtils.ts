@@ -1,3 +1,4 @@
+
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -75,10 +76,10 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
   }
 };
 
-// Define default barber colors mapping
+// Define default barber colors mapping - fixed to match requirements
 const barberDefaultColors: Record<string, string> = {
   // Default colors for specific barbers by name
-  'Chris': '#0EA5E9', // Ocean Blue
+  'Chris': '#0EA5E9', // Blue
   'Thomas': '#4ade80', // Green
   'Conor': '#facc15', // Yellow
 };

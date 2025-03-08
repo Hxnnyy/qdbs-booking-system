@@ -23,7 +23,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   const duration = (event.end.getTime() - event.start.getTime()) / (1000 * 60); // in minutes
   
   // Height based on duration (1 minute = 2px since we doubled the row height)
-  const height = Math.max(duration * 2, 60); // Minimum height of 60px (was 30px)
+  const height = Math.max(duration * 2, 60); // Minimum height of 60px
   
   // Calculate top position (hours * 120 + minutes * 2) - adjusted for the new row height
   const hours = event.start.getHours();

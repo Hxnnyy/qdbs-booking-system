@@ -25,11 +25,11 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
   
   if (!event) return null;
   
-  const barberColor = getBarberColor(event.barberId);
+  const barberColor = getBarberColor(event.barberId, event.barber);
   
   const handleEditClick = () => {
     // Redirect to the booking edit page
-    navigate(`/admin/bookings/edit/${event.id}`);
+    navigate(`/admin/bookings?edit=${event.id}`);
     onClose();
     toast.info("Navigating to booking edit page");
   };
