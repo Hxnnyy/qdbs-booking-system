@@ -40,7 +40,7 @@ interface ImportResult {
 
 export const useBookingImport = () => {
   const [isImporting, setIsImporting] = useState(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   
   const importBookings = async (entries: BookingEntry[]): Promise<ImportResult> => {
     setIsImporting(true);
@@ -62,7 +62,7 @@ export const useBookingImport = () => {
       }
       
       // Process in smaller batches to prevent timeouts
-      const batchSize = 10;
+      const batchSize = 5;
       const batches = [];
       
       for (let i = 0; i < validEntries.length; i += batchSize) {
@@ -74,8 +74,9 @@ export const useBookingImport = () => {
           const formattedDate = format(entry.date!, 'yyyy-MM-dd');
           
           // Create guest booking with proper structure
+          // For current DB schema, we need to provide the admin's user_id
           const booking: InsertableBooking = {
-            user_id: null, // Use null for guest bookings
+            user_id: user?.id || 'admin-import', // Use current admin's ID
             barber_id: entry.barberId,
             service_id: entry.serviceId,
             booking_date: formattedDate,
@@ -133,7 +134,7 @@ export const useBookingImport = () => {
       }
       
       // Process in smaller batches to prevent timeouts
-      const batchSize = 10;
+      const batchSize = 5;
       const batches = [];
       
       for (let i = 0; i < validEntries.length; i += batchSize) {
@@ -149,8 +150,9 @@ export const useBookingImport = () => {
           const formattedDate = format(entry.date, 'yyyy-MM-dd');
           
           // Create guest booking with proper structure
+          // For current DB schema, we need to provide the admin's user_id
           const booking: InsertableBooking = {
-            user_id: null, // Use null for guest bookings
+            user_id: user?.id || 'admin-import', // Use current admin's ID
             barber_id: entry.barberId,
             service_id: entry.serviceId,
             booking_date: formattedDate,
