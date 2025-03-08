@@ -10,7 +10,7 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 const START_HOUR = 8; // 8 AM
 const END_HOUR = 20; // 8 PM
 const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
-const HOUR_HEIGHT = 120; // Doubled height (was 60px)
+const HOUR_HEIGHT = 120; // Doubled height (120px)
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -76,7 +76,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
         <div className="h-12 border-b border-border"></div>
         
         {timeSlots.map((slot) => (
-          <div key={slot.time} className={`h-[${HOUR_HEIGHT}px] border-b border-border flex items-start pl-2 pt-1`}>
+          <div key={slot.time} className="h-[120px] border-b border-border flex items-start pl-2 pt-1">
             <span className="text-xs text-muted-foreground">{slot.label}</span>
           </div>
         ))}
@@ -114,13 +114,13 @@ export const DayView: React.FC<CalendarViewProps> = ({
           {timeSlots.map((slot) => (
             <div 
               key={slot.time} 
-              className={`h-[${HOUR_HEIGHT}px] border-b border-border hover:bg-muted/40 transition-colors`}
+              className="h-[120px] border-b border-border hover:bg-muted/40 transition-colors"
               onDragOver={(e) => e.preventDefault()}
             >
               {/* 15-minute markers */}
-              <div className={`h-[${HOUR_HEIGHT/4}px] border-b border-border/20`}></div>
-              <div className={`h-[${HOUR_HEIGHT/4}px] border-b border-border/30`}></div>
-              <div className={`h-[${HOUR_HEIGHT/4}px] border-b border-border/20`}></div>
+              <div className="h-[30px] border-b border-border/20"></div>
+              <div className="h-[30px] border-b border-border/30"></div>
+              <div className="h-[30px] border-b border-border/20"></div>
             </div>
           ))}
           
