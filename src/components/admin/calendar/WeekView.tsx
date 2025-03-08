@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, addDays, addHours, startOfWeek, endOfWeek, isToday, getDay, setHours, startOfDay } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -105,7 +106,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex h-auto overflow-y-auto border border-border rounded-md bg-white">
+    <div className="flex h-[calc(12*120px)] overflow-y-auto border border-border rounded-md bg-white">
       {/* Time column */}
       <div className="w-16 flex-shrink-0 border-r border-border bg-background sticky left-0">
         {/* Empty cell for header alignment */}
@@ -113,7 +114,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         
         {timeSlots.map((slot) => (
           <div key={slot.time} className="h-[120px] border-b border-border relative">
-            <div className="absolute -top-2.5 right-0 pr-2">
+            <div className="absolute -top-3 left-0 pl-2 z-10">
               <span className="text-xs text-muted-foreground font-medium">
                 {slot.label}
               </span>

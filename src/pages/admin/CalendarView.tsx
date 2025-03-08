@@ -31,12 +31,14 @@ const CalendarView = () => {
           </div>
           
           <ScrollArea className="h-[calc(100vh-200px)] rounded-md">
-            <CalendarViewComponent
-              events={calendarEvents}
-              isLoading={isLoading}
-              onEventDrop={handleEventDrop}
-              onEventClick={handleEventClick}
-            />
+            <div className="pb-6">
+              <CalendarViewComponent
+                events={calendarEvents}
+                isLoading={isLoading}
+                onEventDrop={handleEventDrop}
+                onEventClick={handleEventClick}
+              />
+            </div>
           </ScrollArea>
           
           <EventDetailsDialog
