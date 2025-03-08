@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { format, addHours, startOfDay } from 'date-fns';
+import { format, addHours, startOfDay, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEventComponent } from './CalendarEvent';
 import { motion } from 'framer-motion';
@@ -8,6 +8,7 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
+  onDateChange,
   events, 
   onEventDrop,
   onEventClick
@@ -50,6 +51,9 @@ export const DayView: React.FC<CalendarViewProps> = ({
     <div className="flex h-[1500px] relative border border-border rounded-md">
       {/* Time column */}
       <div className="w-20 flex-shrink-0 border-r border-border bg-background">
+        {/* Empty cell for header alignment (for consistency with WeekView) */}
+        <div className="h-12 border-b border-border"></div>
+        
         {timeSlots.map((slot) => (
           <div key={slot.time} className="h-[60px] border-b border-border flex items-start pl-2 pt-1">
             <span className="text-xs text-muted-foreground">{slot.label}</span>
@@ -58,57 +62,64 @@ export const DayView: React.FC<CalendarViewProps> = ({
       </div>
       
       {/* Events column */}
-      <div 
-        className="flex-1 relative"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-          const hours = Math.floor(y / 60);
-          const minutes = Math.round((y % 60) / 60 * 60);
-          const droppedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-          handleDragEnd(e, droppedTime);
-        }}
-      >
-        {/* Time grid lines */}
-        {timeSlots.map((slot) => (
-          <div 
-            key={slot.time} 
-            className="h-[60px] border-b border-border hover:bg-muted/40 transition-colors"
-            onDragOver={(e) => e.preventDefault()}
-          >
-            {/* Half-hour marker */}
-            <div className="h-[30px] border-b border-border/30"></div>
-          </div>
-        ))}
+      <div className="flex-1 flex flex-col">
+        {/* Day header (for consistency with WeekView) */}
+        <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center ${
+          isToday(date) ? 'bg-primary/10' : ''
+        }`}>
+          <div className="text-sm">{format(date, 'EEEE')}</div>
+          <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
+        </div>
         
-        {/* Events */}
-        {filteredEvents.map((event) => (
-          <div 
-            key={event.id}
-            draggable 
-            onDragStart={() => handleDragStart(event)}
-            className="absolute w-full"
-          >
-            <CalendarEventComponent 
-              event={event} 
-              onEventClick={onEventClick} 
-            />
-          </div>
-        ))}
-        
-        {/* Current time indicator */}
-        <CurrentTimeIndicator date={date} />
+        {/* Time grid and events */}
+        <div 
+          className="flex-1 relative"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+            const hours = Math.floor(y / 60);
+            const minutes = Math.round((y % 60) / 60 * 60);
+            const droppedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            handleDragEnd(e, droppedTime);
+          }}
+        >
+          {/* Time grid lines */}
+          {timeSlots.map((slot) => (
+            <div 
+              key={slot.time} 
+              className="h-[60px] border-b border-border hover:bg-muted/40 transition-colors"
+              onDragOver={(e) => e.preventDefault()}
+            >
+              {/* Half-hour marker */}
+              <div className="h-[30px] border-b border-border/30"></div>
+            </div>
+          ))}
+          
+          {/* Events */}
+          {filteredEvents.map((event) => (
+            <div 
+              key={event.id}
+              draggable 
+              onDragStart={() => handleDragStart(event)}
+              className="absolute w-full px-1"
+            >
+              <CalendarEventComponent 
+                event={event} 
+                onEventClick={onEventClick} 
+              />
+            </div>
+          ))}
+          
+          {/* Current time indicator */}
+          {isToday(date) && <CurrentTimeIndicator />}
+        </div>
       </div>
     </div>
   );
 };
 
-const CurrentTimeIndicator: React.FC<{ date: Date }> = ({ date }) => {
+const CurrentTimeIndicator: React.FC = () => {
   const now = new Date();
-  const isToday = now.toDateString() === date.toDateString();
-  
-  if (!isToday) return null;
-  
   const minutes = now.getHours() * 60 + now.getMinutes();
   
   return (

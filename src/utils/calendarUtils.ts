@@ -1,5 +1,5 @@
 
-import { format, parseISO, addMinutes, isSameDay } from 'date-fns';
+import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 
@@ -42,6 +42,17 @@ export const getBarberColor = (barberId: string): string => {
 // Filter events for calendar view based on date
 export const filterEventsByDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
   return events.filter(event => isSameDay(event.start, date));
+};
+
+// Filter events for a week view
+export const filterEventsByWeek = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Week starts on Monday
+  const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+  
+  return events.filter(event => {
+    const eventDate = event.start;
+    return eventDate >= weekStart && eventDate <= weekEnd;
+  });
 };
 
 // Update booking time based on drag-and-drop

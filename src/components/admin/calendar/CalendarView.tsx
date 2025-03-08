@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { DayView } from './DayView';
+import { WeekView } from './WeekView';
 import { CalendarEvent, ViewMode } from '@/types/calendar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -47,6 +48,22 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     }
   };
 
+  // Determine date display based on view mode
+  const getDateDisplay = () => {
+    if (viewMode === 'day') {
+      return format(selectedDate, 'MMMM d, yyyy');
+    } else if (viewMode === 'week') {
+      const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+      const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+      if (format(start, 'MMM') === format(end, 'MMM')) {
+        return `${format(start, 'MMM d')} - ${format(end, 'd, yyyy')}`;
+      } else {
+        return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+      }
+    }
+    return format(selectedDate, 'MMMM d, yyyy');
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -70,7 +87,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(selectedDate, 'MMMM d, yyyy')}
+                {getDateDisplay()}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -133,9 +150,13 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             />
           )}
           {viewMode === 'week' && (
-            <div className="text-center py-4">
-              Week view coming soon
-            </div>
+            <WeekView 
+              date={selectedDate}
+              onDateChange={setSelectedDate}
+              events={events}
+              onEventDrop={onEventDrop}
+              onEventClick={onEventClick}
+            />
           )}
         </div>
       )}

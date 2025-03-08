@@ -30,7 +30,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <motion.div
-            className="absolute w-full p-1 rounded-md cursor-grab select-none overflow-hidden"
+            className="absolute w-full rounded-md cursor-grab select-none overflow-hidden"
             style={{
               backgroundColor: `${barberColor}20`, // 20% opacity
               borderLeft: `4px solid ${barberColor}`,
@@ -48,7 +48,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
             onClick={() => onEventClick(event)}
             layout
           >
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-full overflow-hidden p-1">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs font-medium truncate">{startTime}-{endTime}</span>
                 {event.isGuest ? (
@@ -61,8 +61,12 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
               {height > 50 && (
                 <>
                   <p className="text-xs font-medium truncate">{event.title}</p>
-                  <p className="text-xs truncate">{event.service}</p>
-                  <p className="text-xs truncate">{event.barber}</p>
+                  {height > 60 && (
+                    <>
+                      <p className="text-xs truncate">{event.service}</p>
+                      <p className="text-xs truncate">{event.barber}</p>
+                    </>
+                  )}
                 </>
               )}
             </div>
