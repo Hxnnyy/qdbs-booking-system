@@ -112,7 +112,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
       
       {/* Barber Selection Tabs */}
       <ScrollArea className="max-w-full pb-4">
-        <div className="flex space-x-2 min-w-max pb-2">
+        <div className="flex space-x-2 min-w-max pb-2 px-[15px]">
           <Button variant={selectedBarberId === null ? "default" : "outline"} size="sm" className="rounded-full px-4" onClick={() => setSelectedBarberId(null)}>
             All Barbers
           </Button>
