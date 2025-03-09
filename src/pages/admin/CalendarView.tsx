@@ -3,7 +3,7 @@ import React from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
-import { Calendar } from '@/components/admin/calendar/Calendar';
+import { CalendarViewComponent } from '@/components/admin/calendar/CalendarView';
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
 
 const CalendarView = () => {
@@ -21,19 +21,19 @@ const CalendarView = () => {
   return (
     <Layout>
       <AdminLayout>
-        <div className="space-y-4 flex flex-col h-[calc(100vh-120px)]">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Calendar</h1>
-          </div>
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold">Calendar View</h1>
           
-          <div className="flex-1 overflow-hidden border border-border rounded-md">
-            <Calendar
-              events={calendarEvents}
-              isLoading={isLoading}
-              onEventDrop={handleEventDrop}
-              onEventClick={handleEventClick}
-            />
-          </div>
+          <p className="text-muted-foreground">
+            View and manage appointments in calendar format. Drag and drop to reschedule.
+          </p>
+          
+          <CalendarViewComponent
+            events={calendarEvents}
+            isLoading={isLoading}
+            onEventDrop={handleEventDrop}
+            onEventClick={handleEventClick}
+          />
           
           <EventDetailsDialog
             event={selectedEvent}

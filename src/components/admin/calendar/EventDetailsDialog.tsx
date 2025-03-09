@@ -4,11 +4,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/types/calendar';
 import { format } from 'date-fns';
-import { Clock, Calendar as CalendarIcon, User, Users, ClipboardList, Tag, Edit } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, User, Users, ClipboardList, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getBarberColor } from '@/utils/calendarUtils';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 
 interface EventDetailsDialogProps {
   event: CalendarEvent | null;
@@ -21,18 +19,9 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
   isOpen, 
   onClose 
 }) => {
-  const navigate = useNavigate();
-  
   if (!event) return null;
   
-  const barberColor = getBarberColor(event.barberId, event.barber);
-  
-  const handleEditClick = () => {
-    // Redirect to the booking edit page
-    navigate(`/admin/bookings?edit=${event.id}`);
-    onClose();
-    toast.info("Navigating to booking edit page");
-  };
+  const barberColor = getBarberColor(event.barberId);
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -96,13 +85,9 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
           )}
         </div>
         
-        <DialogFooter className="gap-2">
+        <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Close
-          </Button>
-          <Button onClick={handleEditClick} className="gap-2">
-            <Edit className="h-4 w-4" />
-            Edit Booking
           </Button>
         </DialogFooter>
       </DialogContent>

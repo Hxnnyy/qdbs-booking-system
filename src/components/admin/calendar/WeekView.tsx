@@ -1,245 +1,161 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  format, 
-  addDays, 
-  startOfWeek, 
-  isToday, 
-  isSameDay,
-  startOfDay,
-  setHours
-} from 'date-fns';
+import { format, addHours, startOfDay, addDays, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
-import { CalendarEventCard } from './CalendarEventCard';
-import { cn } from '@/lib/utils';
-import { filterEventsByWeek } from '@/utils/calendarUtils';
+import { CalendarEventComponent } from './CalendarEvent';
+import { motion } from 'framer-motion';
+import { filterEventsByDate, getBarberColor } from '@/utils/calendarUtils';
 
-// Constants for time display
-const START_HOUR = 8; // 8 AM
-const END_HOUR = 20; // 8 PM
-const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
-const HOUR_HEIGHT = 80; // Height in pixels for each hour
-
-export const WeekView: React.FC<CalendarViewProps> = ({
-  date,
+export const WeekView: React.FC<CalendarViewProps> = ({ 
+  date, 
   onDateChange,
-  events,
+  events, 
   onEventDrop,
-  onEventClick,
-  selectedBarberId
+  onEventClick
 }) => {
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
-  const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
+
+  // Calculate the start and end of the week
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Week starts on Monday
+  const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
   
-  // Generate days of the week
-  const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Start week on Monday
-  const days = Array.from({ length: 7 }).map((_, index) => {
-    const day = addDays(weekStart, index);
+  // Generate days for the week
+  const weekDays = Array.from({ length: 7 }).map((_, index) => {
+    return addDays(weekStart, index);
+  });
+
+  // Generate time slots for the day (24 hours)
+  const timeSlots = Array.from({ length: 24 }).map((_, index) => {
+    const slotTime = addHours(startOfDay(date), index);
     return {
-      date: day,
-      dayName: format(day, 'EEE'),
-      dayNumber: format(day, 'd'),
-      isToday: isToday(day)
+      time: format(slotTime, 'HH:mm'),
+      label: format(slotTime, 'h a')
     };
   });
-  
-  // Apply filtering when events or date changes
-  useEffect(() => {
-    let filtered = filterEventsByWeek(events, date);
-    
-    // If a barber is selected, filter by barber ID
-    if (selectedBarberId) {
-      filtered = filtered.filter(event => event.barberId === selectedBarberId);
-    }
-    
-    setDisplayEvents(filtered);
-  }, [events, date, selectedBarberId]);
-  
-  // Generate time slots for the day (8AM to 8PM)
-  const timeSlots = Array.from({ length: HOURS_TO_DISPLAY + 1 }).map((_, index) => {
-    const slotHour = START_HOUR + index;
-    const slotTime = setHours(startOfDay(date), slotHour);
-    
-    return {
-      hour: slotHour,
-      time: format(slotTime, 'h a'), // e.g., "8 AM"
-      timestamp: slotTime
-    };
-  });
-  
+
   const handleDragStart = (event: CalendarEvent) => {
     setDraggingEvent(event);
   };
-  
-  const handleDragEnd = (e: React.DragEvent, dayIndex: number, hour: number, minute: number = 0) => {
+
+  const handleDragEnd = (e: React.DragEvent, droppedDay: Date, droppedTime: string) => {
     if (!draggingEvent) return;
     
-    // Get the day for the dropped position
-    const droppedDay = addDays(weekStart, dayIndex);
-    
-    // Create new start date with the dropped day, hour, and minute
+    // Parse the dropped time
+    const [hours, minutes] = droppedTime.split(':').map(Number);
     const newStart = new Date(droppedDay);
-    newStart.setHours(hour, minute, 0, 0);
-    
-    // Calculate duration from original event
-    const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
+    newStart.setHours(hours, minutes, 0, 0);
     
     // Calculate new end time based on original duration
+    const duration = (draggingEvent.end.getTime() - draggingEvent.start.getTime());
     const newEnd = new Date(newStart.getTime() + duration);
-    
-    // Call the parent handler with updated event info
+
+    // Call the parent handler with the updated event info
     onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
   };
-  
-  // Calculate position and height for an event
-  const getEventStyle = (event: CalendarEvent) => {
-    const startHour = event.start.getHours();
-    const startMinute = event.start.getMinutes();
-    const endHour = event.end.getHours();
-    const endMinute = event.end.getMinutes();
-    
-    // Calculate position from the top (relative to START_HOUR)
-    const top = (startHour - START_HOUR + startMinute / 60) * HOUR_HEIGHT;
-    
-    // Calculate height based on duration
-    const durationHours = (endHour - startHour) + (endMinute - startMinute) / 60;
-    const height = durationHours * HOUR_HEIGHT;
-    
-    return {
-      top: `${top}px`,
-      height: `${Math.max(height, 40)}px` // Minimum height of 40px
-    };
-  };
 
-  // Render current time indicator if the date is today
-  const CurrentTimeIndicator = ({ dayDate }: { dayDate: Date }) => {
-    if (!isToday(dayDate)) return null;
-    
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    
-    // Only show if time is within our display range
-    if (currentHour < START_HOUR || currentHour > END_HOUR) return null;
-    
-    const top = (currentHour - START_HOUR + currentMinute / 60) * HOUR_HEIGHT;
-    
-    return (
-      <div 
-        className="absolute w-full h-[2px] bg-red-500 z-10 pointer-events-none"
-        style={{ top: `${top}px` }}
-      >
-        <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
-      </div>
-    );
-  };
+  // Log events for debugging
+  useEffect(() => {
+    console.log('WeekView events:', events.length);
+    weekDays.forEach(day => {
+      const dayEvents = filterEventsByDate(events, day);
+      console.log(`Events for ${format(day, 'yyyy-MM-dd')}:`, dayEvents.length);
+    });
+  }, [events, weekDays]);
 
   return (
-    <div 
-      className="flex h-full"
-      style={{ minHeight: `${(HOURS_TO_DISPLAY + 1) * HOUR_HEIGHT}px` }}
-    >
+    <div className="flex h-[1500px] relative border border-border rounded-md">
       {/* Time column */}
-      <div className="w-20 flex-shrink-0 border-r border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 sticky left-0 z-10">
+      <div className="w-20 flex-shrink-0 border-r border-border bg-background">
         {/* Empty cell for header alignment */}
-        <div className="h-10 border-b border-gray-200 dark:border-gray-700" />
+        <div className="h-12 border-b border-border"></div>
         
-        {/* Time slots */}
         {timeSlots.map((slot) => (
-          <div 
-            key={slot.hour} 
-            className="relative h-20 border-b border-gray-200 dark:border-gray-700"
-          >
-            <span className="absolute -top-2.5 left-2 text-xs text-gray-500 dark:text-gray-400">
-              {slot.time}
-            </span>
+          <div key={slot.time} className="h-[60px] border-b border-border flex items-start pl-2 pt-1">
+            <span className="text-xs text-muted-foreground">{slot.label}</span>
           </div>
         ))}
       </div>
       
       {/* Days columns */}
-      <div className="flex-1 flex min-w-0">
-        {days.map((day, dayIndex) => (
-          <div 
-            key={day.dayName} 
-            className="flex-1 flex flex-col min-w-[120px] border-r last:border-r-0 border-gray-200 dark:border-gray-700"
-          >
+      <div className="flex-1 flex">
+        {weekDays.map((day) => (
+          <div key={day.toISOString()} className="flex-1 flex flex-col min-w-[120px]">
             {/* Day header */}
             <div 
-              className={cn(
-                "h-10 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center cursor-pointer",
-                day.isToday 
-                  ? "bg-blue-50 dark:bg-blue-900/20" 
-                  : "bg-gray-50 dark:bg-gray-800"
-              )}
-              onClick={() => onDateChange(day.date)}
+              className={`h-12 border-b border-r border-border font-medium flex flex-col items-center justify-center ${
+                isSameDay(day, new Date()) ? 'bg-primary/10' : ''
+              }`}
             >
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                {day.dayName}
-              </div>
-              <div className={cn(
-                "text-sm font-semibold",
-                day.isToday ? "text-blue-600 dark:text-blue-400" : ""
-              )}>
-                {day.dayNumber}
-              </div>
+              <div className="text-sm">{format(day, 'EEE')}</div>
+              <div className="text-xs text-muted-foreground">{format(day, 'MMM d')}</div>
             </div>
             
-            {/* Time grid and events */}
+            {/* Time slots for the day */}
             <div 
-              className="flex-1 relative"
+              className="flex-1 relative border-r border-border"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-                
-                // Calculate hour and minute based on position
-                const rawHour = Math.floor(y / HOUR_HEIGHT) + START_HOUR;
-                const rawMinute = Math.round((y % HOUR_HEIGHT) / HOUR_HEIGHT * 60);
-                
-                // Snap to 15-minute intervals
-                const minute = Math.round(rawMinute / 15) * 15;
-                const hour = rawHour + (minute === 60 ? 1 : 0);
-                const snappedMinute = minute === 60 ? 0 : minute;
-                
-                handleDragEnd(e, dayIndex, hour, snappedMinute);
+                const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+                const hours = Math.floor(y / 60);
+                const minutes = Math.round((y % 60) / 60 * 60);
+                const droppedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                handleDragEnd(e, day, droppedTime);
               }}
             >
-              {/* Time grid */}
+              {/* Time grid lines */}
               {timeSlots.map((slot) => (
                 <div 
-                  key={slot.hour} 
-                  className="h-20 border-b border-gray-200 dark:border-gray-700 relative"
+                  key={slot.time} 
+                  className="h-[60px] border-b border-border hover:bg-muted/40 transition-colors"
+                  onDragOver={(e) => e.preventDefault()}
                 >
-                  {/* 15-minute markers */}
-                  <div className="absolute top-5 w-full border-t border-dashed border-gray-200 dark:border-gray-700 opacity-70" />
-                  <div className="absolute top-10 w-full border-t border-dashed border-gray-200 dark:border-gray-700 opacity-70" />
-                  <div className="absolute top-15 w-full border-t border-dashed border-gray-200 dark:border-gray-700 opacity-70" />
+                  {/* Half-hour marker */}
+                  <div className="h-[30px] border-b border-border/30"></div>
+                </div>
+              ))}
+              
+              {/* Events for this day */}
+              {filterEventsByDate(events, day).map((event) => (
+                <div 
+                  key={event.id}
+                  draggable 
+                  onDragStart={() => handleDragStart(event)}
+                  className="absolute w-full px-1"
+                  style={{ top: 0, left: 0, right: 0 }}
+                >
+                  <CalendarEventComponent 
+                    event={event} 
+                    onEventClick={onEventClick} 
+                  />
                 </div>
               ))}
               
               {/* Current time indicator */}
-              <CurrentTimeIndicator dayDate={day.date} />
-              
-              {/* Events for this day */}
-              {displayEvents
-                .filter(event => isSameDay(event.start, day.date))
-                .map(event => (
-                  <div 
-                    key={event.id}
-                    draggable
-                    onDragStart={() => handleDragStart(event)}
-                    className="absolute w-[calc(100%-8px)] mx-1"
-                    style={getEventStyle(event)}
-                  >
-                    <CalendarEventCard event={event} onEventClick={onEventClick} />
-                  </div>
-                ))}
+              {isSameDay(day, new Date()) && (
+                <CurrentTimeIndicator />
+              )}
             </div>
           </div>
         ))}
       </div>
     </div>
+  );
+};
+
+const CurrentTimeIndicator: React.FC = () => {
+  const now = new Date();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  
+  return (
+    <motion.div 
+      className="absolute w-full h-[2px] bg-red-500 z-20 pointer-events-none"
+      style={{ top: `${minutes}px` }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
+    </motion.div>
   );
 };
