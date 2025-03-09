@@ -10,7 +10,7 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 const START_HOUR = 8; // 8 AM
 const END_HOUR = 20; // 8 PM
 const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
-const HOUR_HEIGHT = 120; // Doubled height (120px)
+const HOUR_HEIGHT = 120; // Each hour is 120px tall
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -106,15 +106,16 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex h-[calc(12*120px)] overflow-y-auto border border-border rounded-md bg-white">
+    <div className="flex h-full overflow-y-auto">
       {/* Time column */}
       <div className="w-16 flex-shrink-0 border-r border-border bg-background sticky left-0">
         {/* Empty cell for header alignment */}
         <div className="h-12 border-b border-border sticky top-0 z-10 bg-background"></div>
         
+        {/* Time slots with properly positioned labels */}
         {timeSlots.map((slot) => (
           <div key={slot.time} className="h-[120px] border-b border-border relative">
-            <div className="absolute -top-3 left-0 pl-2 z-10">
+            <div className="absolute -top-3 left-3 z-10">
               <span className="text-xs text-muted-foreground font-medium">
                 {slot.label}
               </span>

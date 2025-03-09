@@ -30,16 +30,15 @@ const CalendarView = () => {
             <h1 className="text-3xl font-bold">Calendar</h1>
           </div>
           
-          <ScrollArea className="h-[calc(100vh-200px)] rounded-md">
-            <div className="pb-6">
-              <CalendarViewComponent
-                events={calendarEvents}
-                isLoading={isLoading}
-                onEventDrop={handleEventDrop}
-                onEventClick={handleEventClick}
-              />
-            </div>
-          </ScrollArea>
+          {/* Use a fixed height for the calendar container with overflow auto */}
+          <div className="h-[calc(100vh-200px)] overflow-hidden rounded-md border border-border">
+            <CalendarViewComponent
+              events={calendarEvents}
+              isLoading={isLoading}
+              onEventDrop={handleEventDrop}
+              onEventClick={handleEventClick}
+            />
+          </div>
           
           <EventDetailsDialog
             event={selectedEvent}
