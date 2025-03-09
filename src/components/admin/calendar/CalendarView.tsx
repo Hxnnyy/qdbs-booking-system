@@ -139,7 +139,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
           <Spinner className="w-8 h-8" />
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="w-full">
           {viewMode === 'day' && (
             <DayView 
               date={selectedDate}

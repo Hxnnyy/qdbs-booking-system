@@ -102,8 +102,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         ))}
       </div>
       
-      {/* Days columns */}
-      <div className="flex-1 flex overflow-x-auto">
+      {/* Days columns - removed overflow-x-auto to prevent horizontal scrolling */}
+      <div className="flex-1 flex">
         {weekDays.map((day) => (
           <div key={day.toISOString()} className="flex-1 flex flex-col min-w-[120px]">
             {/* Day header */}
@@ -116,13 +116,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               <div className="text-xs text-muted-foreground">{format(day, 'MMM d')}</div>
             </div>
             
-            {/* Time slots for the day */}
+            {/* Time slots for the day - removed overflow-y-auto to prevent vertical scrolling */}
             <div 
-              className="flex-1 relative border-r border-border overflow-y-auto"
+              className="flex-1 relative border-r border-border"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
-                const y = e.clientY - rect.top + e.currentTarget.scrollTop;
+                const y = e.clientY - rect.top;
                 const droppedTime = snapToTimeSlot(y, rect);
                 handleDragEnd(e, day, droppedTime);
               }}

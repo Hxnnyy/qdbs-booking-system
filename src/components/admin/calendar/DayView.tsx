@@ -116,13 +116,13 @@ export const DayView: React.FC<CalendarViewProps> = ({
           <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
         </div>
         
-        {/* Time grid and events */}
+        {/* Time grid and events - removed overflow-y-auto to prevent scrolling */}
         <div 
-          className="flex-1 relative overflow-y-auto"
+          className="flex-1 relative"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            const y = e.clientY - rect.top + e.currentTarget.scrollTop;
+            const y = e.clientY - rect.top;
             const droppedTime = snapToTimeSlot(y, rect);
             handleDragEnd(e, droppedTime);
           }}
