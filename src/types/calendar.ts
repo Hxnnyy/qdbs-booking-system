@@ -24,10 +24,11 @@ export interface CalendarViewProps {
   selectedBarberId?: string | null;
 }
 
-export interface EventProps {
-  event: CalendarEvent;
-  onEventClick: (event: CalendarEvent) => void;
-  isDragging?: boolean;
-}
-
 export type ViewMode = 'day' | 'week' | 'month';
+
+export interface CalendarProps {
+  events: CalendarEvent[];
+  isLoading: boolean;
+  onEventDrop: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
+  onEventClick: (event: CalendarEvent) => void;
+}
