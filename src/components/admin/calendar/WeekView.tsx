@@ -8,9 +8,9 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 
 // Constants for time display
 const START_HOUR = 8; // 8 AM
-const END_HOUR = 20; // 8 PM
-const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
-const HOUR_HEIGHT = 100; // Slightly reduced hour height to match DayView
+const END_HOUR = 20; // 8 PM (will show up to 8:59 PM)
+const HOURS_TO_DISPLAY = END_HOUR - START_HOUR + 1; // +1 to include the last hour
+const HOUR_HEIGHT = 100; // Height in pixels for each hour
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -106,20 +106,18 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex h-full min-h-[1200px]">
+    <div className="flex h-full" style={{ minHeight: `${HOURS_TO_DISPLAY * HOUR_HEIGHT}px` }}>
       {/* Time column */}
-      <div className="w-16 flex-shrink-0 border-r border-border bg-background sticky left-0">
+      <div className="w-14 flex-shrink-0 border-r border-border bg-background sticky left-0">
         {/* Empty cell for header alignment */}
-        <div className="h-12 border-b border-border sticky top-0 z-10 bg-background"></div>
+        <div className="h-12 border-b border-border bg-background"></div>
         
         {/* Time slots with better positioned labels */}
         {timeSlots.map((slot) => (
-          <div key={slot.time} className="h-[100px] border-b border-border relative">
-            <div className="absolute -top-3 left-4 z-10">
-              <span className="text-xs text-muted-foreground font-medium">
-                {slot.label}
-              </span>
-            </div>
+          <div key={slot.time} className="relative h-[100px] border-b border-border">
+            <span className="absolute -translate-y-1/2 left-2 text-xs text-muted-foreground">
+              {slot.label}
+            </span>
           </div>
         ))}
       </div>
@@ -197,7 +195,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               }
               
               {/* Current time indicator */}
-              {day.isToday && <CurrentTimeIndicator hourHeight={HOUR_HEIGHT} />}
+              {day.isToday && <CurrentTimeIndicator />}
             </div>
           </div>
         ))}
@@ -206,11 +204,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   );
 };
 
-interface CurrentTimeIndicatorProps {
-  hourHeight: number;
-}
-
-const CurrentTimeIndicator: React.FC<CurrentTimeIndicatorProps> = ({ hourHeight }) => {
+const CurrentTimeIndicator = () => {
   const now = new Date();
   const hours = now.getHours();
   const minutes = now.getMinutes();
@@ -220,7 +214,7 @@ const CurrentTimeIndicator: React.FC<CurrentTimeIndicatorProps> = ({ hourHeight 
     return null;
   }
   
-  const position = (hours - START_HOUR) * hourHeight + (minutes / 60) * hourHeight;
+  const position = (hours - START_HOUR) * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT;
   
   return (
     <motion.div 

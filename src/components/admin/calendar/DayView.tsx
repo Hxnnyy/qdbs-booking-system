@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { format, addHours, startOfDay, isToday, setHours, setMinutes } from 'date-fns';
+import { format, addHours, startOfDay, isToday, setHours } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEventComponent } from './CalendarEvent';
 import { motion } from 'framer-motion';
@@ -7,9 +8,9 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 
 // Constants for time display
 const START_HOUR = 8; // 8 AM
-const END_HOUR = 20; // 8 PM
-const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
-const HOUR_HEIGHT = 100; // Slightly reduced hour height for better visibility
+const END_HOUR = 20; // 8 PM (will show up to 8:59 PM)
+const HOURS_TO_DISPLAY = END_HOUR - START_HOUR + 1; // +1 to include the last hour
+const HOUR_HEIGHT = 100; // Height in pixels for each hour
 
 export const DayView: React.FC<CalendarViewProps> = ({
   date,
@@ -34,9 +35,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   }, [events, date, selectedBarberId]);
 
   // Generate time slots for the day (8AM to 8PM)
-  const timeSlots = Array.from({
-    length: HOURS_TO_DISPLAY
-  }).map((_, index) => {
+  const timeSlots = Array.from({ length: HOURS_TO_DISPLAY }).map((_, index) => {
     const slotTime = addHours(setHours(startOfDay(date), START_HOUR), index);
     return {
       time: format(slotTime, 'HH:mm'),
@@ -87,20 +86,19 @@ export const DayView: React.FC<CalendarViewProps> = ({
     };
   };
 
-  return <div className="flex h-full min-h-[1200px]">
+  return (
+    <div className="flex h-full" style={{ minHeight: `${HOURS_TO_DISPLAY * HOUR_HEIGHT}px` }}>
       {/* Time column */}
-      <div className="w-16 flex-shrink-0 border-r border-border bg-background sticky left-0">
+      <div className="w-14 flex-shrink-0 border-r border-border bg-background sticky left-0">
         {/* Empty cell for header alignment */}
-        <div className="h-12 border-b border-border sticky top-0 bg-background z-10"></div>
+        <div className="h-12 border-b border-border bg-background"></div>
         
-        {/* Time slots with better positioned labels */}
+        {/* Time slots */}
         {timeSlots.map(slot => (
-          <div key={slot.time} className="h-[100px] border-b border-border relative">
-            <div className="absolute -top-3 left-4 z-10">
-              <span className="text-xs text-muted-foreground font-medium">
-                {slot.label}
-              </span>
-            </div>
+          <div key={slot.time} className="relative h-[100px] border-b border-border">
+            <span className="absolute -translate-y-1/2 left-2 text-xs text-muted-foreground">
+              {slot.label}
+            </span>
           </div>
         ))}
       </div>
@@ -132,9 +130,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
         >
           {/* Time grid lines */}
           {timeSlots.map(slot => (
-            <div key={slot.time} className="h-[100px] border-b border-border hover:bg-muted/40 transition-colors" 
-              onDragOver={e => e.preventDefault()}
-            >
+            <div key={slot.time} className="h-[100px] border-b border-border hover:bg-muted/40 transition-colors">
               {/* 15-minute markers */}
               <div className="h-[25px] border-b border-border/20"></div>
               <div className="h-[25px] border-b border-border/30"></div>
@@ -155,19 +151,14 @@ export const DayView: React.FC<CalendarViewProps> = ({
           ))}
           
           {/* Current time indicator */}
-          {isToday(date) && <CurrentTimeIndicator hourHeight={HOUR_HEIGHT} />}
+          {isToday(date) && <CurrentTimeIndicator />}
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 
-interface CurrentTimeIndicatorProps {
-  hourHeight: number;
-}
-
-const CurrentTimeIndicator: React.FC<CurrentTimeIndicatorProps> = ({
-  hourHeight
-}) => {
+const CurrentTimeIndicator = () => {
   const now = new Date();
   const hours = now.getHours();
   const minutes = now.getMinutes();
@@ -176,16 +167,18 @@ const CurrentTimeIndicator: React.FC<CurrentTimeIndicatorProps> = ({
   if (hours < START_HOUR || hours >= END_HOUR) {
     return null;
   }
-  const position = (hours - START_HOUR) * hourHeight + minutes / 60 * hourHeight;
-  return <motion.div className="absolute w-full h-[2px] bg-red-500 z-20 pointer-events-none" style={{
-    top: `${position}px`
-  }} initial={{
-    opacity: 0
-  }} animate={{
-    opacity: 1
-  }} transition={{
-    duration: 0.5
-  }}>
+  
+  const position = (hours - START_HOUR) * HOUR_HEIGHT + minutes / 60 * HOUR_HEIGHT;
+  
+  return (
+    <motion.div 
+      className="absolute w-full h-[2px] bg-red-500 z-20 pointer-events-none" 
+      style={{ top: `${position}px` }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
-    </motion.div>;
+    </motion.div>
+  );
 };

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { DayView } from './DayView';
 import { WeekView } from './WeekView';
 import { CalendarEvent, ViewMode } from '@/types/calendar';
@@ -76,7 +77,8 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-t-lg shadow-sm">
+      {/* Calendar header */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-t-lg shadow-sm border-b border-border">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={navigatePrevious} className="bg-white/80 hover:bg-white text-red-950">
@@ -115,8 +117,9 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
         </div>
       </div>
       
-      <ScrollArea className="max-w-full pb-2">
-        <div className="flex space-x-2 min-w-max px-[15px] py-2">
+      {/* Barber filter row */}
+      <ScrollArea className="border-b border-border">
+        <div className="flex space-x-2 px-4 py-2">
           <Button variant={selectedBarberId === null ? "default" : "outline"} size="sm" className="rounded-full px-4" onClick={() => setSelectedBarberId(null)}>
             All Barbers
           </Button>
@@ -150,13 +153,14 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
         </div>
       </ScrollArea>
       
-      <div className="flex-1 overflow-hidden">
+      {/* Calendar view area */}
+      <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center items-center h-full">
             <Spinner className="w-8 h-8" />
           </div>
         ) : (
-          <div className="h-full overflow-auto">
+          <div className="h-full">
             {viewMode === 'day' && (
               <DayView 
                 date={selectedDate} 
