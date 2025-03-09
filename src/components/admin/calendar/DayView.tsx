@@ -9,7 +9,7 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 const START_HOUR = 8; // 8 AM
 const END_HOUR = 20; // 8 PM
 const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
-const HOUR_HEIGHT = 120; // Each hour is 120px tall
+const HOUR_HEIGHT = 100; // Slightly reduced hour height for better visibility
 
 export const DayView: React.FC<CalendarViewProps> = ({
   date,
@@ -43,9 +43,11 @@ export const DayView: React.FC<CalendarViewProps> = ({
       label: format(slotTime, 'h a')
     };
   });
+
   const handleDragStart = (event: CalendarEvent) => {
     setDraggingEvent(event);
   };
+
   const handleDragEnd = (e: React.DragEvent, droppedTime: string) => {
     if (!draggingEvent) return;
 
@@ -84,20 +86,23 @@ export const DayView: React.FC<CalendarViewProps> = ({
       height: `${height}px`
     };
   };
-  return <div className="flex h-full overflow-y-auto">
+
+  return <div className="flex h-full min-h-[1200px]">
       {/* Time column */}
       <div className="w-16 flex-shrink-0 border-r border-border bg-background sticky left-0">
         {/* Empty cell for header alignment */}
         <div className="h-12 border-b border-border sticky top-0 bg-background z-10"></div>
         
-        {/* Time slots with properly positioned labels */}
-        {timeSlots.map(slot => <div key={slot.time} className="h-[120px] border-b border-border relative">
-            <div className="absolute -top-3 left-3 z-10 my-[20px]">
-              <span className="text-xs text-muted-foreground font-medium mx-0 py-0 my-0 px-0">
+        {/* Time slots with better positioned labels */}
+        {timeSlots.map(slot => (
+          <div key={slot.time} className="h-[100px] border-b border-border relative">
+            <div className="absolute -top-3 left-4 z-10">
+              <span className="text-xs text-muted-foreground font-medium">
                 {slot.label}
               </span>
             </div>
-          </div>)}
+          </div>
+        ))}
       </div>
       
       {/* Events column */}
@@ -109,31 +114,45 @@ export const DayView: React.FC<CalendarViewProps> = ({
         </div>
         
         {/* Time grid and events */}
-        <div className="flex-1 relative" onDragOver={e => e.preventDefault()} onDrop={e => {
-        const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-        // Calculate hours and raw minutes
-        const hours = Math.floor(y / HOUR_HEIGHT) + START_HOUR;
-        const rawMinutes = Math.round(y % HOUR_HEIGHT / HOUR_HEIGHT * 60);
+        <div className="flex-1 relative" 
+          onDragOver={e => e.preventDefault()} 
+          onDrop={e => {
+            const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+            // Calculate hours and raw minutes
+            const hours = Math.floor(y / HOUR_HEIGHT) + START_HOUR;
+            const rawMinutes = Math.round(y % HOUR_HEIGHT / HOUR_HEIGHT * 60);
 
-        // Snap to 15-minute intervals
-        const snappedMinutes = Math.round(rawMinutes / 15) * 15;
+            // Snap to 15-minute intervals
+            const snappedMinutes = Math.round(rawMinutes / 15) * 15;
 
-        // Format the time string
-        const droppedTime = `${hours.toString().padStart(2, '0')}:${snappedMinutes.toString().padStart(2, '0')}`;
-        handleDragEnd(e, droppedTime);
-      }}>
+            // Format the time string
+            const droppedTime = `${hours.toString().padStart(2, '0')}:${snappedMinutes.toString().padStart(2, '0')}`;
+            handleDragEnd(e, droppedTime);
+          }}
+        >
           {/* Time grid lines */}
-          {timeSlots.map(slot => <div key={slot.time} className="h-[120px] border-b border-border hover:bg-muted/40 transition-colors" onDragOver={e => e.preventDefault()}>
+          {timeSlots.map(slot => (
+            <div key={slot.time} className="h-[100px] border-b border-border hover:bg-muted/40 transition-colors" 
+              onDragOver={e => e.preventDefault()}
+            >
               {/* 15-minute markers */}
-              <div className="h-[30px] border-b border-border/20"></div>
-              <div className="h-[30px] border-b border-border/30"></div>
-              <div className="h-[30px] border-b border-border/20"></div>
-            </div>)}
+              <div className="h-[25px] border-b border-border/20"></div>
+              <div className="h-[25px] border-b border-border/30"></div>
+              <div className="h-[25px] border-b border-border/20"></div>
+            </div>
+          ))}
           
           {/* Events */}
-          {displayEvents.map(event => <div key={event.id} draggable onDragStart={() => handleDragStart(event)} className="absolute w-full px-2" style={getEventStyle(event)}>
+          {displayEvents.map(event => (
+            <div key={event.id} 
+              draggable 
+              onDragStart={() => handleDragStart(event)} 
+              className="absolute w-full px-2" 
+              style={getEventStyle(event)}
+            >
               <CalendarEventComponent event={event} onEventClick={onEventClick} />
-            </div>)}
+            </div>
+          ))}
           
           {/* Current time indicator */}
           {isToday(date) && <CurrentTimeIndicator hourHeight={HOUR_HEIGHT} />}
@@ -141,9 +160,11 @@ export const DayView: React.FC<CalendarViewProps> = ({
       </div>
     </div>;
 };
+
 interface CurrentTimeIndicatorProps {
   hourHeight: number;
 }
+
 const CurrentTimeIndicator: React.FC<CurrentTimeIndicatorProps> = ({
   hourHeight
 }) => {

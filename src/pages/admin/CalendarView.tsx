@@ -5,8 +5,6 @@ import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 import { CalendarViewComponent } from '@/components/admin/calendar/CalendarView';
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const CalendarView = () => {
   const {
@@ -19,8 +17,6 @@ const CalendarView = () => {
     isDialogOpen,
     setIsDialogOpen
   } = useCalendarBookings();
-  
-  const isMobile = useIsMobile();
 
   return (
     <Layout>
@@ -30,8 +26,8 @@ const CalendarView = () => {
             <h1 className="text-3xl font-bold">Calendar</h1>
           </div>
           
-          {/* Use a fixed height for the calendar container with overflow auto */}
-          <div className="h-[calc(100vh-200px)] overflow-hidden rounded-md border border-border">
+          {/* Increased height to ensure all hours are visible */}
+          <div className="h-[calc(100vh-180px)] overflow-hidden rounded-md border border-border">
             <CalendarViewComponent
               events={calendarEvents}
               isLoading={isLoading}

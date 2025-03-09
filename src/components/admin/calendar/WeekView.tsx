@@ -10,7 +10,7 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 const START_HOUR = 8; // 8 AM
 const END_HOUR = 20; // 8 PM
 const HOURS_TO_DISPLAY = END_HOUR - START_HOUR;
-const HOUR_HEIGHT = 120; // Each hour is 120px tall
+const HOUR_HEIGHT = 100; // Slightly reduced hour height to match DayView
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -106,16 +106,16 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex h-full overflow-y-auto">
+    <div className="flex h-full min-h-[1200px]">
       {/* Time column */}
       <div className="w-16 flex-shrink-0 border-r border-border bg-background sticky left-0">
         {/* Empty cell for header alignment */}
         <div className="h-12 border-b border-border sticky top-0 z-10 bg-background"></div>
         
-        {/* Time slots with properly positioned labels */}
+        {/* Time slots with better positioned labels */}
         {timeSlots.map((slot) => (
-          <div key={slot.time} className="h-[120px] border-b border-border relative">
-            <div className="absolute -top-3 left-3 z-10">
+          <div key={slot.time} className="h-[100px] border-b border-border relative">
+            <div className="absolute -top-3 left-4 z-10">
               <span className="text-xs text-muted-foreground font-medium">
                 {slot.label}
               </span>
@@ -161,13 +161,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               {timeSlots.map((slot) => (
                 <div 
                   key={slot.time} 
-                  className="h-[120px] border-b border-border hover:bg-muted/40 transition-colors"
+                  className="h-[100px] border-b border-border hover:bg-muted/40 transition-colors"
                   onDragOver={(e) => e.preventDefault()}
                 >
                   {/* 15-minute markers */}
-                  <div className="h-[30px] border-b border-border/20"></div>
-                  <div className="h-[30px] border-b border-border/30"></div>
-                  <div className="h-[30px] border-b border-border/20"></div>
+                  <div className="h-[25px] border-b border-border/20"></div>
+                  <div className="h-[25px] border-b border-border/30"></div>
+                  <div className="h-[25px] border-b border-border/20"></div>
                 </div>
               ))}
               
