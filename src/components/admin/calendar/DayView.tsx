@@ -4,7 +4,6 @@ import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEventComponent } from './CalendarEvent';
 import { filterEventsByDate } from '@/utils/calendarUtils';
-import { TimeGrid } from './TimeGrid';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
@@ -38,10 +37,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
     const container = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - container.top;
     
-    // Calculate time from position
+    // Calculate time from position with 15-minute snapping
     const totalMinutes = Math.floor(y);
     const hours = Math.floor(totalMinutes / 60) + startHour;
-    const minutes = totalMinutes % 60;
+    const minutes = Math.round((totalMinutes % 60) / 15) * 15;
     
     // Create the new start date with the same date but updated time
     const newStart = new Date(date);
@@ -75,7 +74,62 @@ export const DayView: React.FC<CalendarViewProps> = ({
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDragEnd}
       >
-        <TimeGrid date={date}>
+        {/* Time column */}
+        <div className="absolute top-0 left-0 bottom-0 w-16 z-10 border-r border-border bg-background">
+          {Array.from({ length: totalHours + 1 }).map((_, index) => {
+            const hour = startHour + index;
+            return (
+              <div 
+                key={`time-${hour}`}
+                className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
+              >
+                {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Event area */}
+        <div className="absolute top-0 left-16 right-0 bottom-0">
+          {/* Time grid lines */}
+          {Array.from({ length: totalHours + 1 }).map((_, index) => (
+            <div 
+              key={`grid-${index}`}
+              className="absolute w-full h-[60px] border-b border-border"
+              style={{ top: `${index * 60}px` }}
+            >
+              {/* Quarter-hour markers */}
+              {index < totalHours && (
+                <>
+                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
+                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
+                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
+                </>
+              )}
+            </div>
+          ))}
+          
+          {/* Current time indicator */}
+          {isToday(date) && (() => {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            
+            // Only show if time is within our visible range
+            if (hours < startHour || hours >= endHour) return null;
+            
+            const position = (hours - startHour) * 60 + minutes;
+            
+            return (
+              <div 
+                className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
+                style={{ top: `${position}px` }}
+              >
+                <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
+              </div>
+            );
+          })()}
+
           {/* Events */}
           {displayEvents.map((event) => {
             // Calculate position and height based on event times
@@ -89,8 +143,8 @@ export const DayView: React.FC<CalendarViewProps> = ({
             const endMinute = eventEnd.getMinutes();
             
             // Calculate top position and height in pixels
-            const startMinutesFromCalendarStart = (startHour - startHour) * 60 + startMinute;
-            const endMinutesFromCalendarStart = (endHour - startHour) * 60 + endMinute;
+            const startMinutesFromCalendarStart = (startHour - startHour + (startHour - startHour)) * 60 + startMinute;
+            const endMinutesFromCalendarStart = (endHour - startHour + (endHour - startHour)) * 60 + endMinute;
             
             // Adjust for events that start before or end after our visible range
             const top = Math.max(0, startMinutesFromCalendarStart);
@@ -123,7 +177,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
               </div>
             );
           })}
-        </TimeGrid>
+        </div>
       </div>
     </div>
   );

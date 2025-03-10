@@ -7,7 +7,6 @@ import { Clock, Scissors } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 
 interface EventComponentProps {
   event: CalendarEvent;
@@ -21,7 +20,6 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   isDragging
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const { startHour } = useCalendarSettings();
   const barberColor = getBarberColor(event.barberId);
   const startTime = format(event.start, 'h:mm a');
   const endTime = format(event.end, 'h:mm a');
