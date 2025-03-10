@@ -41,12 +41,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     
     // Calculate time from position
     const totalMinutes = Math.floor(y);
+    
+    // Snap to 15-minute intervals (0, 15, 30, 45)
+    const roundedMinutes = Math.round(totalMinutes % 60 / 15) * 15;
     const hours = Math.floor(totalMinutes / 60) + startHour;
-    const minutes = totalMinutes % 60;
     
     // Create new start date with the dropped day and time
     const newStart = new Date(droppedDay);
-    newStart.setHours(hours, minutes, 0, 0);
+    newStart.setHours(hours, roundedMinutes, 0, 0);
     
     // Calculate original duration to maintain it
     const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
@@ -86,6 +88,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         style={{ height: `${calendarHeight}px` }}
       >
         <div className="flex h-full">
+          {/* Time column - only show time labels in the first column */}
+          <div className="w-16 relative border-r border-border h-full z-10">
+            <TimeGrid date={weekDays[0]} showTimeLabels={true}>
+              {/* Empty - just for showing time labels */}
+            </TimeGrid>
+          </div>
+          
+          {/* Day columns */}
           {weekDays.map((day) => (
             <div 
               key={day.toISOString()}
@@ -93,7 +103,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDragEnd(e, day)}
             >
-              <TimeGrid date={day}>
+              <TimeGrid date={day} showTimeLabels={false}>
                 {/* Events for this day */}
                 {filterEventsByDate(events, day).map((event) => {
                   // Calculate position and height based on event times

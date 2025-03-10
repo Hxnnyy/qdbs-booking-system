@@ -7,6 +7,7 @@ import { Clock, Scissors } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 
 interface EventComponentProps {
   event: CalendarEvent;
@@ -20,6 +21,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   isDragging
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { startHour } = useCalendarSettings();
   const barberColor = getBarberColor(event.barberId);
   const startTime = format(event.start, 'h:mm a');
   const endTime = format(event.end, 'h:mm a');
@@ -28,11 +30,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   // Height based on duration (1 minute = 1px)
   const height = Math.max(duration, 30); // Minimum height of 30px
   
-  // Calculate top position (hours * 60 + minutes)
-  const hours = event.start.getHours();
-  const minutes = event.start.getMinutes();
-  const topPosition = (hours - 8) * 60 + minutes; // Adjust for 8AM start
-  
+  // Display options based on event duration
   const isShortEvent = height < 60;
   
   return (
@@ -48,7 +46,6 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
               backgroundColor: `${barberColor}20`, // 20% opacity
               borderLeft: `3px solid ${barberColor}`,
               height: `${height}px`,
-              top: `${topPosition}px`,
               left: '4px',
               zIndex: isHovered ? 10 : 5,
             }}
