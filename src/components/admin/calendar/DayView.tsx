@@ -28,17 +28,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
     setDisplayEvents(filtered);
   }, [events, date]);
   
-  // Generate time slots for the day (from 8AM to 10PM)
-  const timeSlots = Array.from({ length: TOTAL_HOURS * 4 }).map((_, index) => {
-    const minutes = index * MINUTES_PER_SLOT;
-    const slotTime = addMinutes(addHours(startOfDay(date), START_HOUR), minutes);
-    return {
-      time: format(slotTime, 'HH:mm'),
-      label: index % 4 === 0 ? format(slotTime, 'ha') : '',
-      isHour: index % 4 === 0
-    };
-  });
-
+  // Generate hour time slots
   const hourTimeSlots = Array.from({ length: TOTAL_HOURS + 1 }).map((_, index) => {
     const slotTime = addHours(startOfDay(date), START_HOUR + index);
     return {
@@ -74,24 +64,31 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
   // Function to snap to 15-minute intervals
   const snapToTimeSlot = (y: number, container: DOMRect): string => {
-    // Find how many minutes past START_HOUR based on pixel position
-    const totalMinutesInView = TOTAL_HOURS * 60;
-    const pixelsPerMinute = container.height / totalMinutesInView;
+    // Calculate the total height of the time grid
+    const timeGridHeight = container.height;
     
-    // Calculate minutes from the top
-    let minutes = Math.round(y / pixelsPerMinute);
+    // Calculate the height of each hour cell
+    const hourHeight = timeGridHeight / TOTAL_HOURS;
     
-    // Snap to nearest 15-minute interval
-    minutes = Math.round(minutes / MINUTES_PER_SLOT) * MINUTES_PER_SLOT;
+    // Calculate the height of each 15-minute slot
+    const slotHeight = hourHeight / 4;
     
-    // Calculate hours and minutes
-    const hours = START_HOUR + Math.floor(minutes / 60);
-    const mins = minutes % 60;
+    // Determine which slot we're in based on the y position
+    let slotIndex = Math.floor(y / slotHeight);
+    
+    // Ensure we're within bounds
+    slotIndex = Math.max(0, Math.min(slotIndex, TOTAL_HOURS * 4 - 1));
+    
+    // Calculate the hour and minute from the slot index
+    const hour = START_HOUR + Math.floor(slotIndex / 4);
+    const minute = (slotIndex % 4) * 15;
     
     // Format and return the time
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
 
+  const timeGridHeight = TOTAL_HOURS * 60; // Each hour is 60px
+  
   return (
     <div className="flex h-[840px] relative border border-border rounded-md">
       {/* Time column */}
@@ -99,11 +96,18 @@ export const DayView: React.FC<CalendarViewProps> = ({
         {/* Empty cell for header alignment */}
         <div className="h-12 border-b border-border"></div>
         
-        {hourTimeSlots.map((slot, index) => (
-          <div key={slot.time} className="h-[60px] border-b border-border flex items-start pl-2 pt-1">
-            <span className="text-xs text-muted-foreground">{slot.label}</span>
-          </div>
-        ))}
+        {/* Hour labels */}
+        <div className="relative h-[840px]">
+          {hourTimeSlots.map((slot, index) => (
+            <div 
+              key={slot.time} 
+              className="absolute w-full h-[60px] flex items-start pl-2 pt-1 pointer-events-none"
+              style={{ top: `${index * 60}px` }}
+            >
+              <span className="text-xs text-muted-foreground">{slot.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
       
       {/* Events column */}
@@ -116,7 +120,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
           <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
         </div>
         
-        {/* Time grid and events - removed overflow-y-auto to prevent scrolling */}
+        {/* Time grid and events */}
         <div 
           className="flex-1 relative"
           onDragOver={(e) => e.preventDefault()}
@@ -127,7 +131,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
             handleDragEnd(e, droppedTime);
           }}
         >
-          {/* Time grid container - holds 15-minute slots */}
+          {/* Time grid container */}
           <div className="relative h-[840px]">
             {/* Major time grid lines (hours) */}
             {hourTimeSlots.map((slot, index) => (
@@ -148,20 +152,44 @@ export const DayView: React.FC<CalendarViewProps> = ({
             ))}
             
             {/* Events */}
-            {displayEvents.map((event) => (
-              <div 
-                key={event.id}
-                draggable 
-                onDragStart={() => handleDragStart(event)}
-                className="absolute w-full"
-              >
-                <CalendarEventComponent 
-                  event={event} 
-                  onEventClick={onEventClick}
-                  isDragging={draggingEvent?.id === event.id}
-                />
-              </div>
-            ))}
+            {displayEvents.map((event) => {
+              // Calculate position and height based on event times
+              const eventStart = event.start;
+              const eventEnd = event.end;
+              
+              // Calculate minutes from START_HOUR for positioning
+              const startHour = eventStart.getHours();
+              const startMinute = eventStart.getMinutes();
+              const endHour = eventEnd.getHours();
+              const endMinute = eventEnd.getMinutes();
+              
+              // Convert to minutes from START_HOUR
+              const startMinutes = (startHour - START_HOUR) * 60 + startMinute;
+              const endMinutes = (endHour - START_HOUR) * 60 + endMinute;
+              
+              // Calculate height and top position (1 minute = 1px)
+              const height = Math.max(endMinutes - startMinutes, 15); // Minimum 15px height
+              const top = startMinutes;
+              
+              return (
+                <div 
+                  key={event.id}
+                  draggable 
+                  onDragStart={() => handleDragStart(event)}
+                  className="absolute w-full px-1"
+                  style={{ 
+                    top: `${top}px`, 
+                    height: `${height}px`,
+                  }}
+                >
+                  <CalendarEventComponent 
+                    event={event} 
+                    onEventClick={onEventClick}
+                    isDragging={draggingEvent?.id === event.id}
+                  />
+                </div>
+              );
+            })}
             
             {/* Current time indicator */}
             {isToday(date) && <CurrentTimeIndicator />}
