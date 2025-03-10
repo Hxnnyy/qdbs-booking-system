@@ -25,11 +25,8 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   const endTime = format(event.end, 'h:mm a');
   const duration = (event.end.getTime() - event.start.getTime()) / (1000 * 60); // in minutes
   
-  // Height based on duration (1 minute = 1px)
-  const height = Math.max(duration, 30); // Minimum height of 30px
-  
   // Display options based on event duration
-  const isShortEvent = height < 60;
+  const isShortEvent = duration < 45;
   
   return (
     <TooltipProvider>
@@ -43,7 +40,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
             style={{
               backgroundColor: `${barberColor}20`, // 20% opacity
               borderLeft: `3px solid ${barberColor}`,
-              height: `${height}px`,
+              height: '100%',
               left: '4px',
               zIndex: isHovered ? 10 : 5,
             }}
@@ -66,7 +63,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
                 <>
                   <p className="text-xs font-semibold truncate">{event.title}</p>
                   
-                  {height > 60 && (
+                  {duration > 45 && (
                     <>
                       <div className="flex items-center gap-1 mt-1">
                         <Scissors className="h-3 w-3 text-muted-foreground" />

@@ -132,41 +132,29 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
           {/* Events */}
           {displayEvents.map((event) => {
-            // Calculate position and height based on event times
-            const eventStart = event.start;
-            const eventEnd = event.end;
+            // Calculate position based on event time
+            const eventHour = event.start.getHours();
+            const eventMinute = event.start.getMinutes();
             
-            // Calculate minutes from startHour for positioning
-            const startHour = eventStart.getHours();
-            const startMinute = eventStart.getMinutes();
-            const endHour = eventEnd.getHours();
-            const endMinute = eventEnd.getMinutes();
+            // Only show events that are within our time range
+            if (eventHour < startHour || eventHour >= endHour) return null;
             
-            // Calculate top position and height in pixels
-            const startMinutesFromCalendarStart = (startHour - startHour + (startHour - startHour)) * 60 + startMinute;
-            const endMinutesFromCalendarStart = (endHour - startHour + (endHour - startHour)) * 60 + endMinute;
+            // Calculate top position in pixels (each hour = 60px)
+            const top = (eventHour - startHour) * 60 + eventMinute;
             
-            // Adjust for events that start before or end after our visible range
-            const top = Math.max(0, startMinutesFromCalendarStart);
-            const rawHeight = endMinutesFromCalendarStart - startMinutesFromCalendarStart;
-            
-            // Ensure the event has a minimum height and doesn't extend beyond our view
-            const height = Math.min(
-              Math.max(rawHeight, 15), // Minimum 15px height
-              calendarHeight - top
-            );
+            // Calculate event duration in minutes
+            const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+            const height = Math.max(durationMinutes, 15); // Minimum 15px height
             
             return (
               <div 
                 key={event.id}
                 draggable 
                 onDragStart={() => handleDragStart(event)}
-                className="absolute px-1"
+                className="absolute w-full px-1"
                 style={{ 
                   top: `${top}px`, 
-                  height: `${height}px`,
-                  left: 0,
-                  right: 0
+                  height: `${height}px`
                 }}
               >
                 <CalendarEventComponent 
