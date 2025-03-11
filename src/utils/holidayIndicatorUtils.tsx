@@ -49,4 +49,3 @@ export const getHolidayEventsForDate = (events: CalendarEvent[], date: Date): Ca
     event.start.getFullYear() === date.getFullYear()
   );
 };
-
