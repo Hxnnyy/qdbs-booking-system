@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -18,6 +17,9 @@ import { BarberServicesForm } from '@/components/admin/BarberServicesForm';
 import { LunchBreakForm } from '@/components/admin/LunchBreakForm';
 import { useBarbers } from '@/hooks/useBarbers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ColorPickerDialog } from '@/components/admin/barbers/ColorPickerDialog';
+import { HolidayDialog } from '@/components/admin/barbers/HolidayDialog';
+import { format } from 'date-fns';
 
 const ManageBarbers = () => {
   const { barbers, isLoading, error, refreshBarbers, reactivateBarber, deleteBarber } = useBarbers();
@@ -195,6 +197,52 @@ const ManageBarbers = () => {
     setIsLunchDialogOpen(true);
   };
   
+  const [isColorDialogOpen, setIsColorDialogOpen] = useState(false);
+  const [isHolidayDialogOpen, setIsHolidayDialogOpen] = useState(false);
+  
+  const handleColorUpdate = async (barberId: string, color: string) => {
+    try {
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('barbers')
+        .update({ color })
+        .eq('id', barberId);
+      
+      if (error) throw error;
+      
+      toast.success('Barber color updated successfully');
+      await refreshBarbers();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+  
+  const handleHolidaySet = async (barberId: string, startDate: Date, endDate: Date) => {
+    try {
+      const holidayBooking = {
+        barber_id: barberId,
+        service_id: '00000000-0000-0000-0000-000000000000', // Default service ID for holidays
+        booking_date: format(startDate, 'yyyy-MM-dd'),
+        booking_time: '00:00',
+        status: 'holiday',
+        user_id: '00000000-0000-0000-0000-000000000000', // System user ID
+        notes: `Holiday from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`,
+        guest_booking: true
+      };
+      
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('bookings')
+        .insert(holidayBooking);
+      
+      if (error) throw error;
+      
+      toast.success('Holiday period set successfully');
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   return (
     <Layout>
       <AdminLayout>
@@ -302,6 +350,27 @@ const ManageBarbers = () => {
                         onClick={() => openDeleteDialog(barber)}
                       >
                         Delete
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentBarber(barber);
+                          setIsColorDialogOpen(true);
+                        }}
+                      >
+                        Color
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentBarber(barber);
+                          setIsHolidayDialogOpen(true);
+                        }}
+                      >
+                        Holiday
                       </Button>
                     </div>
                   </CardContent>
@@ -512,6 +581,27 @@ const ManageBarbers = () => {
             )}
           </DialogContent>
         </Dialog>
+        
+        {/* Color Picker Dialog */}
+        {currentBarber && (
+          <ColorPickerDialog
+            isOpen={isColorDialogOpen}
+            onClose={() => setIsColorDialogOpen(false)}
+            onSave={(color) => handleColorUpdate(currentBarber.id, color)}
+            initialColor={currentBarber.color}
+          />
+        )}
+        
+        {/* Holiday Dialog */}
+        {currentBarber && (
+          <HolidayDialog
+            isOpen={isHolidayDialogOpen}
+            onClose={() => setIsHolidayDialogOpen(false)}
+            onSave={(startDate, endDate) => 
+              handleHolidaySet(currentBarber.id, startDate, endDate)
+            }
+          />
+        )}
       </AdminLayout>
     </Layout>
   );

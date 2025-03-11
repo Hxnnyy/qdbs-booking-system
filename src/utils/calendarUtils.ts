@@ -1,7 +1,7 @@
-
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
+import { supabase } from '@/integrations/supabase/client';
 
 // Convert a booking to a calendar event
 export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
@@ -125,23 +125,43 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
 };
 
 // Generate a color based on barber ID for consistency
-export const getBarberColor = (barberId: string, returnRGB: boolean = false): string => {
-  // Simple hash function to generate a hue value (0-360)
+export const getBarberColor = async (barberId: string, returnRGB: boolean = false): Promise<string> => {
+  // If no barberId is provided, return a default color
+  if (!barberId) {
+    return returnRGB ? '155, 135, 245' : '#9b87f5';
+  }
+
+  // Fetch the barber's custom color from the database
+  const { data: barber } = await supabase
+    .from('barbers')
+    .select('color')
+    .eq('id', barberId)
+    .single();
+
+  if (barber?.color) {
+    if (returnRGB) {
+      // Convert hex to RGB
+      const hex = barber.color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `${r}, ${g}, ${b}`;
+    }
+    return barber.color;
+  }
+
+  // Fallback to generated color if no custom color is set
   const hash = Array.from(barberId).reduce(
     (acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0
   );
   const hue = Math.abs(hash) % 360;
   
-  // For lunch breaks, we want pastel colors (high lightness, medium saturation)
-  // For normal appointments, we want more vibrant colors
-  const saturation = returnRGB ? '85' : '70';
-  const lightness = returnRGB ? '40' : '60';
   
   if (returnRGB) {
     // Convert HSL to RGB for better control of transparency
     const h = hue / 360;
-    const s = parseInt(saturation) / 100;
-    const l = parseInt(lightness) / 100;
+    const s = 0.70;
+    const l = 0.60;
     
     let r, g, b;
     
@@ -168,19 +188,25 @@ export const getBarberColor = (barberId: string, returnRGB: boolean = false): st
     return `${r}, ${g}, ${b}`;
   }
   
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  return `hsl(${hue}, 70%, 60%)`;
 };
 
 // Get a color for a specific event type
-export const getEventColor = (event: CalendarEvent): string => {
+export const getEventColor = async (event: CalendarEvent): Promise<string> => {
+  // For holidays, use a distinct color pattern
+  if (event.status === 'holiday') {
+    const baseColor = await getBarberColor(event.barberId, true);
+    return `repeating-linear-gradient(45deg, rgba(${baseColor}, 0.2), rgba(${baseColor}, 0.2) 10px, rgba(${baseColor}, 0.3) 10px, rgba(${baseColor}, 0.3) 20px)`;
+  }
+  
   // For lunch breaks, use barber-specific colors
   if (event.status === 'lunch-break') {
-    // This will be overridden in the component, but we provide a fallback here
-    return `rgba(${getBarberColor(event.barberId, true)}, 0.2)`;
+    const barberColor = await getBarberColor(event.barberId, true);
+    return `rgba(${barberColor}, 0.2)`;
   }
   
   // For regular bookings, use barber-based colors
-  return getBarberColor(event.barberId);
+  return await getBarberColor(event.barberId);
 };
 
 // Filter events for calendar view based on date
