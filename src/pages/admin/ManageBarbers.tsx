@@ -20,6 +20,7 @@ const ManageBarbers = () => {
     error,
     formData,
     currentBarber,
+    setCurrentBarber,
     isAddDialogOpen,
     isEditDialogOpen,
     isDeactivateDialogOpen,
