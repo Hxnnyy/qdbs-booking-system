@@ -3,8 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
-import { filterEventsByWeek } from '@/utils/calendarUtils';
+import { filterEventsByWeek, getHolidayEventsForDate } from '@/utils/calendarUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
+import { HolidayIndicator } from './HolidayIndicator';
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -92,7 +93,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       }
     });
     
-    // Process lunch breaks separately - always give them full width
+    // Process lunch breaks separately - always give them full width regardless of any holiday
     lunchBreaks.forEach(lunchEvent => {
       results.push({
         event: lunchEvent,
@@ -110,7 +111,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   }, [events, date]);
 
   const handleDragStart = (event: CalendarEvent) => {
-    if (event.status === 'lunch-break') return;
+    if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
   };
 
@@ -175,19 +176,28 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         <div className="border-r border-border h-12"></div>
         
         {/* Day headers */}
-        {weekDays.map((day, index) => (
-          <div 
-            key={index} 
-            className={`flex flex-col border-r last:border-r-0 border-border ${
-              isToday(day) ? 'bg-primary/10' : ''
-            }`}
-          >
-            <div className="h-12 flex flex-col items-center justify-center">
-              <div className="text-sm">{format(day, 'EEE')}</div>
-              <div className="text-xs text-muted-foreground">{format(day, 'd')}</div>
+        {weekDays.map((day, index) => {
+          // Get holiday events for this day
+          const dayDate = addDays(weekStart, index);
+          const holidayEvents = getHolidayEventsForDate(events, dayDate);
+          
+          return (
+            <div 
+              key={index} 
+              className={`flex flex-col border-r last:border-r-0 border-border ${
+                isToday(day) ? 'bg-primary/10' : ''
+              }`}
+            >
+              <div className="h-12 flex flex-col items-center justify-center">
+                <div className="text-sm">{format(day, 'EEE')}</div>
+                <div className="text-xs text-muted-foreground">{format(day, 'd')}</div>
+              </div>
+              
+              {/* Holiday Indicator */}
+              <HolidayIndicator holidayEvents={holidayEvents} />
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       {/* Main grid - now with 8 columns */}
@@ -259,7 +269,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 return (
                   <div 
                     key={`${event.id}-${dayIndex}`}
-                    draggable={event.status !== 'lunch-break'}
+                    draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
                     onDragStart={() => handleDragStart(event)}
                     className="absolute w-full"
                     style={{ 

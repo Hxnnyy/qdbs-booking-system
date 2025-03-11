@@ -22,15 +22,20 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   onEventClick
 }) => {
   const isLunchBreak = event.status === 'lunch-break';
+  const isHoliday = event.status === 'holiday';
   
   // Use barberColor from the event if available, otherwise fall back to generated color
   const barberColor = event.barberColor || getBarberColor(event.barberId);
   
   // For lunch breaks, use transparent background with only colored border
+  // For holidays, use a semi-transparent red background
   let backgroundColor;
   let borderColor;
   
-  if (isLunchBreak) {
+  if (isHoliday) {
+    backgroundColor = 'rgba(255, 0, 0, 0.15)';
+    borderColor = 'rgba(255, 0, 0, 0.5)';
+  } else if (isLunchBreak) {
     backgroundColor = 'transparent';
     borderColor = barberColor;
   } else {
@@ -41,8 +46,8 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   const styles = {
     backgroundColor: backgroundColor,
     borderLeft: `4px solid ${borderColor}`,
-    color: isLunchBreak ? '#fff' : '#000',
-    opacity: isLunchBreak ? 0.7 : 1, 
+    color: isLunchBreak ? '#fff' : (isHoliday ? '#333' : '#000'), // Set lunch break text to white
+    opacity: isLunchBreak ? 0.7 : 1, // Only apply transparency to lunch breaks
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
     position: 'absolute' as const,
@@ -65,16 +70,23 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       className={`
         rounded-sm px-2 py-1 text-xs truncate cursor-pointer hover:opacity-90 hover:z-20
         ${isLunchBreak ? 'font-bold bg-blue-600' : ''} 
+        ${isHoliday ? 'font-bold text-red-800 border border-red-500' : ''}
       `}
       style={styles}
       onClick={handleClick}
-      draggable={!isLunchBreak} // Only make regular appointments draggable
+      draggable={!isLunchBreak && !isHoliday} // Only make regular appointments draggable
     >
       <div className="font-semibold truncate">
-        {format(event.start, 'HH:mm')} - {event.title}
+        {isHoliday ? (
+          event.title
+        ) : (
+          <>{format(event.start, 'HH:mm')} - {event.title}</>
+        )}
       </div>
       {isLunchBreak ? (
         <div className="truncate opacity-90">{event.barber}'s Lunch</div>
+      ) : isHoliday ? (
+        <div className="truncate opacity-90">{event.barber}</div>
       ) : (
         <div className="truncate opacity-90">{event.barber} - {event.service}</div>
       )}

@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
-import { filterEventsByDate } from '@/utils/calendarUtils';
+import { filterEventsByDate, getHolidayEventsForDate } from '@/utils/calendarUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
+import { HolidayIndicator } from './HolidayIndicator';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -21,8 +22,12 @@ export const DayView: React.FC<CalendarViewProps> = ({
   
   const calendarHeight = totalHours * 60;
 
+  // Check if there are any holiday events for this day
+  const holidayEvents = getHolidayEventsForDate(events, date);
+
   // For debugging
   console.log("DayView - Date:", format(date, 'yyyy-MM-dd'));
+  console.log("DayView - Holiday events:", holidayEvents);
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
     // First, separate lunch breaks from other events
@@ -94,7 +99,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
       }
     });
     
-    // Process lunch breaks separately - always give them full width 
+    // Process lunch breaks separately - always give them full width regardless of any holiday
     lunchBreaks.forEach(lunchEvent => {
       results.push({
         event: lunchEvent,
@@ -112,7 +117,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   }, [events, date]);
 
   const handleDragStart = (event: CalendarEvent) => {
-    if (event.status === 'lunch-break') return;
+    if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
   };
 
@@ -173,6 +178,9 @@ export const DayView: React.FC<CalendarViewProps> = ({
             <div className="text-sm">{format(date, 'EEEE')}</div>
             <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
           </div>
+          
+          {/* Holiday Indicator */}
+          <HolidayIndicator holidayEvents={holidayEvents} />
         </div>
       </div>
       
@@ -252,7 +260,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
               return (
                 <div 
                   key={event.id}
-                  draggable={event.status !== 'lunch-break'}
+                  draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
                   onDragStart={() => handleDragStart(event)}
                   className="absolute w-full"
                   style={{ 
