@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,7 +33,6 @@ export const HolidayForm: React.FC<HolidayFormProps> = ({ barberId, onSaved }) =
   
   const today = new Date();
   
-  // Fetch existing holidays
   const fetchHolidays = async () => {
     try {
       setIsLoading(true);
@@ -75,7 +73,6 @@ export const HolidayForm: React.FC<HolidayFormProps> = ({ barberId, onSaved }) =
       return;
     }
     
-    // Validate that startDate is before or equal to endDate
     if (isAfter(startDate, endDate)) {
       toast.error('Start date must be before or equal to end date');
       return;
@@ -88,7 +85,6 @@ export const HolidayForm: React.FC<HolidayFormProps> = ({ barberId, onSaved }) =
       const formattedEndDate = format(endDate, 'yyyy-MM-dd');
       
       if (editingHoliday) {
-        // Update existing holiday
         const { error } = await supabase
           .from('barber_holidays')
           .update({
@@ -102,7 +98,6 @@ export const HolidayForm: React.FC<HolidayFormProps> = ({ barberId, onSaved }) =
         
         toast.success('Holiday updated successfully');
       } else {
-        // Create new holiday
         const { error } = await supabase
           .from('barber_holidays')
           .insert({
@@ -117,7 +112,6 @@ export const HolidayForm: React.FC<HolidayFormProps> = ({ barberId, onSaved }) =
         toast.success('Holiday added successfully');
       }
       
-      // Reset form and refresh data
       resetForm();
       await fetchHolidays();
       
@@ -146,7 +140,6 @@ export const HolidayForm: React.FC<HolidayFormProps> = ({ barberId, onSaved }) =
       toast.success('Holiday deleted successfully');
       await fetchHolidays();
       
-      // If we were editing this holiday, reset the form
       if (editingHoliday?.id === holidayId) {
         resetForm();
       }
@@ -187,13 +180,14 @@ export const HolidayForm: React.FC<HolidayFormProps> = ({ barberId, onSaved }) =
                   {startDate ? format(startDate, 'PPP') : 'Select date'}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={startDate}
                   onSelect={setStartDate}
                   disabled={(date) => isBefore(date, today)}
                   initialFocus
+                  className="p-3 pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -213,13 +207,14 @@ export const HolidayForm: React.FC<HolidayFormProps> = ({ barberId, onSaved }) =
                   {endDate ? format(endDate, 'PPP') : 'Select date'}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={endDate}
                   onSelect={setEndDate}
                   disabled={(date) => startDate ? isBefore(date, startDate) : isBefore(date, today)}
                   initialFocus
+                  className="p-3 pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
