@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -24,6 +23,10 @@ interface CreateGuestBookingParams {
   guest_phone: string;
   notes?: string;
 }
+
+// Define a constant for the guest user ID
+// This should be a UUID that is reserved for guest bookings
+const GUEST_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 export const useGuestBookings = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -158,7 +161,6 @@ export const useGuestBookings = () => {
     }
   };
 
-  // Add the missing createGuestBooking method
   const createGuestBooking = async (params: CreateGuestBookingParams) => {
     try {
       setIsLoading(true);
@@ -176,7 +178,7 @@ export const useGuestBookings = () => {
         throw new Error('Cannot book on this date as the barber is on holiday');
       }
       
-      // Create the booking
+      // Create the booking - now with user_id included
       const { data, error } = await supabase
         .from('bookings')
         .insert({
@@ -186,7 +188,8 @@ export const useGuestBookings = () => {
           booking_time: params.booking_time,
           status: 'confirmed',
           notes: formattedNotes,
-          guest_booking: true
+          guest_booking: true,
+          user_id: GUEST_USER_ID // Add the required user_id field
         })
         .select()
         .single();
@@ -212,7 +215,7 @@ export const useGuestBookings = () => {
     getGuestBookingByCode,
     cancelGuestBooking,
     updateGuestBooking,
-    createGuestBooking, // Export the newly added method
+    createGuestBooking,
     isLoading
   };
 };
