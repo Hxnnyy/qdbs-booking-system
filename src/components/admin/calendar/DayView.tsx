@@ -187,17 +187,19 @@ export const DayView: React.FC<CalendarViewProps> = ({
             
             return (
               <div 
-                key={event.id}
+                key={`${event.id}-${slotIndex}`}
                 className="absolute"
                 style={{ 
                   top: `${top}px`, 
                   height: `${height}px`,
-                  width: '100%'
+                  width: '100%',
+                  pointerEvents: 'none' // Make container transparent to pointer events
                 }}
               >
                 <div 
                   draggable 
                   onDragStart={() => handleDragStart(event)}
+                  style={{ pointerEvents: 'auto' }} // Enable pointer events on the draggable element
                 >
                   <CalendarEventComponent 
                     event={event} 

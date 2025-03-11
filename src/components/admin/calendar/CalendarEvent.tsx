@@ -59,7 +59,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
     position: 'absolute',
     height: '100%',
-    zIndex: 10, // Add zIndex to ensure events can be clicked
+    zIndex: 10 + slotIndex, // Add slotIndex to zIndex to ensure proper stacking
     pointerEvents: 'auto', // Ensure pointer events work
   };
   
@@ -76,16 +76,19 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     <div
       className={`
         rounded-sm px-2 py-1 text-xs truncate cursor-pointer hover:opacity-90
-        ${isLunchBreak ? 'font-bold' : ''}
+        ${isLunchBreak || isHoliday ? 'text-white font-bold' : ''}
       `}
       style={styles}
       onClick={handleClick}
+      data-event-id={event.id} // Add data attribute for easier debugging
     >
       <div className="font-semibold truncate">
         {format(event.start, 'HH:mm')} - {event.title}
       </div>
       {isLunchBreak ? (
         <div className="truncate opacity-90">{event.barber}'s Lunch</div>
+      ) : isHoliday ? (
+        <div className="truncate opacity-90">Holiday - {event.barber}</div>
       ) : (
         <div className="truncate opacity-90">{event.barber} - {event.service}</div>
       )}
