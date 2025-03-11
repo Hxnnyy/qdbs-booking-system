@@ -109,7 +109,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const processedEvents = processOverlappingEvents(displayEvents);
 
   return (
-    <div className="flex flex-col h-full border border-border rounded-md overflow-hidden">
+    <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
       <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center ${
         isToday(date) ? 'bg-primary/10' : ''
       }`}>

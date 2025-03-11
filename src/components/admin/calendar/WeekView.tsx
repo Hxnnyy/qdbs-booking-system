@@ -105,7 +105,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full border border-border rounded-md overflow-hidden">
+    <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
       <div className="flex border-b border-border h-12">
         <div className="w-16 border-r border-border"></div>
         {weekDays.map((day) => (
