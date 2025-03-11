@@ -1,13 +1,13 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
 import { CalendarViewComponent } from '@/components/admin/calendar/CalendarViewComponent';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
-import { BarberFilter } from '@/components/admin/calendar/BarberFilter';
-import { CalendarContext } from '@/context/CalendarSettingsContext';
+import { CalendarSettingsProvider } from '@/context/CalendarSettingsContext';
 import { useCalendarSettings } from '@/hooks/useCalendarSettings';
+import { BarberFilter } from '@/components/admin/calendar/BarberFilter';
 
 const CalendarView: React.FC = () => {
   const {
@@ -25,16 +25,14 @@ const CalendarView: React.FC = () => {
     setSelectedBarberId
   } = useCalendarBookings();
   
-  const calendarSettings = useCalendarSettings();
-  
   return (
     <Layout>
       <AdminLayout>
-        <CalendarContext.Provider value={calendarSettings}>
+        <CalendarSettingsProvider>
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h1 className="text-3xl font-bold">Calendar</h1>
-              <BarferFilter 
+              <BarberFilter 
                 selectedBarberId={selectedBarberId}
                 onBarberSelect={setSelectedBarberId} 
               />
@@ -58,7 +56,7 @@ const CalendarView: React.FC = () => {
               onDeleteBooking={deleteBooking}
             />
           </div>
-        </CalendarContext.Provider>
+        </CalendarSettingsProvider>
       </AdminLayout>
     </Layout>
   );
