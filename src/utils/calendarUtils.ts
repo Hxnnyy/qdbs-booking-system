@@ -223,9 +223,10 @@ export const getBarberColor = async (barberId: string, returnRGB: boolean = fals
     
     let r, g, b;
     
-    // Fixed TypeScript error: Use a strict comparison with a number type
-    // instead of comparing different number literal types
-    if (s === 0) {
+    // Fix the TypeScript error by using a number type for comparison
+    // instead of comparing specific number literals
+    const saturation = Number(s);
+    if (saturation === 0) {
       r = g = b = l; // achromatic
     } else {
       const hue2rgb = (p: number, q: number, t: number) => {
