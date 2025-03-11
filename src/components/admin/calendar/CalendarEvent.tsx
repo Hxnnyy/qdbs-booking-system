@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarEvent } from '@/types/calendar';
-import { Clock, Scissors } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,8 @@ interface EventComponentProps {
   event: CalendarEvent;
   onEventClick: (event: CalendarEvent) => void;
   isDragging?: boolean;
+  slotIndex?: number; // New prop for stacking events
+  totalSlots?: number; // New prop for calculating width
 }
 
 const getBarberColor = (barberId: string, barberName: string): string => {
@@ -22,14 +24,16 @@ const getBarberColor = (barberId: string, barberName: string): string => {
     case 'Thomas':
       return '#0EA5E9';
     default:
-      return '#ea384c'; // Default to red
+      return '#ea384c';
   }
 };
 
 export const CalendarEventComponent: React.FC<EventComponentProps> = ({ 
   event, 
   onEventClick,
-  isDragging
+  isDragging,
+  slotIndex = 0,
+  totalSlots = 1
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const barberColor = getBarberColor(event.barberId, event.barber);
@@ -39,6 +43,10 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   
   // Clean up title by removing "Guest: " prefix if present
   const cleanTitle = event.title.replace('Guest: ', '');
+
+  // Calculate position for stacked events
+  const leftOffset = slotIndex * 8; // 8px offset for each stacked event
+  const width = totalSlots > 1 ? `calc((100% - 8px) / ${totalSlots})` : 'calc(100% - 8px)';
   
   return (
     <TooltipProvider>
@@ -46,20 +54,21 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
         <TooltipTrigger asChild>
           <motion.div
             className={cn(
-              "absolute w-[calc(100%-8px)] rounded-md cursor-grab select-none overflow-hidden shadow-sm",
+              "absolute rounded-md cursor-grab select-none overflow-hidden shadow-sm",
               isDragging ? "opacity-70" : ""
             )}
             style={{
-              backgroundColor: '#ea384c20', // Translucent red background
+              backgroundColor: '#ea384c20',
               borderLeft: `3px solid ${barberColor}`,
               borderRight: `3px solid ${barberColor}`,
               height: '100%',
-              left: '4px',
+              left: `${4 + leftOffset}px`,
+              width,
               zIndex: isHovered ? 10 : 5,
             }}
             whileHover={{ 
               scale: 1.02,
-              backgroundColor: '#ea384c30', // Slightly more opaque on hover
+              backgroundColor: '#ea384c30',
               zIndex: 10
             }}
             onHoverStart={() => setIsHovered(true)}
@@ -68,16 +77,15 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
             layout
           >
             <div className="flex flex-col h-full overflow-hidden p-1.5">
-              <span className="text-[11px] font-medium truncate mb-0.5">{startTime} - {endTime}</span>
-              
               <div className="flex items-center gap-1">
                 <p className="text-[11px] font-medium truncate">{cleanTitle}</p>
                 <span className="text-[11px] text-muted-foreground truncate">• {event.service}</span>
               </div>
               
-              {duration >= 45 && (
-                <div className="mt-auto pt-0.5">
+              {duration >= 30 && (
+                <div className="mt-auto pt-0.5 flex items-center justify-between">
                   <p className="text-[11px] text-muted-foreground truncate">{event.barber}</p>
+                  <span className="text-[11px] text-muted-foreground truncate">{startTime}</span>
                 </div>
               )}
             </div>

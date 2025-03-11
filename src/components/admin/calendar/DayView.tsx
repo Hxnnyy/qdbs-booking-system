@@ -20,8 +20,43 @@ export const DayView: React.FC<CalendarViewProps> = ({
   
   const calendarHeight = totalHours * 60;
 
+  const organizeOverlappingEvents = (events: CalendarEvent[]) => {
+    const sortedEvents = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
+    const slots: { [key: string]: CalendarEvent[][] } = {};
+
+    sortedEvents.forEach(event => {
+      const eventHour = event.start.getHours();
+      const eventMinute = event.start.getMinutes();
+      const timeKey = `${eventHour}:${eventMinute}`;
+
+      if (!slots[timeKey]) {
+        slots[timeKey] = [[]];
+      }
+
+      let placed = false;
+      for (let slotGroup of slots[timeKey]) {
+        if (!slotGroup.some(existingEvent => {
+          const eventEnd = event.end.getTime();
+          const existingEnd = existingEvent.end.getTime();
+          return event.start.getTime() < existingEnd && eventEnd > existingEvent.start.getTime();
+        })) {
+          slotGroup.push(event);
+          placed = true;
+          break;
+        }
+      }
+
+      if (!placed) {
+        slots[timeKey].push([event]);
+      }
+    });
+
+    return slots;
+  };
+
   useEffect(() => {
     const filtered = filterEventsByDate(events, date);
+    const organized = organizeOverlappingEvents(filtered);
     setDisplayEvents(filtered);
   }, [events, date]);
 
@@ -134,29 +169,46 @@ export const DayView: React.FC<CalendarViewProps> = ({
           {displayEvents.map((event) => {
             const eventHour = event.start.getHours();
             const eventMinute = event.start.getMinutes();
+            const timeKey = `${eventHour}:${eventMinute}`;
             
             if (eventHour < startHour || eventHour >= endHour) return null;
             
             const top = (eventHour - startHour) * 60 + eventMinute;
-            
             const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
             const height = Math.max(durationMinutes, 15);
+
+            let slotIndex = 0;
+            let totalSlots = 1;
+            const overlappingEvents = displayEvents.filter(e => {
+              const eventEnd = event.end.getTime();
+              const eEnd = e.end.getTime();
+              return event.start.getTime() < eEnd && eventEnd > e.start.getTime();
+            });
+            
+            if (overlappingEvents.length > 1) {
+              slotIndex = overlappingEvents.indexOf(event);
+              totalSlots = overlappingEvents.length;
+            }
             
             return (
               <div 
                 key={event.id}
                 draggable 
                 onDragStart={() => handleDragStart(event)}
-                className="absolute w-full px-1"
+                className="absolute w-full"
                 style={{ 
                   top: `${top}px`, 
-                  height: `${height}px`
+                  height: `${height}px`,
+                  paddingLeft: '16px',
+                  paddingRight: '4px'
                 }}
               >
                 <CalendarEventComponent 
                   event={event} 
                   onEventClick={onEventClick}
                   isDragging={draggingEvent?.id === event.id}
+                  slotIndex={slotIndex}
+                  totalSlots={totalSlots}
                 />
               </div>
             );

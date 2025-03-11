@@ -23,6 +23,40 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     return addDays(weekStart, index);
   });
 
+  const organizeOverlappingEvents = (events: CalendarEvent[]) => {
+    const sortedEvents = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
+    const slots: { [key: string]: CalendarEvent[][] } = {};
+
+    sortedEvents.forEach(event => {
+      const eventHour = event.start.getHours();
+      const eventMinute = event.start.getMinutes();
+      const timeKey = `${eventHour}:${eventMinute}`;
+
+      if (!slots[timeKey]) {
+        slots[timeKey] = [[]];
+      }
+
+      let placed = false;
+      for (let slotGroup of slots[timeKey]) {
+        if (!slotGroup.some(existingEvent => {
+          const eventEnd = event.end.getTime();
+          const existingEnd = existingEvent.end.getTime();
+          return event.start.getTime() < existingEnd && eventEnd > existingEvent.start.getTime();
+        })) {
+          slotGroup.push(event);
+          placed = true;
+          break;
+        }
+      }
+
+      if (!placed) {
+        slots[timeKey].push([event]);
+      }
+    });
+
+    return slots;
+  };
+
   const handleDragStart = (event: CalendarEvent) => {
     setDraggingEvent(event);
   };
@@ -98,11 +132,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               );
             })}
           </div>
-          {weekDays.map((day, index) => (
+          {weekDays.map((day, dayIndex) => (
             <div 
               key={day.toISOString()}
               className="flex-1 relative border-r border-border min-w-[120px] h-full"
-              onDragOver={(e) => handleDragOver(e, index)}
+              onDragOver={(e) => handleDragOver(e, dayIndex)}
               onDrop={(e) => handleDragEnd(e, day)}
               onDragLeave={() => setDragPreview(null)}
             >
@@ -144,10 +178,18 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 if (eventHour < startHour || eventHour >= endHour) return null;
                 
                 const top = (eventHour - startHour) * 60 + eventMinute;
-                
                 const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
                 const height = Math.max(durationMinutes, 15);
-                
+
+                const overlappingEvents = filterEventsByDate(events, day).filter(e => {
+                  const eventEnd = event.end.getTime();
+                  const eEnd = e.end.getTime();
+                  return event.start.getTime() < eEnd && eventEnd > e.start.getTime();
+                });
+
+                const slotIndex = overlappingEvents.indexOf(event);
+                const totalSlots = overlappingEvents.length;
+
                 return (
                   <div 
                     key={event.id}
@@ -163,11 +205,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                       event={event} 
                       onEventClick={onEventClick}
                       isDragging={draggingEvent?.id === event.id}
+                      slotIndex={slotIndex}
+                      totalSlots={totalSlots}
                     />
                   </div>
                 );
               })}
-              {dragPreview && dragPreview.columnIndex === index && (
+              {dragPreview && dragPreview.columnIndex === dayIndex && (
                 <div 
                   className="absolute left-0 right-0 pointer-events-none"
                   style={{ top: `${dragPreview.top}px` }}
