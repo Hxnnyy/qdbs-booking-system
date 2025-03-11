@@ -8,16 +8,7 @@ interface CalendarSettings {
   updateEndHour: (hour: number) => void;
 }
 
-export const CalendarSettingsContext = createContext<CalendarSettings | undefined>(undefined);
-
-// Add the hook directly to the context file
-export const useCalendarSettings = () => {
-  const context = useContext(CalendarSettingsContext);
-  if (context === undefined) {
-    throw new Error('useCalendarSettings must be used within a CalendarSettingsProvider');
-  }
-  return context;
-};
+const CalendarSettingsContext = createContext<CalendarSettings | undefined>(undefined);
 
 export const CalendarSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [startHour, setStartHour] = useState(8); // Default: 8 AM
@@ -47,4 +38,12 @@ export const CalendarSettingsProvider: React.FC<{ children: React.ReactNode }> =
       {children}
     </CalendarSettingsContext.Provider>
   );
+};
+
+export const useCalendarSettings = () => {
+  const context = useContext(CalendarSettingsContext);
+  if (context === undefined) {
+    throw new Error('useCalendarSettings must be used within a CalendarSettingsProvider');
+  }
+  return context;
 };

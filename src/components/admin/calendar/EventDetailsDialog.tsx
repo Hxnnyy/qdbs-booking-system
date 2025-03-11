@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/types/calendar';
 import { format, parseISO } from 'date-fns';
-import { Clock, Calendar as CalendarIcon, User, Users, ClipboardList, Tag, Save, X, Edit, Trash2 } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, User, Users, ClipboardList, Tag, Save, X, Edit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getBarberColor } from '@/utils/calendarUtils';
 import { Input } from '@/components/ui/input';
@@ -14,16 +13,6 @@ import { useBarbers } from '@/hooks/useBarbers';
 import { useServices } from '@/hooks/useServices';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface EventDetailsDialogProps {
   event: CalendarEvent | null;
@@ -40,19 +29,16 @@ interface EventDetailsDialogProps {
       booking_time?: string;
     }
   ) => Promise<boolean>;
-  onDeleteBooking?: (bookingId: string) => Promise<boolean>;
 }
 
 export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({ 
   event, 
   isOpen, 
   onClose,
-  onUpdateBooking,
-  onDeleteBooking
+  onUpdateBooking
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { barbers } = useBarbers();
   const { services } = useServices();
   
@@ -136,274 +122,209 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
     }
   };
   
-  const handleDelete = async () => {
-    if (!event || !onDeleteBooking) return;
-    
-    try {
-      setIsLoading(true);
-      const success = await onDeleteBooking(event.id);
-      
-      if (success) {
-        toast.success('Booking deleted successfully');
-        setIsDeleteDialogOpen(false);
-        onClose();
-      }
-    } catch (error) {
-      console.error('Error deleting booking:', error);
-      toast.error('Failed to delete booking');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   const DialogComponent = isEditing ? Sheet : Dialog;
   const DialogContentComponent = isEditing ? SheetContent : DialogContent;
   const DialogHeaderComponent = isEditing ? SheetHeader : DialogHeader;
   const DialogTitleComponent = isEditing ? SheetTitle : DialogTitle;
   
   return (
-    <>
-      <DialogComponent 
-        open={isOpen} 
-        onOpenChange={(open) => {
-          if (!open) {
-            onClose();
-            setIsEditing(false);
-          }
-        }}
+    <DialogComponent 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+          setIsEditing(false);
+        }
+      }}
+    >
+      <DialogContentComponent 
+        {...(isEditing ? { side: "right" } : {})}
       >
-        <DialogContentComponent 
-          {...(isEditing ? { side: "right" } : {})}
-        >
-          <DialogHeaderComponent>
-            <DialogTitleComponent>
-              {isEditing ? 'Edit Booking' : 'Booking Details'}
-            </DialogTitleComponent>
-          </DialogHeaderComponent>
-          
-          {isEditing ? (
-            <div className="space-y-6 py-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="title" className="text-sm font-medium">Client Name</label>
-                  <Input 
-                    id="title" 
-                    name="title" 
-                    value={editForm.title} 
-                    onChange={handleInputChange} 
-                    placeholder="Client Name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="barber_id" className="text-sm font-medium">Barber</label>
-                  <Select 
-                    value={editForm.barber_id} 
-                    onValueChange={(value) => handleSelectChange('barber_id', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Barber" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {barbers.map((barber) => (
-                        <SelectItem key={barber.id} value={barber.id}>
-                          {barber.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="service_id" className="text-sm font-medium">Service</label>
-                  <Select 
-                    value={editForm.service_id} 
-                    onValueChange={(value) => handleSelectChange('service_id', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Service" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {services.map((service) => (
-                        <SelectItem key={service.id} value={service.id}>
-                          {service.name} (${service.price} - {service.duration} min)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="booking_date" className="text-sm font-medium">Date</label>
-                    <Input 
-                      id="booking_date" 
-                      name="booking_date" 
-                      type="date" 
-                      value={editForm.booking_date} 
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="booking_time" className="text-sm font-medium">Time</label>
-                    <Input 
-                      id="booking_time" 
-                      name="booking_time" 
-                      type="time" 
-                      value={editForm.booking_time} 
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="notes" className="text-sm font-medium">Notes</label>
-                  <Textarea 
-                    id="notes" 
-                    name="notes" 
-                    value={editForm.notes} 
-                    onChange={handleInputChange} 
-                    placeholder="Add booking notes..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-              
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button 
-                  variant="destructive" 
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  disabled={isLoading}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Booking
-                </Button>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsEditing(false)}
-                    disabled={isLoading}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleSave}
-                    disabled={isLoading}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {isLoading ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </div>
-              </DialogFooter>
-            </div>
-          ) : (
-            <div className="space-y-4 py-4">
-              <div className="flex items-start gap-4">
-                <div 
-                  className="w-4 h-4 rounded-full mt-1 flex-shrink-0" 
-                  style={{ backgroundColor: barberColor }}
+        <DialogHeaderComponent>
+          <DialogTitleComponent>
+            {isEditing ? 'Edit Booking' : 'Booking Details'}
+          </DialogTitleComponent>
+        </DialogHeaderComponent>
+        
+        {isEditing ? (
+          <div className="space-y-6 py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="title" className="text-sm font-medium">Client Name</label>
+                <Input 
+                  id="title" 
+                  name="title" 
+                  value={editForm.title} 
+                  onChange={handleInputChange} 
+                  placeholder="Client Name"
                 />
-                <div>
-                  <h3 className="text-lg font-medium">{event.title}</h3>
-                  <p className="text-sm text-muted-foreground">{event.service}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="barber_id" className="text-sm font-medium">Barber</label>
+                <Select 
+                  value={editForm.barber_id} 
+                  onValueChange={(value) => handleSelectChange('barber_id', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Barber" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {barbers.map((barber) => (
+                      <SelectItem key={barber.id} value={barber.id}>
+                        {barber.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="service_id" className="text-sm font-medium">Service</label>
+                <Select 
+                  value={editForm.service_id} 
+                  onValueChange={(value) => handleSelectChange('service_id', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name} (${service.price} - {service.duration} min)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="booking_date" className="text-sm font-medium">Date</label>
+                  <Input 
+                    id="booking_date" 
+                    name="booking_date" 
+                    type="date" 
+                    value={editForm.booking_date} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="booking_time" className="text-sm font-medium">Time</label>
+                  <Input 
+                    id="booking_time" 
+                    name="booking_time" 
+                    type="time" 
+                    value={editForm.booking_time} 
+                    onChange={handleInputChange}
+                  />
                 </div>
               </div>
               
-              <div className="grid gap-2">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{format(event.start, 'EEEE, MMMM d, yyyy')}</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {format(event.start, 'h:mm a')} - {format(event.end, 'h:mm a')}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {event.isGuest ? (
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span className="text-sm">
-                    {event.isGuest ? 'Guest Booking' : 'Client Booking'}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-muted-foreground" />
-                  <Badge variant="outline">{event.status}</Badge>
-                </div>
+              <div className="space-y-2">
+                <label htmlFor="notes" className="text-sm font-medium">Notes</label>
+                <Textarea 
+                  id="notes" 
+                  name="notes" 
+                  value={editForm.notes} 
+                  onChange={handleInputChange} 
+                  placeholder="Add booking notes..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditing(false)}
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSave}
+                disabled={isLoading}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <div className="space-y-4 py-4">
+            <div className="flex items-start gap-4">
+              <div 
+                className="w-4 h-4 rounded-full mt-1 flex-shrink-0" 
+                style={{ backgroundColor: barberColor }}
+              />
+              <div>
+                <h3 className="text-lg font-medium">{event.title}</h3>
+                <p className="text-sm text-muted-foreground">{event.service}</p>
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{format(event.start, 'EEEE, MMMM d, yyyy')}</span>
               </div>
               
-              {event.notes && (
-                <div className="pt-2">
-                  <div className="flex items-start gap-2">
-                    <ClipboardList className="h-4 w-4 text-muted-foreground mt-1" />
-                    <div>
-                      <span className="text-sm font-medium">Notes:</span>
-                      <p className="text-sm mt-1 whitespace-pre-wrap">{event.notes}</p>
-                    </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">
+                  {format(event.start, 'h:mm a')} - {format(event.end, 'h:mm a')}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {event.isGuest ? (
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <User className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-sm">
+                  {event.isGuest ? 'Guest Booking' : 'Client Booking'}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-muted-foreground" />
+                <Badge variant="outline">{event.status}</Badge>
+              </div>
+            </div>
+            
+            {event.notes && (
+              <div className="pt-2">
+                <div className="flex items-start gap-2">
+                  <ClipboardList className="h-4 w-4 text-muted-foreground mt-1" />
+                  <div>
+                    <span className="text-sm font-medium">Notes:</span>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{event.notes}</p>
                   </div>
                 </div>
-              )}
-              
-              <DialogFooter className="gap-2 sm:gap-0">
+              </div>
+            )}
+            
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+              {onUpdateBooking && (
                 <Button 
-                  variant="destructive" 
-                  onClick={() => setIsDeleteDialogOpen(true)}
+                  variant="default" 
+                  onClick={() => setIsEditing(true)}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Booking
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Booking
                 </Button>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={onClose}>
-                    Close
-                  </Button>
-                  {onUpdateBooking && (
-                    <Button 
-                      variant="default" 
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Booking
-                    </Button>
-                  )}
-                </div>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContentComponent>
-      </DialogComponent>
-
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this booking. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleDelete();
-              }}
-              disabled={isLoading}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isLoading ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+              )}
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContentComponent>
+    </DialogComponent>
   );
 };

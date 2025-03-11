@@ -2,21 +2,19 @@
 import React from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
-import { CalendarViewComponent } from '@/components/admin/calendar/CalendarViewComponent';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
+import { CalendarViewComponent } from '@/components/admin/calendar/CalendarViewComponent';
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
-import { CalendarSettingsProvider } from '@/context/CalendarSettingsContext';
-import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { BarberFilter } from '@/components/admin/calendar/BarberFilter';
+import { CalendarSettingsProvider } from '@/context/CalendarSettingsContext';
 
-const CalendarView: React.FC = () => {
+const CalendarView = () => {
   const {
     calendarEvents,
     isLoading,
     handleEventDrop,
     handleEventClick,
     updateBooking,
-    deleteBooking,
     selectedEvent,
     setSelectedEvent,
     isDialogOpen,
@@ -24,21 +22,24 @@ const CalendarView: React.FC = () => {
     selectedBarberId,
     setSelectedBarberId
   } = useCalendarBookings();
-  
+
   return (
     <Layout>
       <AdminLayout>
         <CalendarSettingsProvider>
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h1 className="text-3xl font-bold">Calendar</h1>
-              <BarberFilter 
-                selectedBarberId={selectedBarberId}
-                onChange={setSelectedBarberId} 
-              />
-            </div>
+            <h1 className="text-3xl font-bold">Calendar View</h1>
             
-            <CalendarViewComponent 
+            <p className="text-muted-foreground">
+              View and manage appointments in calendar format. Drag and drop to reschedule.
+            </p>
+            
+            <BarberFilter 
+              selectedBarberId={selectedBarberId} 
+              onSelectBarber={setSelectedBarberId} 
+            />
+            
+            <CalendarViewComponent
               events={calendarEvents}
               isLoading={isLoading}
               onEventDrop={handleEventDrop}
@@ -53,7 +54,6 @@ const CalendarView: React.FC = () => {
                 setSelectedEvent(null);
               }}
               onUpdateBooking={updateBooking}
-              onDeleteBooking={deleteBooking}
             />
           </div>
         </CalendarSettingsProvider>

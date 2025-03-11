@@ -7,10 +7,10 @@ import { User } from 'lucide-react';
 
 interface BarberFilterProps {
   selectedBarberId: string | null;
-  onChange: (barberId: string | null) => void;
+  onSelectBarber: (barberId: string | null) => void;
 }
 
-export const BarberFilter: React.FC<BarberFilterProps> = ({ selectedBarberId, onChange }) => {
+export const BarberFilter: React.FC<BarberFilterProps> = ({ selectedBarberId, onSelectBarber }) => {
   const { barbers, isLoading } = useBarbers();
 
   if (isLoading) {
@@ -22,7 +22,7 @@ export const BarberFilter: React.FC<BarberFilterProps> = ({ selectedBarberId, on
       <Button
         variant={selectedBarberId === null ? "default" : "outline"}
         className="flex items-center gap-2"
-        onClick={() => onChange(null)}
+        onClick={() => onSelectBarber(null)}
       >
         <User className="h-4 w-4" />
         All Barbers
@@ -33,7 +33,7 @@ export const BarberFilter: React.FC<BarberFilterProps> = ({ selectedBarberId, on
           key={barber.id}
           variant={selectedBarberId === barber.id ? "default" : "outline"}
           className="flex items-center gap-2"
-          onClick={() => onChange(barber.id)}
+          onClick={() => onSelectBarber(barber.id)}
         >
           <Avatar className="h-6 w-6">
             <AvatarImage src={barber.image_url || undefined} alt={barber.name} />
