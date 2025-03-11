@@ -340,4 +340,3 @@ export const formatNewBookingTime = (date: Date): string => {
 export const formatNewBookingDate = (date: Date): string => {
   return format(date, 'yyyy-MM-dd');
 };
-

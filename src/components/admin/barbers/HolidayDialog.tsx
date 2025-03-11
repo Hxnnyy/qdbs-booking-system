@@ -77,22 +77,35 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
   };
   
   const handleDeleteHoliday = async (holidayId: string) => {
+    if (!holidayId) {
+      toast.error('Invalid holiday ID');
+      return;
+    }
+    
     setDeleteInProgress(true);
     try {
+      console.log('Deleting holiday with ID:', holidayId);
+      
       const { error } = await supabase
         .from('bookings')
         .delete()
         .eq('id', holidayId);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Holiday deleted successfully from database');
       
       // Directly remove the holiday from the state to update UI immediately
       setHolidays(prevHolidays => prevHolidays.filter(holiday => holiday.id !== holidayId));
       
       toast.success('Holiday removed successfully');
+      
     } catch (err: any) {
       console.error('Error deleting holiday:', err);
-      toast.error('Failed to remove holiday');
+      toast.error('Failed to remove holiday: ' + (err.message || err));
     } finally {
       setDeleteInProgress(false);
     }
@@ -100,7 +113,7 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[650px]">
+      <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>Manage Holidays</DialogTitle>
           <DialogDescription>
