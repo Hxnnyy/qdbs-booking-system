@@ -23,38 +23,44 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     return addDays(weekStart, index);
   });
 
-  const organizeOverlappingEvents = (events: CalendarEvent[]) => {
+  const processOverlappingEvents = (events: CalendarEvent[]) => {
     const sortedEvents = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
-    const slots: { [key: string]: CalendarEvent[][] } = {};
-
+    
+    const overlappingGroups: CalendarEvent[][] = [];
+    
     sortedEvents.forEach(event => {
-      const eventHour = event.start.getHours();
-      const eventMinute = event.start.getMinutes();
-      const timeKey = `${eventHour}:${eventMinute}`;
-
-      if (!slots[timeKey]) {
-        slots[timeKey] = [[]];
-      }
-
-      let placed = false;
-      for (let slotGroup of slots[timeKey]) {
-        if (!slotGroup.some(existingEvent => {
-          const eventEnd = event.end.getTime();
-          const existingEnd = existingEvent.end.getTime();
-          return event.start.getTime() < existingEnd && eventEnd > existingEvent.start.getTime();
-        })) {
-          slotGroup.push(event);
-          placed = true;
-          break;
-        }
-      }
-
-      if (!placed) {
-        slots[timeKey].push([event]);
+      const overlappingGroupIndex = overlappingGroups.findIndex(group => 
+        group.some(existingEvent => {
+          return (
+            (event.start < existingEvent.end && event.end > existingEvent.start) || 
+            (existingEvent.start < event.end && existingEvent.end > event.start)
+          );
+        })
+      );
+      
+      if (overlappingGroupIndex >= 0) {
+        overlappingGroups[overlappingGroupIndex].push(event);
+      } else {
+        overlappingGroups.push([event]);
       }
     });
-
-    return slots;
+    
+    const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
+    
+    overlappingGroups.forEach(group => {
+      const sortedGroup = group.sort((a, b) => a.start.getTime() - b.start.getTime());
+      const totalSlots = sortedGroup.length;
+      
+      sortedGroup.forEach((event, index) => {
+        results.push({
+          event,
+          slotIndex: index,
+          totalSlots
+        });
+      });
+    });
+    
+    return results;
   };
 
   const handleDragStart = (event: CalendarEvent) => {
@@ -132,97 +138,96 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               );
             })}
           </div>
-          {weekDays.map((day, dayIndex) => (
-            <div 
-              key={day.toISOString()}
-              className="flex-1 relative border-r border-border min-w-[120px] h-full"
-              onDragOver={(e) => handleDragOver(e, dayIndex)}
-              onDrop={(e) => handleDragEnd(e, day)}
-              onDragLeave={() => setDragPreview(null)}
-            >
-              {Array.from({ length: totalHours + 1 }).map((_, index) => (
-                <div 
-                  key={`grid-${index}`}
-                  className="absolute w-full h-[60px] border-b border-border"
-                  style={{ top: `${index * 60}px` }}
-                >
-                  {index < totalHours && (
-                    <>
-                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
-                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
-                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
-                    </>
-                  )}
-                </div>
-              ))}
-              {isToday(day) && (() => {
-                const now = new Date();
-                const hours = now.getHours();
-                const minutes = now.getMinutes();
-                
-                if (hours < startHour || hours >= endHour) return null;
-                
-                const position = (hours - startHour) * 60 + minutes;
-                
-                return (
+          {weekDays.map((day, dayIndex) => {
+            const dayEvents = filterEventsByDate(events, day);
+            const processedEvents = processOverlappingEvents(dayEvents);
+            
+            return (
+              <div 
+                key={day.toISOString()}
+                className="flex-1 relative border-r border-border min-w-[120px] h-full"
+                onDragOver={(e) => handleDragOver(e, dayIndex)}
+                onDrop={(e) => handleDragEnd(e, day)}
+                onDragLeave={() => setDragPreview(null)}
+              >
+                {Array.from({ length: totalHours + 1 }).map((_, index) => (
                   <div 
-                    className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
-                    style={{ top: `${position}px` }}
-                  />
-                );
-              })()}
-              {filterEventsByDate(events, day).map((event) => {
-                const eventHour = event.start.getHours();
-                const eventMinute = event.start.getMinutes();
-                
-                if (eventHour < startHour || eventHour >= endHour) return null;
-                
-                const top = (eventHour - startHour) * 60 + eventMinute;
-                const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-                const height = Math.max(durationMinutes, 15);
-
-                const overlappingEvents = filterEventsByDate(events, day).filter(e => {
-                  const eventEnd = event.end.getTime();
-                  const eEnd = e.end.getTime();
-                  return event.start.getTime() < eEnd && eventEnd > e.start.getTime();
-                });
-
-                const slotIndex = overlappingEvents.indexOf(event);
-                const totalSlots = overlappingEvents.length;
-
-                return (
-                  <div 
-                    key={event.id}
-                    draggable 
-                    onDragStart={() => handleDragStart(event)}
-                    className="absolute w-full px-1"
-                    style={{ 
-                      top: `${top}px`, 
-                      height: `${height}px`
-                    }}
+                    key={`grid-${index}`}
+                    className="absolute w-full h-[60px] border-b border-border"
+                    style={{ top: `${index * 60}px` }}
                   >
-                    <CalendarEventComponent 
-                      event={event} 
-                      onEventClick={onEventClick}
-                      isDragging={draggingEvent?.id === event.id}
-                      slotIndex={slotIndex}
-                      totalSlots={totalSlots}
+                    {index < totalHours && (
+                      <>
+                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
+                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
+                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
+                      </>
+                    )}
+                  </div>
+                ))}
+                
+                {isToday(day) && (() => {
+                  const now = new Date();
+                  const hours = now.getHours();
+                  const minutes = now.getMinutes();
+                  
+                  if (hours < startHour || hours >= endHour) return null;
+                  
+                  const position = (hours - startHour) * 60 + minutes;
+                  
+                  return (
+                    <div 
+                      className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
+                      style={{ top: `${position}px` }}
                     />
+                  );
+                })()}
+                
+                {processedEvents.map(({ event, slotIndex, totalSlots }) => {
+                  const eventHour = event.start.getHours();
+                  const eventMinute = event.start.getMinutes();
+                  
+                  if (eventHour < startHour || eventHour >= endHour) return null;
+                  
+                  const top = (eventHour - startHour) * 60 + eventMinute;
+                  const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+                  const height = Math.max(durationMinutes, 15);
+                  
+                  return (
+                    <div 
+                      key={event.id}
+                      draggable 
+                      onDragStart={() => handleDragStart(event)}
+                      className="absolute w-full px-1"
+                      style={{ 
+                        top: `${top}px`, 
+                        height: `${height}px`
+                      }}
+                    >
+                      <CalendarEventComponent 
+                        event={event} 
+                        onEventClick={onEventClick}
+                        isDragging={draggingEvent?.id === event.id}
+                        slotIndex={slotIndex}
+                        totalSlots={totalSlots}
+                      />
+                    </div>
+                  );
+                })}
+                
+                {dragPreview && dragPreview.columnIndex === dayIndex && (
+                  <div 
+                    className="absolute left-0 right-0 pointer-events-none"
+                    style={{ top: `${dragPreview.top}px` }}
+                  >
+                    <div className="bg-primary/20 border border-primary rounded px-2 py-1 text-xs inline-block">
+                      Drop to schedule at {dragPreview.time}
+                    </div>
                   </div>
-                );
-              })}
-              {dragPreview && dragPreview.columnIndex === dayIndex && (
-                <div 
-                  className="absolute left-0 right-0 pointer-events-none"
-                  style={{ top: `${dragPreview.top}px` }}
-                >
-                  <div className="bg-primary/20 border border-primary rounded px-2 py-1 text-xs inline-block">
-                    Drop to schedule at {dragPreview.time}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

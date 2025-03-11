@@ -11,8 +11,8 @@ interface EventComponentProps {
   event: CalendarEvent;
   onEventClick: (event: CalendarEvent) => void;
   isDragging?: boolean;
-  slotIndex?: number; // New prop for stacking events
-  totalSlots?: number; // New prop for calculating width
+  slotIndex?: number; // Position in the stack
+  totalSlots?: number; // Total number of events at this time
 }
 
 const getBarberColor = (barberId: string, barberName: string): string => {
@@ -44,9 +44,9 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   // Clean up title by removing "Guest: " prefix if present
   const cleanTitle = event.title.replace('Guest: ', '');
 
-  // Calculate position for stacked events
-  const leftOffset = slotIndex * 8; // 8px offset for each stacked event
-  const width = totalSlots > 1 ? `calc((100% - 8px) / ${totalSlots})` : 'calc(100% - 8px)';
+  // Calculate width and position for overlapping events
+  const width = totalSlots > 1 ? `calc((100% - ${(totalSlots - 1) * 4}px) / ${totalSlots})` : 'calc(100% - 8px)';
+  const leftOffset = slotIndex * (100 / totalSlots) + 4; // 4px left padding
   
   return (
     <TooltipProvider>
@@ -62,7 +62,7 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
               borderLeft: `3px solid ${barberColor}`,
               borderRight: `3px solid ${barberColor}`,
               height: '100%',
-              left: `${4 + leftOffset}px`,
+              left: `${leftOffset}%`,
               width,
               zIndex: isHovered ? 10 : 5,
             }}

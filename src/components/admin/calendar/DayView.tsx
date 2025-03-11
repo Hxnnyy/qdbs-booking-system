@@ -20,43 +20,48 @@ export const DayView: React.FC<CalendarViewProps> = ({
   
   const calendarHeight = totalHours * 60;
 
-  const organizeOverlappingEvents = (events: CalendarEvent[]) => {
+  const processOverlappingEvents = (events: CalendarEvent[]) => {
     const sortedEvents = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
-    const slots: { [key: string]: CalendarEvent[][] } = {};
-
+    
+    const overlappingGroups: CalendarEvent[][] = [];
+    
     sortedEvents.forEach(event => {
-      const eventHour = event.start.getHours();
-      const eventMinute = event.start.getMinutes();
-      const timeKey = `${eventHour}:${eventMinute}`;
-
-      if (!slots[timeKey]) {
-        slots[timeKey] = [[]];
-      }
-
-      let placed = false;
-      for (let slotGroup of slots[timeKey]) {
-        if (!slotGroup.some(existingEvent => {
-          const eventEnd = event.end.getTime();
-          const existingEnd = existingEvent.end.getTime();
-          return event.start.getTime() < existingEnd && eventEnd > existingEvent.start.getTime();
-        })) {
-          slotGroup.push(event);
-          placed = true;
-          break;
-        }
-      }
-
-      if (!placed) {
-        slots[timeKey].push([event]);
+      const overlappingGroupIndex = overlappingGroups.findIndex(group => 
+        group.some(existingEvent => {
+          return (
+            (event.start < existingEvent.end && event.end > existingEvent.start) || 
+            (existingEvent.start < event.end && existingEvent.end > event.start)
+          );
+        })
+      );
+      
+      if (overlappingGroupIndex >= 0) {
+        overlappingGroups[overlappingGroupIndex].push(event);
+      } else {
+        overlappingGroups.push([event]);
       }
     });
-
-    return slots;
+    
+    const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
+    
+    overlappingGroups.forEach(group => {
+      const sortedGroup = group.sort((a, b) => a.start.getTime() - b.start.getTime());
+      const totalSlots = sortedGroup.length;
+      
+      sortedGroup.forEach((event, index) => {
+        results.push({
+          event,
+          slotIndex: index,
+          totalSlots
+        });
+      });
+    });
+    
+    return results;
   };
 
   useEffect(() => {
     const filtered = filterEventsByDate(events, date);
-    const organized = organizeOverlappingEvents(filtered);
     setDisplayEvents(filtered);
   }, [events, date]);
 
@@ -99,6 +104,8 @@ export const DayView: React.FC<CalendarViewProps> = ({
     setDraggingEvent(null);
     setDragPreview(null);
   };
+
+  const processedEvents = processOverlappingEvents(displayEvents);
 
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden">
@@ -166,29 +173,15 @@ export const DayView: React.FC<CalendarViewProps> = ({
             );
           })()}
 
-          {displayEvents.map((event) => {
+          {processedEvents.map(({ event, slotIndex, totalSlots }) => {
             const eventHour = event.start.getHours();
             const eventMinute = event.start.getMinutes();
-            const timeKey = `${eventHour}:${eventMinute}`;
             
             if (eventHour < startHour || eventHour >= endHour) return null;
             
             const top = (eventHour - startHour) * 60 + eventMinute;
             const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
             const height = Math.max(durationMinutes, 15);
-
-            let slotIndex = 0;
-            let totalSlots = 1;
-            const overlappingEvents = displayEvents.filter(e => {
-              const eventEnd = event.end.getTime();
-              const eEnd = e.end.getTime();
-              return event.start.getTime() < eEnd && eventEnd > e.start.getTime();
-            });
-            
-            if (overlappingEvents.length > 1) {
-              slotIndex = overlappingEvents.indexOf(event);
-              totalSlots = overlappingEvents.length;
-            }
             
             return (
               <div 
