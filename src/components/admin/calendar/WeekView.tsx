@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
-import { filterEventsByDateRange } from '@/utils/calendarUtils';
+import { filterEventsByWeek } from '@/utils/calendarUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
@@ -106,9 +106,9 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   };
 
   useEffect(() => {
-    const filtered = filterEventsByDateRange(events, weekStart, addDays(weekStart, 6));
+    const filtered = filterEventsByWeek(events, date);
     setDisplayEvents(filtered);
-  }, [events, weekStart]);
+  }, [events, date]);
 
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
