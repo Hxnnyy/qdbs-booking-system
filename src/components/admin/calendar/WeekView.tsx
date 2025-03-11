@@ -247,10 +247,10 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 
                 {dragPreview && dragPreview.columnIndex === dayIndex && (
                   <div 
-                    className="absolute left-0 right-0 pointer-events-none"
+                    className="absolute left-0 right-0 pointer-events-none z-50"
                     style={{ top: `${dragPreview.top}px` }}
                   >
-                    <div className="bg-primary/20 border border-primary rounded px-2 py-1 text-xs inline-block">
+                    <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
                       Drop to schedule at {dragPreview.time}
                     </div>
                   </div>
