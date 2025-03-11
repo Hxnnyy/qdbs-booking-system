@@ -25,13 +25,20 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   
   // Use barberColor from the event if available, otherwise fall back to generated color
   const barberColor = event.barberColor || getBarberColor(event.barberId);
-  const eventColor = isLunchBreak 
+  
+  // For lunch breaks, use the barber's color with 50% transparency
+  const backgroundColor = isLunchBreak 
     ? `rgba(${getBarberColor(event.barberId, true)}, 0.5)` // 50% transparency for lunch breaks
     : barberColor;
   
+  // For lunch breaks, use the solid barber color for the border
+  const borderColor = isLunchBreak 
+    ? barberColor 
+    : barberColor;
+  
   const styles = {
-    backgroundColor: eventColor,
-    borderLeft: `4px solid ${isLunchBreak ? barberColor : eventColor}`,
+    backgroundColor: backgroundColor,
+    borderLeft: `4px solid ${borderColor}`,
     color: isLunchBreak ? '#fff' : '#000', // White text for lunch breaks
     opacity: isDragging ? 0.5 : 1,
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
