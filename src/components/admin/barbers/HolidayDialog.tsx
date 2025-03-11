@@ -86,25 +86,34 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
     try {
       console.log('Deleting holiday with ID:', holidayId);
       
-      // Use rpc instead of from().delete() to avoid potential RLS issues
-      const { data, error } = await supabase
+      // First, perform the delete operation without expecting returned data
+      const { error } = await supabase
         .from('bookings')
         .delete()
         .eq('id', holidayId)
-        .eq('status', 'holiday') // Ensure we're only deleting holidays
-        .select();
+        .eq('status', 'holiday'); // Ensure we're only deleting holidays
         
       if (error) {
         console.error('Supabase delete error:', error);
         throw error;
       }
       
-      console.log('Holiday deleted successfully from database');
+      console.log('Holiday deletion command sent successfully');
       
-      // Verify deletion was successful
-      if (!data || data.length === 0) {
-        console.error('Holiday not found or not deleted:', holidayId);
-        throw new Error('Holiday could not be deleted');
+      // Now verify the deletion by checking if the record still exists
+      const { data: checkData, error: checkError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('id', holidayId)
+        .single();
+      
+      if (checkError && checkError.code === 'PGRST116') {
+        // Error code PGRST116 means "Results contain 0 rows" - this is good!
+        console.log('Verified holiday was deleted successfully');
+      } else if (checkData) {
+        // If we still find the record, the deletion failed
+        console.error('Holiday still exists after deletion attempt');
+        throw new Error('Failed to delete holiday');
       }
       
       // Update UI
