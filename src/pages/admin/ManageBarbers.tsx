@@ -600,6 +600,7 @@ const ManageBarbers = () => {
             onSave={(startDate, endDate) => 
               handleHolidaySet(currentBarber.id, startDate, endDate)
             }
+            barberId={currentBarber.id}
           />
         )}
       </AdminLayout>

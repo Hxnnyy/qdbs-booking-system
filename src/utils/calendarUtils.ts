@@ -1,4 +1,3 @@
-
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -157,12 +156,11 @@ export const getBarberColor = async (barberId: string, returnRGB: boolean = fals
   );
   const hue = Math.abs(hash) % 360;
   
-  
   if (returnRGB) {
     // Convert HSL to RGB for better control of transparency
     const h = hue / 360;
-    const s = 0.70; // Fix: Use a number instead of string
-    const l = 0.60; // Fix: Use a number instead of string
+    const s = 0.70; // Fixed number value 
+    const l = 0.60; // Fixed number value
     
     let r, g, b;
     
