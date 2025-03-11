@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -81,6 +82,9 @@ export const useCalendarBookings = () => {
     }
   }, []);
 
+  // Expose fetchData as fetchBookings for external use
+  const fetchBookings = fetchData;
+
   useEffect(() => {
     fetchData();
     
@@ -149,16 +153,33 @@ export const useCalendarBookings = () => {
 
   const deleteHoliday = async (bookingId: string) => {
     try {
-      const { error } = await supabase
+      console.log(`Attempting to delete holiday with ID: ${bookingId}`);
+      
+      // Perform the deletion
+      const { data, error } = await supabase
         .from('bookings')
         .delete()
         .eq('id', bookingId)
-        .eq('status', 'holiday');
+        .eq('status', 'holiday')
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase deletion error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      if (!data || data.length === 0) {
+        console.warn('No holiday was deleted, ID may not exist:', bookingId);
+      } else {
+        console.log('Successfully deleted holiday:', data);
+      }
 
+      // Update local state after successful deletion
       setBookings(prev => prev.filter(booking => booking.id !== bookingId));
       setCalendarEvents(prev => prev.filter(event => event.id !== bookingId));
+      
+      // Trigger a refresh to ensure data consistency
+      setLastUpdate(Date.now());
       
       return true;
     } catch (err: any) {
@@ -255,7 +276,7 @@ export const useCalendarBookings = () => {
     calendarEvents: filteredEvents,
     isLoading,
     error,
-    fetchBookings: fetchData,
+    fetchBookings,
     handleEventDrop,
     handleEventClick,
     updateBooking,

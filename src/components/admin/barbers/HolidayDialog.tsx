@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
@@ -31,7 +32,7 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
   const [holidays, setHolidays] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
-  const { deleteHoliday } = useCalendarBookings();
+  const { deleteHoliday, fetchBookings } = useCalendarBookings();
 
   useEffect(() => {
     if (!isOpen) {
@@ -81,8 +82,21 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
     
     setDeleteInProgress(true);
     try {
-      await deleteHoliday(holidayId);
+      // Direct database deletion approach
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', holidayId)
+        .eq('status', 'holiday');
+      
+      if (error) throw error;
+      
+      // Update local state after confirmed deletion
       setHolidays(prevHolidays => prevHolidays.filter(holiday => holiday.id !== holidayId));
+      
+      // Refresh the calendar events to ensure UI sync
+      await fetchBookings();
+      
       toast.success('Holiday removed successfully');
     } catch (err: any) {
       console.error('Error deleting holiday:', err);
