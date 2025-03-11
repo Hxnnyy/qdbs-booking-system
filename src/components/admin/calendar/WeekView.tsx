@@ -170,7 +170,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
-      <div className="grid grid-cols-7 border-b border-border">
+      {/* Header grid - now with 8 columns (time column + 7 days) */}
+      <div className="grid grid-cols-8 border-b border-border">
+        {/* Empty cell for time column */}
+        <div className="border-r border-border h-12"></div>
+        
+        {/* Day headers */}
         {weekDays.map((day, index) => {
           // Get holiday events for this day
           const dayDate = addDays(weekStart, index);
@@ -195,7 +200,26 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         })}
       </div>
       
-      <div className="grid grid-cols-7 flex-1">
+      {/* Main grid - now with 8 columns */}
+      <div className="grid grid-cols-8 flex-1">
+        {/* Time column */}
+        <div className="relative border-r border-border">
+          <div className="absolute top-0 left-0 bottom-0 w-full z-10 bg-background">
+            {Array.from({ length: totalHours + 1 }).map((_, index) => {
+              const hour = startHour + index;
+              return (
+                <div 
+                  key={`time-${hour}`}
+                  className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
+                >
+                  {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Day columns */}
         {weekDays.map((day, dayIndex) => (
           <div 
             key={dayIndex}
@@ -205,23 +229,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
             onDrop={(e) => handleDragEnd(e, dayIndex)}
             onDragLeave={() => setDragPreview(null)}
           >
-            {dayIndex === 0 && (
-              <div className="absolute top-0 left-0 bottom-0 w-16 z-10 border-r border-border bg-background">
-                {Array.from({ length: totalHours + 1 }).map((_, index) => {
-                  const hour = startHour + index;
-                  return (
-                    <div 
-                      key={`time-${hour}`}
-                      className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
-                    >
-                      {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            
-            <div className={`absolute top-0 ${dayIndex === 0 ? 'left-16' : 'left-0'} right-0 bottom-0`}>
+            <div className="absolute top-0 left-0 right-0 bottom-0">
               {Array.from({ length: totalHours + 1 }).map((_, index) => (
                 <div 
                   key={`grid-${index}`}
@@ -239,7 +247,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               ))}
               
               {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-                // Fix: Calculate the correct day to display events properly
+                // Calculate the correct day to display events properly
                 const eventDate = event.start;
                 const eventDay = weekDays.findIndex(day => 
                   day.getDate() === eventDate.getDate() &&
@@ -285,12 +293,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         ))}
       </div>
       
+      {/* Drag preview */}
       {dragPreview && dragPreview.columnIndex !== undefined && (
         <div 
           className="absolute left-0 top-0 pointer-events-none z-50 w-full h-full"
           style={{
-            gridColumnStart: dragPreview.columnIndex + 1,
-            gridColumnEnd: dragPreview.columnIndex + 2,
+            gridColumnStart: dragPreview.columnIndex + 2, // +2 because we now have a time column
+            gridColumnEnd: dragPreview.columnIndex + 3,
           }}
         >
           <div 

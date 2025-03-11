@@ -167,120 +167,134 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
-      <div className="flex flex-col">
-        <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center ${
-          isToday(date) ? 'bg-primary/10' : ''
-        }`}>
-          <div className="text-sm">{format(date, 'EEEE')}</div>
-          <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
-        </div>
+      {/* Header for the day */}
+      <div className="grid grid-cols-2 border-b border-border">
+        {/* Empty cell for time column */}
+        <div className="border-r border-border h-12"></div>
         
-        {/* Holiday Indicator - Now explicitly rendered with holidayEvents */}
-        <HolidayIndicator holidayEvents={holidayEvents} />
+        {/* Day header */}
+        <div className={`flex flex-col ${isToday(date) ? 'bg-primary/10' : ''}`}>
+          <div className="h-12 flex flex-col items-center justify-center">
+            <div className="text-sm">{format(date, 'EEEE')}</div>
+            <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
+          </div>
+          
+          {/* Holiday Indicator */}
+          <HolidayIndicator holidayEvents={holidayEvents} />
+        </div>
       </div>
       
-      <div 
-        className="flex-1 relative"
-        style={{ height: `${calendarHeight}px` }}
-        onDragOver={handleDragOver}
-        onDrop={handleDragEnd}
-        onDragLeave={() => setDragPreview(null)}
-      >
-        <div className="absolute top-0 left-0 bottom-0 w-16 z-10 border-r border-border bg-background">
-          {Array.from({ length: totalHours + 1 }).map((_, index) => {
-            const hour = startHour + index;
-            return (
-              <div 
-                key={`time-${hour}`}
-                className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
-              >
-                {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
-              </div>
-            );
-          })}
-        </div>
-        
-        <div className="absolute top-0 left-16 right-0 bottom-0">
-          {Array.from({ length: totalHours + 1 }).map((_, index) => (
-            <div 
-              key={`grid-${index}`}
-              className="absolute w-full h-[60px] border-b border-border"
-              style={{ top: `${index * 60}px` }}
-            >
-              {index < totalHours && (
-                <>
-                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
-                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
-                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
-                </>
-              )}
-            </div>
-          ))}
-          
-          {isToday(date) && (() => {
-            const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            
-            if (hours < startHour || hours >= endHour) return null;
-            
-            const position = (hours - startHour) * 60 + minutes;
-            
-            return (
-              <div 
-                className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
-                style={{ top: `${position}px` }}
-              >
-                <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
-              </div>
-            );
-          })()}
-
-          {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-            const eventHour = event.start.getHours();
-            const eventMinute = event.start.getMinutes();
-            
-            if (eventHour < startHour || eventHour >= endHour) return null;
-            
-            const top = (eventHour - startHour) * 60 + eventMinute;
-            const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-            const height = Math.max(durationMinutes, 15);
-            
-            return (
-              <div 
-                key={event.id}
-                draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
-                onDragStart={() => handleDragStart(event)}
-                className="absolute w-full"
-                style={{ 
-                  top: `${top}px`, 
-                  height: `${height}px`,
-                  padding: 0 // Remove any padding that might be creating gaps
-                }}
-              >
-                <CalendarEventComponent 
-                  event={event} 
-                  onEventClick={onEventClick}
-                  isDragging={draggingEvent?.id === event.id}
-                  slotIndex={slotIndex}
-                  totalSlots={totalSlots}
-                />
-              </div>
-            );
-          })}
-        </div>
-        
-        {dragPreview && (
-          <div 
-            className="absolute left-16 right-0 pointer-events-none z-50"
-            style={{ top: `${dragPreview.top}px` }}
-          >
-            <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
-              Drop to schedule at {dragPreview.time}
-            </div>
+      {/* Main grid with time column and day column */}
+      <div className="grid grid-cols-2 flex-1">
+        {/* Time column */}
+        <div className="relative border-r border-border">
+          <div className="absolute top-0 left-0 bottom-0 w-full z-10 bg-background">
+            {Array.from({ length: totalHours + 1 }).map((_, index) => {
+              const hour = startHour + index;
+              return (
+                <div 
+                  key={`time-${hour}`}
+                  className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
+                >
+                  {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
+        
+        {/* Day column */}
+        <div 
+          className="relative"
+          style={{ height: `${calendarHeight}px` }}
+          onDragOver={handleDragOver}
+          onDrop={handleDragEnd}
+          onDragLeave={() => setDragPreview(null)}
+        >
+          <div className="absolute top-0 left-0 right-0 bottom-0">
+            {Array.from({ length: totalHours + 1 }).map((_, index) => (
+              <div 
+                key={`grid-${index}`}
+                className="absolute w-full h-[60px] border-b border-border"
+                style={{ top: `${index * 60}px` }}
+              >
+                {index < totalHours && (
+                  <>
+                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
+                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
+                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
+                  </>
+                )}
+              </div>
+            ))}
+            
+            {isToday(date) && (() => {
+              const now = new Date();
+              const hours = now.getHours();
+              const minutes = now.getMinutes();
+              
+              if (hours < startHour || hours >= endHour) return null;
+              
+              const position = (hours - startHour) * 60 + minutes;
+              
+              return (
+                <div 
+                  className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
+                  style={{ top: `${position}px` }}
+                >
+                  <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
+                </div>
+              );
+            })()}
+
+            {processedEvents.map(({ event, slotIndex, totalSlots }) => {
+              const eventHour = event.start.getHours();
+              const eventMinute = event.start.getMinutes();
+              
+              if (eventHour < startHour || eventHour >= endHour) return null;
+              
+              const top = (eventHour - startHour) * 60 + eventMinute;
+              const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+              const height = Math.max(durationMinutes, 15);
+              
+              return (
+                <div 
+                  key={event.id}
+                  draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
+                  onDragStart={() => handleDragStart(event)}
+                  className="absolute w-full"
+                  style={{ 
+                    top: `${top}px`, 
+                    height: `${height}px`,
+                    padding: 0
+                  }}
+                >
+                  <CalendarEventComponent 
+                    event={event} 
+                    onEventClick={onEventClick}
+                    isDragging={draggingEvent?.id === event.id}
+                    slotIndex={slotIndex}
+                    totalSlots={totalSlots}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
+      
+      {/* Drag preview */}
+      {dragPreview && (
+        <div 
+          className="absolute pointer-events-none z-50 grid grid-cols-2"
+          style={{ top: `${dragPreview.top}px` }}
+        >
+          <div></div> {/* Empty cell for time column */}
+          <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
+            Drop to schedule at {dragPreview.time}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
