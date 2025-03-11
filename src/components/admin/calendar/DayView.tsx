@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -6,6 +7,10 @@ import { filterEventsByDate } from '@/utils/calendarUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { TimeMarkers } from './TimeMarkers';
+import { DayColumnGrid } from './DayColumnGrid';
+import { DragPreviewOverlay } from './DragPreviewOverlay';
+import { processOverlappingEvents } from '@/utils/eventOverlapUtils';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -19,95 +24,12 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const [dragPreview, setDragPreview] = useState<{ time: string, top: number } | null>(null);
   const totalHours = endHour - startHour;
-  
   const calendarHeight = totalHours * 60;
 
   // Check if there are any holiday events for this day
   const holidayEvents = displayEvents.filter(event => 
     event.status === 'holiday' && event.allDay === true
   );
-
-  const processOverlappingEvents = (events: CalendarEvent[]) => {
-    // First, separate lunch breaks from other events
-    const lunchBreaks = events.filter(event => event.status === 'lunch-break');
-    const otherEvents = events.filter(event => event.status !== 'lunch-break');
-    
-    // Process regular events (non-lunch-breaks)
-    const sortedEvents = [...otherEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
-    
-    const overlappingGroups: CalendarEvent[][] = [];
-    
-    sortedEvents.forEach(event => {
-      const overlappingGroupIndex = overlappingGroups.findIndex(group => 
-        group.some(existingEvent => {
-          return (
-            (event.start < existingEvent.end && event.end > existingEvent.start) || 
-            (existingEvent.start < event.end && existingEvent.end > event.start)
-          );
-        })
-      );
-      
-      if (overlappingGroupIndex >= 0) {
-        overlappingGroups[overlappingGroupIndex].push(event);
-      } else {
-        overlappingGroups.push([event]);
-      }
-    });
-    
-    const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
-    
-    overlappingGroups.forEach(group => {
-      const barberGroups: Record<string, CalendarEvent[]> = {};
-      
-      group.forEach(event => {
-        if (!barberGroups[event.barberId]) {
-          barberGroups[event.barberId] = [];
-        }
-        barberGroups[event.barberId].push(event);
-      });
-      
-      if (Object.keys(barberGroups).length > 1) {
-        let slotOffset = 0;
-        
-        Object.values(barberGroups).forEach(barberGroup => {
-          const sortedBarberGroup = barberGroup.sort((a, b) => a.start.getTime() - b.start.getTime());
-          const barberTotalSlots = group.length;
-          
-          sortedBarberGroup.forEach((event, index) => {
-            results.push({
-              event,
-              slotIndex: slotOffset + index,
-              totalSlots: barberTotalSlots
-            });
-          });
-          
-          slotOffset += barberGroup.length;
-        });
-      } else {
-        const sortedGroup = group.sort((a, b) => a.start.getTime() - b.start.getTime());
-        const totalSlots = sortedGroup.length;
-        
-        sortedGroup.forEach((event, index) => {
-          results.push({
-            event,
-            slotIndex: index,
-            totalSlots
-          });
-        });
-      }
-    });
-    
-    // Process lunch breaks separately - always give them full width regardless of any holiday
-    lunchBreaks.forEach(lunchEvent => {
-      results.push({
-        event: lunchEvent,
-        slotIndex: 0, 
-        totalSlots: 1  // Always use full width for lunch breaks
-      });
-    });
-    
-    return results;
-  };
 
   useEffect(() => {
     const filtered = filterEventsByDate(events, date);
@@ -203,56 +125,11 @@ export const DayView: React.FC<CalendarViewProps> = ({
         onDrop={handleDragEnd}
         onDragLeave={() => setDragPreview(null)}
       >
-        <div className="absolute top-0 left-0 bottom-0 w-16 z-10 border-r border-border bg-background">
-          {Array.from({ length: totalHours + 1 }).map((_, index) => {
-            const hour = startHour + index;
-            return (
-              <div 
-                key={`time-${hour}`}
-                className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
-              >
-                {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
-              </div>
-            );
-          })}
-        </div>
+        <TimeMarkers startHour={startHour} totalHours={totalHours} />
         
         <div className="absolute top-0 left-16 right-0 bottom-0">
-          {Array.from({ length: totalHours + 1 }).map((_, index) => (
-            <div 
-              key={`grid-${index}`}
-              className="absolute w-full h-[60px] border-b border-border"
-              style={{ top: `${index * 60}px` }}
-            >
-              {index < totalHours && (
-                <>
-                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
-                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
-                  <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
-                </>
-              )}
-            </div>
-          ))}
+          <DayColumnGrid totalHours={totalHours} />
           
-          {isToday(date) && (() => {
-            const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            
-            if (hours < startHour || hours >= endHour) return null;
-            
-            const position = (hours - startHour) * 60 + minutes;
-            
-            return (
-              <div 
-                className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
-                style={{ top: `${position}px` }}
-              >
-                <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
-              </div>
-            );
-          })()}
-
           {processedEvents.map(({ event, slotIndex, totalSlots }) => {
             const eventHour = event.start.getHours();
             const eventMinute = event.start.getMinutes();
@@ -272,7 +149,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
                 style={{ 
                   top: `${top}px`, 
                   height: `${height}px`,
-                  padding: 0 // Remove any padding that might be creating gaps
+                  padding: 0
                 }}
               >
                 <CalendarEventComponent 
@@ -288,14 +165,13 @@ export const DayView: React.FC<CalendarViewProps> = ({
         </div>
         
         {dragPreview && (
-          <div 
-            className="absolute left-16 right-0 pointer-events-none z-50"
-            style={{ top: `${dragPreview.top}px` }}
-          >
-            <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
-              Drop to schedule at {dragPreview.time}
-            </div>
-          </div>
+          <DragPreviewOverlay 
+            dragPreview={{ 
+              time: dragPreview.time, 
+              top: dragPreview.top,
+              columnIndex: 0 
+            }} 
+          />
         )}
       </div>
     </div>
