@@ -50,7 +50,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       barberColor: booking.barber?.color, // Add barber color to event
       service: booking.service?.name || 'Unknown',
       serviceId: booking.service_id,
-      status: booking.status as 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday',
+      status: booking.status as 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'no-show',
       isGuest: booking.guest_booking || false,
       notes: booking.notes || '',
       userId: booking.user_id,
@@ -68,7 +68,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       barberId: booking.barber_id,
       service: 'Unknown',
       serviceId: booking.service_id,
-      status: 'error' as 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday' | 'error',
+      status: 'error' as 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'no-show' | 'error',
       isGuest: false,
       notes: 'Error parsing booking data',
       userId: booking.user_id,
@@ -122,57 +122,6 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
       notes: 'Error parsing lunch break data',
       userId: '',
       resourceId: lunchBreak.barber_id,
-    };
-  }
-};
-
-// Create a holiday event for the calendar
-export const createHolidayEvent = (holiday: any, barber: { name: string, color?: string }): CalendarEvent => {
-  try {
-    const startDate = new Date(holiday.start_date);
-    const endDate = new Date(holiday.end_date);
-    
-    // Set time to 00:00:00 for the start date
-    startDate.setHours(0, 0, 0, 0);
-    
-    // Set time to 23:59:59 for the end date to cover the whole day
-    endDate.setHours(23, 59, 59, 999);
-    
-    return {
-      id: `holiday-${holiday.id}`,
-      title: `Holiday${holiday.reason ? `: ${holiday.reason}` : ''}`,
-      start: startDate,
-      end: endDate,
-      barber: barber.name || 'Unknown',
-      barberId: holiday.barber_id,
-      barberColor: barber.color,
-      service: 'Holiday',
-      serviceId: '',
-      status: 'holiday',
-      isGuest: false,
-      notes: holiday.reason || 'Barber Holiday',
-      userId: '',
-      resourceId: holiday.barber_id,
-      allDay: true
-    };
-  } catch (error) {
-    console.error('Error creating holiday event:', error, holiday);
-    // Return a fallback event to prevent crashes
-    return {
-      id: `holiday-error-${Date.now()}`,
-      title: 'Invalid Holiday',
-      start: new Date(),
-      end: addMinutes(new Date(), 30),
-      barber: 'Unknown',
-      barberId: holiday.barber_id,
-      service: 'Holiday',
-      serviceId: '',
-      status: 'holiday',
-      isGuest: false,
-      notes: 'Error parsing holiday data',
-      userId: '',
-      resourceId: holiday.barber_id,
-      allDay: true
     };
   }
 };

@@ -11,7 +11,7 @@ export interface CalendarEvent {
   barberColor?: string;
   service: string;
   serviceId: string;
-  status: 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday' | 'error';
+  status: 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'no-show' | 'error';
   isGuest: boolean;
   notes: string;
   userId: string;
