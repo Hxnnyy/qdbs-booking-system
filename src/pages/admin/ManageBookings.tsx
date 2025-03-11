@@ -137,6 +137,27 @@ const ManageBookings = () => {
     }
   };
   
+  // Delete booking
+  const deleteBooking = async (bookingId: string) => {
+    try {
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', bookingId);
+      
+      if (error) throw error;
+      
+      toast.success('Booking deleted successfully');
+      await fetchBookings();
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting booking:', err);
+      toast.error('Failed to delete booking');
+      return false;
+    }
+  };
+  
   // Open edit dialog (similar to calendar view)
   const openEditDialog = (booking: Booking) => {
     setSelectedBooking(booking);
@@ -231,6 +252,7 @@ const ManageBookings = () => {
             setSelectedBooking(null);
           }}
           onUpdateBooking={updateBooking}
+          onDeleteBooking={deleteBooking}
         />
       </AdminLayout>
     </Layout>

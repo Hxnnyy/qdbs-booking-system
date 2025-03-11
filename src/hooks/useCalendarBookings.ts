@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 import { bookingToCalendarEvent, formatNewBookingDate, formatNewBookingTime } from '@/utils/calendarUtils';
-import { createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
+import { createLunchBreakEvent, clearBarberColorCache } from '@/utils/calendarUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -96,19 +96,8 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      // Convert holidays to calendar events
-      const holidayEvents = (holidaysData || []).map(holiday => {
-        try {
-          return createHolidayEvent(holiday, holiday.barber);
-        } catch (err) {
-          console.error('Error converting holiday to event:', err, holiday);
-          return null;
-        }
-      }).filter(Boolean) as CalendarEvent[];
-      
       // Combine all event types
-      // Ensure lunch breaks come after holidays in the array so they're rendered on top
-      setCalendarEvents([...bookingEvents, ...holidayEvents, ...lunchEvents]);
+      setCalendarEvents([...bookingEvents, ...lunchEvents]);
     } catch (err: any) {
       console.error('Error fetching calendar data:', err);
       setError(err.message);
@@ -221,6 +210,35 @@ export const useCalendarBookings = () => {
     }
   };
 
+  // Delete booking
+  const deleteBooking = async (bookingId: string) => {
+    try {
+      setIsLoading(true);
+      
+      console.log(`Deleting booking ${bookingId}`);
+      
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', bookingId);
+      
+      if (error) throw error;
+      
+      // Refresh bookings to get updated data
+      await fetchData();
+      
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting booking:', err);
+      setError(err.message);
+      toast.error('Failed to delete booking');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle event drop (from drag and drop)
   const handleEventDrop = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
     // Don't allow moving lunch breaks
@@ -303,6 +321,7 @@ export const useCalendarBookings = () => {
     handleEventDrop,
     handleEventClick,
     updateBooking,
+    deleteBooking,
     selectedEvent,
     setSelectedEvent,
     isDialogOpen,
