@@ -117,6 +117,45 @@ export const useCalendarBookings = () => {
     }
   };
 
+  // Update booking details
+  const updateBooking = async (
+    bookingId: string, 
+    updates: { 
+      title?: string; 
+      barber_id?: string; 
+      service_id?: string; 
+      notes?: string;
+      booking_date?: string;
+      booking_time?: string;
+    }
+  ) => {
+    try {
+      setIsLoading(true);
+      
+      console.log(`Updating booking ${bookingId} with:`, updates);
+      
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('bookings')
+        .update(updates)
+        .eq('id', bookingId);
+      
+      if (error) throw error;
+      
+      // Refresh bookings to get updated data with joins
+      await fetchBookings();
+      
+      return true;
+    } catch (err: any) {
+      console.error('Error updating booking:', err);
+      setError(err.message);
+      toast.error('Failed to update booking');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle event drop (from drag and drop)
   const handleEventDrop = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
     updateBookingTime(event.id, newStart, newEnd);
@@ -163,6 +202,7 @@ export const useCalendarBookings = () => {
     fetchBookings,
     handleEventDrop,
     handleEventClick,
+    updateBooking,
     selectedEvent,
     setSelectedEvent,
     isDialogOpen,

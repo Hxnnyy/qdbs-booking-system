@@ -12,6 +12,7 @@ const CalendarView = () => {
     isLoading,
     handleEventDrop,
     handleEventClick,
+    updateBooking,
     selectedEvent,
     setSelectedEvent,
     isDialogOpen,
@@ -42,6 +43,7 @@ const CalendarView = () => {
               setIsDialogOpen(false);
               setSelectedEvent(null);
             }}
+            onUpdateBooking={updateBooking}
           />
         </div>
       </AdminLayout>
