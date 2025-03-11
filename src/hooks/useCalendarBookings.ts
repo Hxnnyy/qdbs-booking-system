@@ -16,17 +16,20 @@ export const useCalendarBookings = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<number>(Date.now());
 
+  // Filter events by selected barber
   const filteredEvents = selectedBarberId 
     ? calendarEvents.filter(event => event.barberId === selectedBarberId)
     : calendarEvents;
 
+  // Fetch all bookings and lunch breaks
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
+      // Fetch bookings
+      // @ts-ignore - Supabase types issue
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
@@ -34,15 +37,15 @@ export const useCalendarBookings = () => {
           barber:barber_id(name),
           service:service_id(name, price, duration)
         `)
-        .neq('status', 'holiday') // Filter out any remaining holidays
         .order('booking_date', { ascending: true })
         .order('booking_time', { ascending: true });
       
       if (bookingsError) throw bookingsError;
       
-      console.log(`Fetched ${bookingsData?.length || 0} bookings`);
       setBookings(bookingsData || []);
       
+      // Fetch lunch breaks
+      // @ts-ignore - Supabase types issue
       const { data: lunchData, error: lunchError } = await supabase
         .from('barber_lunch_breaks')
         .select(`
@@ -55,6 +58,7 @@ export const useCalendarBookings = () => {
       
       setLunchBreaks(lunchData || []);
       
+      // Convert bookings to calendar events
       const bookingEvents = (bookingsData || []).map(booking => {
         try {
           return bookingToCalendarEvent(booking);
@@ -64,6 +68,7 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
+      // Convert lunch breaks to calendar events
       const lunchEvents = (lunchData || []).map(lunchBreak => {
         try {
           return createLunchBreakEvent(lunchBreak);
@@ -73,6 +78,7 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
+      // Combine both event types
       setCalendarEvents([...bookingEvents, ...lunchEvents]);
     } catch (err: any) {
       console.error('Error fetching calendar data:', err);
@@ -83,25 +89,17 @@ export const useCalendarBookings = () => {
     }
   }, []);
 
-  // Expose fetchData as fetchBookings for external use
-  const fetchBookings = fetchData;
-
+  // Initial fetch
   useEffect(() => {
     fetchData();
-    
-    const intervalId = setInterval(() => {
-      fetchData();
-    }, 5 * 60 * 1000);
-    
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [fetchData, lastUpdate]);
+  }, [fetchData]);
 
+  // Update booking time/date (for drag and drop)
   const updateBookingTime = async (eventId: string, newStart: Date, newEnd: Date) => {
     try {
       setIsLoading(true);
       
+      // Check if this is a lunch break event (starts with 'lunch-')
       if (eventId.startsWith('lunch-')) {
         toast.error('Lunch breaks cannot be moved via drag and drop. Please edit them in the barber settings.');
         return;
@@ -112,6 +110,7 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       
+      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('bookings')
         .update({
@@ -122,6 +121,7 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
+      // Update local state
       setCalendarEvents(prev => 
         prev.map(event => 
           event.id === eventId 
@@ -130,6 +130,7 @@ export const useCalendarBookings = () => {
         )
       );
       
+      // Also update the bookings array
       setBookings(prev => 
         prev.map(booking => 
           booking.id === eventId 
@@ -152,6 +153,7 @@ export const useCalendarBookings = () => {
     }
   };
 
+  // Update booking details
   const updateBooking = async (
     bookingId: string, 
     updates: { 
@@ -168,6 +170,7 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${bookingId} with:`, updates);
       
+      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('bookings')
         .update(updates)
@@ -175,7 +178,8 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      setLastUpdate(Date.now());
+      // Refresh bookings to get updated data with joins
+      await fetchData();
       
       return true;
     } catch (err: any) {
@@ -188,12 +192,15 @@ export const useCalendarBookings = () => {
     }
   };
 
+  // Handle event drop (from drag and drop)
   const handleEventDrop = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
     updateBookingTime(event.id, newStart, newEnd);
   };
 
+  // Handle event click
   const handleEventClick = (event: CalendarEvent) => {
-    if (event.id.toString().startsWith('lunch-')) {
+    // Don't open dialog for lunch breaks
+    if (event.id.startsWith('lunch-')) {
       toast.info(`${event.barber}'s lunch break: ${event.title}`);
       return;
     }
@@ -202,13 +209,16 @@ export const useCalendarBookings = () => {
     setIsDialogOpen(true);
   };
 
+  // Subscribe to realtime updates
   useEffect(() => {
+    // Function to handle booking changes
     const handleBookingChange = (payload: any) => {
       console.log('Realtime booking change detected:', payload);
-      console.log('Change type:', payload.eventType);
+      // Refresh the whole list for simplicity
       fetchData();
     };
 
+    // Set up the subscription for bookings
     const bookingsChannel = supabase
       .channel('bookings-changes')
       .on(
@@ -218,6 +228,7 @@ export const useCalendarBookings = () => {
       )
       .subscribe();
       
+    // Set up the subscription for lunch breaks
     const lunchChannel = supabase
       .channel('lunch-changes')
       .on(
@@ -229,6 +240,7 @@ export const useCalendarBookings = () => {
 
     console.log('Subscribed to calendar data changes');
 
+    // Cleanup
     return () => {
       supabase.removeChannel(bookingsChannel);
       supabase.removeChannel(lunchChannel);
@@ -240,7 +252,7 @@ export const useCalendarBookings = () => {
     calendarEvents: filteredEvents,
     isLoading,
     error,
-    fetchBookings,
+    fetchBookings: fetchData,
     handleEventDrop,
     handleEventClick,
     updateBooking,
@@ -250,6 +262,6 @@ export const useCalendarBookings = () => {
     setIsDialogOpen,
     selectedBarberId,
     setSelectedBarberId,
-    allEvents: calendarEvents
+    allEvents: calendarEvents // Provide access to all events (unfiltered)
   };
 };

@@ -26,138 +26,112 @@ import AssignAdmin from "./pages/admin/AssignAdmin";
 import SetupShop from './pages/admin/SetupShop';
 import ImportBookings from './pages/admin/ImportBookings';
 import CalendarView from './pages/admin/CalendarView';
-import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  useEffect(() => {
-    const removeAllHolidays = async () => {
-      try {
-        console.log("Removing all holidays...");
-        const { error } = await supabase
-          .from('bookings')
-          .delete()
-          .eq('status', 'holiday');
-        
-        if (error) {
-          console.error('Error removing holidays:', error);
-        } else {
-          console.log('All holidays successfully removed from the database');
-        }
-      } catch (err) {
-        console.error('Failed to remove holidays:', err);
-      }
-    };
-    
-    removeAllHolidays();
-  }, []);
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/barbers" element={<Barbers />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/login" element={<Login />} />
-              <Route 
-                path="/book" 
-                element={
-                  <ProtectedRoute>
-                    <Book />
-                  </ProtectedRoute>
-                } 
-              />
-              {/* Guest booking routes - not protected */}
-              <Route path="/book-guest" element={<GuestBooking />} />
-              <Route path="/verify-booking" element={<VerifyGuestBooking />} />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin" 
-                element={
-                  <AdminRoute>
-                    <Dashboard />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/barbers" 
-                element={
-                  <AdminRoute>
-                    <ManageBarbers />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/services" 
-                element={
-                  <AdminRoute>
-                    <ManageServices />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/bookings" 
-                element={
-                  <AdminRoute>
-                    <ManageBookings />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/calendar" 
-                element={
-                  <AdminRoute>
-                    <CalendarView />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/import-bookings" 
-                element={
-                  <AdminRoute>
-                    <ImportBookings />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/assign-admin" 
-                element={
-                  <AdminRoute>
-                    <AssignAdmin />
-                  </AdminRoute>
-                } 
-              />
-              <Route 
-                path="/admin/setup" 
-                element={
-                  <AdminRoute>
-                    <SetupShop />
-                  </AdminRoute>
-                } 
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/barbers" element={<Barbers />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
+            <Route 
+              path="/book" 
+              element={
+                <ProtectedRoute>
+                  <Book />
+                </ProtectedRoute>
+              } 
+            />
+            {/* Guest booking routes - not protected */}
+            <Route path="/book-guest" element={<GuestBooking />} />
+            <Route path="/verify-booking" element={<VerifyGuestBooking />} />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <AdminRoute>
+                  <Dashboard />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/barbers" 
+              element={
+                <AdminRoute>
+                  <ManageBarbers />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/services" 
+              element={
+                <AdminRoute>
+                  <ManageServices />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/bookings" 
+              element={
+                <AdminRoute>
+                  <ManageBookings />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/calendar" 
+              element={
+                <AdminRoute>
+                  <CalendarView />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/import-bookings" 
+              element={
+                <AdminRoute>
+                  <ImportBookings />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/assign-admin" 
+              element={
+                <AdminRoute>
+                  <AssignAdmin />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/setup" 
+              element={
+                <AdminRoute>
+                  <SetupShop />
+                </AdminRoute>
+              } 
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

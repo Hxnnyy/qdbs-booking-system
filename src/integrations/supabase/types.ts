@@ -78,7 +78,6 @@ export type Database = {
         Row: {
           active: boolean | null
           bio: string | null
-          color: string | null
           id: string
           image_url: string | null
           name: string
@@ -87,7 +86,6 @@ export type Database = {
         Insert: {
           active?: boolean | null
           bio?: string | null
-          color?: string | null
           id?: string
           image_url?: string | null
           name: string
@@ -96,7 +94,6 @@ export type Database = {
         Update: {
           active?: boolean | null
           bio?: string | null
-          color?: string | null
           id?: string
           image_url?: string | null
           name?: string

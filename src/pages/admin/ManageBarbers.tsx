@@ -18,7 +18,6 @@ import { BarberServicesForm } from '@/components/admin/BarberServicesForm';
 import { LunchBreakForm } from '@/components/admin/LunchBreakForm';
 import { useBarbers } from '@/hooks/useBarbers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { ColorPickerDialog } from '@/components/admin/barbers/ColorPickerDialog';
 
 const ManageBarbers = () => {
   const { barbers, isLoading, error, refreshBarbers, reactivateBarber, deleteBarber } = useBarbers();
@@ -62,6 +61,7 @@ const ManageBarbers = () => {
         active: true
       };
       
+      // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('barbers')
         .insert(newBarber)
@@ -87,6 +87,7 @@ const ManageBarbers = () => {
       const updatedBarber: UpdatableBarber = { ...formData };
       const barberId = currentBarber.id;
       
+      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('barbers')
         .update(updatedBarber)
@@ -109,6 +110,7 @@ const ManageBarbers = () => {
     try {
       const barberId = currentBarber.id;
       
+      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('barbers')
         .update({ active: false })
@@ -193,46 +195,6 @@ const ManageBarbers = () => {
     setIsLunchDialogOpen(true);
   };
   
-  const [isColorDialogOpen, setIsColorDialogOpen] = useState(false);
-  
-  const handleColorUpdate = async (barberId: string, color: string) => {
-    try {
-      const { error } = await supabase
-        .from('barbers')
-        .update({ color })
-        .eq('id', barberId);
-      
-      if (error) throw error;
-      
-      toast.success('Barber color updated successfully');
-      await refreshBarbers();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
-
-  // Effect to remove all holidays from database when component mounts
-  useEffect(() => {
-    const removeAllHolidays = async () => {
-      try {
-        const { error } = await supabase
-          .from('bookings')
-          .delete()
-          .eq('status', 'holiday');
-        
-        if (error) {
-          console.error('Error removing holidays:', error);
-        } else {
-          console.log('All holidays removed successfully');
-        }
-      } catch (err) {
-        console.error('Failed to remove holidays:', err);
-      }
-    };
-    
-    removeAllHolidays();
-  }, []);
-
   return (
     <Layout>
       <AdminLayout>
@@ -340,16 +302,6 @@ const ManageBarbers = () => {
                         onClick={() => openDeleteDialog(barber)}
                       >
                         Delete
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setCurrentBarber(barber);
-                          setIsColorDialogOpen(true);
-                        }}
-                      >
-                        Color
                       </Button>
                     </div>
                   </CardContent>
@@ -560,16 +512,6 @@ const ManageBarbers = () => {
             )}
           </DialogContent>
         </Dialog>
-        
-        {/* Color Picker Dialog */}
-        {currentBarber && (
-          <ColorPickerDialog
-            isOpen={isColorDialogOpen}
-            onClose={() => setIsColorDialogOpen(false)}
-            onSave={(color) => handleColorUpdate(currentBarber.id, color)}
-            initialColor={currentBarber.color}
-          />
-        )}
       </AdminLayout>
     </Layout>
   );

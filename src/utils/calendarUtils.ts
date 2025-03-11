@@ -1,17 +1,11 @@
 
-import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
-import { supabase } from '@/integrations/supabase/client';
 
 // Convert a booking to a calendar event
 export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
   try {
-    // Special handling for holiday bookings
-    if (booking.status === 'holiday') {
-      return createHolidayEvent(booking);
-    }
-    
     // Parse date and time properly
     const dateStr = booking.booking_date;
     const timeStr = booking.booking_time;
@@ -82,59 +76,6 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
   }
 };
 
-// Create a calendar event for a holiday
-export const createHolidayEvent = (booking: Booking): CalendarEvent => {
-  try {
-    // Parse date and create a full-day event
-    const dateStr = booking.booking_date;
-    
-    if (!dateStr) {
-      console.error('Missing date in holiday booking:', booking);
-      throw new Error('Missing date in holiday booking');
-    }
-    
-    // Create a date object for the start of the day
-    const startDate = parseISO(`${dateStr}T00:00:00`);
-    
-    // End at the end of the day
-    const endDate = parseISO(`${dateStr}T23:59:59`);
-    
-    return {
-      id: booking.id,
-      title: 'Holiday',
-      start: startDate,
-      end: endDate,
-      barber: booking.barber?.name || 'Unknown',
-      barberId: booking.barber_id,
-      service: 'Holiday',
-      serviceId: booking.service_id,
-      status: 'holiday',
-      isGuest: false,
-      notes: booking.notes || 'Barber holiday',
-      userId: booking.user_id,
-      resourceId: booking.barber_id,
-    };
-  } catch (error) {
-    console.error('Error creating holiday event:', error, booking);
-    // Return a fallback event to prevent crashes
-    return {
-      id: booking.id,
-      title: 'Holiday (Error)',
-      start: new Date(),
-      end: addMinutes(new Date(), 24 * 60), // Full day
-      barber: 'Unknown',
-      barberId: booking.barber_id,
-      service: 'Holiday',
-      serviceId: booking.service_id,
-      status: 'holiday',
-      isGuest: false,
-      notes: 'Error parsing holiday data',
-      userId: booking.user_id,
-      resourceId: booking.barber_id,
-    };
-  }
-};
-
 // Create a calendar event for a lunch break
 export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name: string } }): CalendarEvent => {
   try {
@@ -184,48 +125,27 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
 };
 
 // Generate a color based on barber ID for consistency
-export const getBarberColor = async (barberId: string, returnRGB: boolean = false): Promise<string> => {
-  // If no barberId is provided, return a default color
-  if (!barberId) {
-    return returnRGB ? '155, 135, 245' : '#9b87f5';
-  }
-
-  // Fetch the barber's custom color from the database
-  const { data: barber } = await supabase
-    .from('barbers')
-    .select('color')
-    .eq('id', barberId)
-    .single();
-
-  if (barber?.color) {
-    if (returnRGB) {
-      // Convert hex to RGB
-      const hex = barber.color.replace('#', '');
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      return `${r}, ${g}, ${b}`;
-    }
-    return barber.color;
-  }
-
-  // Fallback to generated color if no custom color is set
+export const getBarberColor = (barberId: string, returnRGB: boolean = false): string => {
+  // Simple hash function to generate a hue value (0-360)
   const hash = Array.from(barberId).reduce(
     (acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0
   );
   const hue = Math.abs(hash) % 360;
   
+  // For lunch breaks, we want pastel colors (high lightness, medium saturation)
+  // For normal appointments, we want more vibrant colors
+  const saturation = returnRGB ? '85' : '70';
+  const lightness = returnRGB ? '40' : '60';
+  
   if (returnRGB) {
     // Convert HSL to RGB for better control of transparency
     const h = hue / 360;
-    const s = 0.7; // 70% saturation 
-    const l = 0.6; // 60% lightness
+    const s = parseInt(saturation) / 100;
+    const l = parseInt(lightness) / 100;
     
     let r, g, b;
     
-    // Fix the TypeScript error by using explicit number conversion and comparison
-    const saturation = Number(s);
-    if (saturation === 0) {
+    if (s === 0) {
       r = g = b = l; // achromatic
     } else {
       const hue2rgb = (p: number, q: number, t: number) => {
@@ -248,25 +168,19 @@ export const getBarberColor = async (barberId: string, returnRGB: boolean = fals
     return `${r}, ${g}, ${b}`;
   }
   
-  return `hsl(${hue}, 70%, 60%)`;
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
 // Get a color for a specific event type
-export const getEventColor = async (event: CalendarEvent): Promise<string> => {
-  // For holidays, use a distinct color pattern
-  if (event.status === 'holiday') {
-    const baseColor = await getBarberColor(event.barberId, true);
-    return `repeating-linear-gradient(45deg, rgba(${baseColor}, 0.2), rgba(${baseColor}, 0.2) 10px, rgba(${baseColor}, 0.3) 10px, rgba(${baseColor}, 0.3) 20px)`;
-  }
-  
+export const getEventColor = (event: CalendarEvent): string => {
   // For lunch breaks, use barber-specific colors
   if (event.status === 'lunch-break') {
-    const barberColor = await getBarberColor(event.barberId, true);
-    return `rgba(${barberColor}, 0.2)`;
+    // This will be overridden in the component, but we provide a fallback here
+    return `rgba(${getBarberColor(event.barberId, true)}, 0.2)`;
   }
   
   // For regular bookings, use barber-based colors
-  return await getBarberColor(event.barberId);
+  return getBarberColor(event.barberId);
 };
 
 // Filter events for calendar view based on date
