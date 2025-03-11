@@ -20,6 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ColorPickerDialog } from '@/components/admin/barbers/ColorPickerDialog';
 import { HolidayDialog } from '@/components/admin/barbers/HolidayDialog';
 import { format } from 'date-fns';
+import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 
 const ManageBarbers = () => {
   const { barbers, isLoading, error, refreshBarbers, reactivateBarber, deleteBarber } = useBarbers();
@@ -219,25 +220,12 @@ const ManageBarbers = () => {
   
   const handleHolidaySet = async (barberId: string, startDate: Date, endDate: Date) => {
     try {
-      const holidayBooking = {
-        barber_id: barberId,
-        service_id: '00000000-0000-0000-0000-000000000000', // Default service ID for holidays
-        booking_date: format(startDate, 'yyyy-MM-dd'),
-        booking_time: '00:00',
-        status: 'holiday',
-        user_id: '00000000-0000-0000-0000-000000000000', // System user ID
-        notes: `Holiday from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`,
-        guest_booking: true
-      };
+      const { createHolidayBooking } = useCalendarBookings();
+      const success = await createHolidayBooking(barberId, startDate, endDate);
       
-      // @ts-ignore - Supabase types issue
-      const { error } = await supabase
-        .from('bookings')
-        .insert(holidayBooking);
-      
-      if (error) throw error;
-      
-      toast.success('Holiday period set successfully');
+      if (success) {
+        toast.success('Holiday period set successfully');
+      }
     } catch (err: any) {
       toast.error(err.message);
     }
