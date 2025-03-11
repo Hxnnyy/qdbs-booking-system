@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -43,7 +42,6 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
   const { barbers } = useBarbers();
   const { services } = useServices();
   
-  // Form state for editing
   const [editForm, setEditForm] = useState({
     title: '',
     barber_id: '',
@@ -53,7 +51,6 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
     booking_date: ''
   });
   
-  // Reset form when a new event is selected
   React.useEffect(() => {
     if (event) {
       setEditForm({
@@ -87,7 +84,6 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
     try {
       setIsLoading(true);
       
-      // Extract updates from form
       const updates = {
         title: editForm.title !== event.title.replace('Guest: ', '') ? 
           (event.isGuest ? `Guest: ${editForm.title}` : editForm.title) : undefined,
@@ -100,7 +96,6 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
           editForm.booking_time : undefined
       };
       
-      // Only update if there are changes
       const hasChanges = Object.values(updates).some(value => value !== undefined);
       
       if (!hasChanges) {
@@ -110,7 +105,6 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
       }
       
       const success = await onUpdateBooking(event.id, 
-        // Remove undefined values
         Object.fromEntries(
           Object.entries(updates).filter(([_, v]) => v !== undefined)
         )
@@ -128,7 +122,6 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
     }
   };
   
-  // Determine if we should show the dialog or sheet (for editing)
   const DialogComponent = isEditing ? Sheet : Dialog;
   const DialogContentComponent = isEditing ? SheetContent : DialogContent;
   const DialogHeaderComponent = isEditing ? SheetHeader : DialogHeader;
@@ -144,7 +137,9 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
         }
       }}
     >
-      <DialogContentComponent side={isEditing ? "right" : undefined}>
+      <DialogContentComponent 
+        {...(isEditing ? { side: "right" } : {})}
+      >
         <DialogHeaderComponent>
           <DialogTitleComponent>
             {isEditing ? 'Edit Booking' : 'Booking Details'}
@@ -152,7 +147,6 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
         </DialogHeaderComponent>
         
         {isEditing ? (
-          // Edit Mode
           <div className="space-y-6 py-4">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -260,7 +254,6 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
             </DialogFooter>
           </div>
         ) : (
-          // View Mode
           <div className="space-y-4 py-4">
             <div className="flex items-start gap-4">
               <div 
