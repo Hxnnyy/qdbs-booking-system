@@ -31,8 +31,7 @@ export const DayColumn: React.FC<DayColumnProps> = ({
 }) => {
   return (
     <div 
-      className="relative border-r last:border-r-0 border-border"
-      style={{ height: `${calendarHeight}px` }}
+      className="relative border-r last:border-r-0 border-border h-full"
       onDragOver={(e) => handleDragOver(e, dayIndex)}
       onDrop={handleDragEnd}
     >

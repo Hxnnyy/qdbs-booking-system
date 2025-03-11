@@ -82,8 +82,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
       {/* Day headers */}
       <div className="grid grid-cols-8 border-b border-border">
-        {/* Empty cell for time column */}
-        <div className="border-r border-border w-16"></div>
+        <div className="border-r border-border w-16 flex-shrink-0"></div>
         
         {weekDays.map((day, index) => (
           <WeekDayHeader 
@@ -97,10 +96,10 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       </div>
       
       {/* Calendar grid */}
-      <div className="flex-1 relative">
-        <div className="grid grid-cols-8 h-full absolute top-0 left-0 right-0 bottom-0">
+      <div className="flex-1 relative overflow-y-auto">
+        <div className="grid grid-cols-8 h-full">
           {/* Time markers column */}
-          <div className="relative">
+          <div className="w-16 flex-shrink-0">
             <TimeMarkers startHour={startHour} totalHours={totalHours} />
           </div>
           
