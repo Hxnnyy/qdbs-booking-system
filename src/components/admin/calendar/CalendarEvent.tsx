@@ -25,23 +25,20 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   const [borderColor, setBorderColor] = useState<string>('');
   
   useEffect(() => {
-    const initColors = () => {
+    const initColors = async () => {
       const isLunchBreak = event.status === 'lunch-break';
       const isHoliday = event.status === 'holiday';
       
       if (isLunchBreak) {
-        // For lunch breaks, use a lighter version of the barber's color
-        const color = getBarberColor(event.barberId, true);
-        setBackgroundColor(color);
-        setBorderColor(color);
+        const rgb = await getBarberColor(event.barberId, true);
+        setBackgroundColor(`rgba(${rgb}, 0.2)`);
+        setBorderColor(`rgb(${rgb})`);
       } else if (isHoliday) {
-        // For holidays, use a repeating pattern with the barber's color
-        const color = getBarberColor(event.barberId, false);
-        setBackgroundColor(`repeating-linear-gradient(45deg, ${color}, ${color} 10px, rgba(255, 255, 255, 0.5) 10px, rgba(255, 255, 255, 0.5) 20px)`);
-        setBorderColor(color);
+        const rgb = await getBarberColor(event.barberId, true);
+        setBackgroundColor(`repeating-linear-gradient(45deg, rgba(${rgb}, 0.2), rgba(${rgb}, 0.2) 10px, rgba(${rgb}, 0.3) 10px, rgba(${rgb}, 0.3) 20px)`);
+        setBorderColor(`rgb(${rgb})`);
       } else {
-        // For regular bookings, use the status color
-        const color = getEventColor(event.status);
+        const color = await getBarberColor(event.barberId);
         setBackgroundColor(color);
         setBorderColor(color);
       }
@@ -89,8 +86,6 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       </div>
       {isLunchBreak ? (
         <div className="truncate opacity-90">{event.barber}'s Lunch</div>
-      ) : isHoliday ? (
-        <div className="truncate opacity-90">{event.barber}'s Holiday</div>
       ) : (
         <div className="truncate opacity-90">{event.barber} - {event.service}</div>
       )}
