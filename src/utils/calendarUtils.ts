@@ -164,6 +164,57 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
   }
 };
 
+// Create a holiday event for the calendar
+export const createHolidayEvent = (holiday: any, barber: { name: string, color?: string }): CalendarEvent => {
+  try {
+    const startDate = new Date(holiday.start_date);
+    const endDate = new Date(holiday.end_date);
+    
+    // Set time to 00:00:00 for the start date
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Set time to 23:59:59 for the end date to cover the whole day
+    endDate.setHours(23, 59, 59, 999);
+    
+    return {
+      id: `holiday-${holiday.id}`,
+      title: `Holiday${holiday.reason ? `: ${holiday.reason}` : ''}`,
+      start: startDate,
+      end: endDate,
+      barber: barber.name || 'Unknown',
+      barberId: holiday.barber_id,
+      barberColor: barber.color,
+      service: 'Holiday',
+      serviceId: '',
+      status: 'holiday',
+      isGuest: false,
+      notes: holiday.reason || 'Barber Holiday',
+      userId: '',
+      resourceId: holiday.barber_id,
+      allDay: true
+    };
+  } catch (error) {
+    console.error('Error creating holiday event:', error, holiday);
+    // Return a fallback event to prevent crashes
+    return {
+      id: `holiday-error-${Date.now()}`,
+      title: 'Invalid Holiday',
+      start: new Date(),
+      end: addMinutes(new Date(), 30),
+      barber: 'Unknown',
+      barberId: holiday.barber_id,
+      service: 'Holiday',
+      serviceId: '',
+      status: 'holiday',
+      isGuest: false,
+      notes: 'Error parsing holiday data',
+      userId: '',
+      resourceId: holiday.barber_id,
+      allDay: true
+    };
+  }
+};
+
 // Generate a color based on barber ID for consistency
 export const getBarberColor = (barberId: string, returnRGB: boolean = false): string => {
   // Try to get the color from cache first
@@ -225,6 +276,11 @@ export const getBarberColor = (barberId: string, returnRGB: boolean = false): st
 
 // Get a color for a specific event type
 export const getEventColor = (event: CalendarEvent): string => {
+  // For holiday events, use a distinct color
+  if (event.status === 'holiday') {
+    return 'rgba(255, 0, 0, 0.3)'; // Semi-transparent red for holidays
+  }
+  
   // For lunch breaks, use barber-specific colors with transparency
   if (event.status === 'lunch-break') {
     // If the event has a barberColor property, use that with transparency
@@ -323,4 +379,28 @@ export const formatNewBookingTime = (date: Date): string => {
 // Update booking date based on drag-and-drop
 export const formatNewBookingDate = (date: Date): string => {
   return format(date, 'yyyy-MM-dd');
+};
+
+// Check if a date falls within a barber's holiday period
+export const isBarberOnHoliday = async (barberId: string, date: Date): Promise<boolean> => {
+  try {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    
+    const { data, error } = await supabase
+      .from('barber_holidays')
+      .select('*')
+      .eq('barber_id', barberId)
+      .lte('start_date', formattedDate)
+      .gte('end_date', formattedDate);
+    
+    if (error) {
+      console.error('Error checking barber holiday:', error);
+      return false;
+    }
+    
+    return data && data.length > 0;
+  } catch (error) {
+    console.error('Error in isBarberOnHoliday:', error);
+    return false;
+  }
 };

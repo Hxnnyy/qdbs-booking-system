@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -110,6 +109,14 @@ const Book = () => {
       setIsLoadingBookings(true);
       const formattedDate = format(date, 'yyyy-MM-dd');
       
+      const isHoliday = await isBarberOnHoliday(barberId, date);
+      
+      if (isHoliday) {
+        toast.error('Barber is on holiday on this date. Please select another date.');
+        setExistingBookings([]);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('bookings')
         .select('booking_time, service_id, services(duration)')
@@ -130,28 +137,18 @@ const Book = () => {
     }
   };
 
-  // Effect to fetch existing bookings when date changes
-  useEffect(() => {
-    if (selectedBarber && selectedDate) {
-      fetchExistingBookings(selectedBarber, selectedDate);
-    }
-  }, [selectedBarber, selectedDate]);
-
   const isTimeSlotBooked = (time: string): boolean => {
     if (!selectedServiceDetails || !existingBookings.length) return false;
 
-    // Convert current time slot to minutes for easier calculation
     const [hours, minutes] = time.split(':').map(Number);
     const timeInMinutes = hours * 60 + minutes;
     const serviceLength = selectedServiceDetails.duration;
 
-    // Check if any existing booking overlaps with this time slot
     return existingBookings.some(booking => {
       const [bookingHours, bookingMinutes] = booking.booking_time.split(':').map(Number);
       const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
-      const bookingServiceLength = booking.services ? booking.services.duration : 60; // Default to 60 if unknown
-      
-      // Check if there's an overlap
+      const bookingServiceLength = booking.services ? booking.services.duration : 60;
+
       return (
         (timeInMinutes >= bookingTimeInMinutes && 
          timeInMinutes < bookingTimeInMinutes + bookingServiceLength) ||

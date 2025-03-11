@@ -4,11 +4,12 @@ import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 import { bookingToCalendarEvent, formatNewBookingDate, formatNewBookingTime } from '@/utils/calendarUtils';
-import { createLunchBreakEvent, clearBarberColorCache } from '@/utils/calendarUtils';
+import { createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [lunchBreaks, setLunchBreaks] = useState<LunchBreak[]>([]);
+  const [holidays, setHolidays] = useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export const useCalendarBookings = () => {
     ? calendarEvents.filter(event => event.barberId === selectedBarberId)
     : calendarEvents;
 
-  // Fetch all bookings and lunch breaks
+  // Fetch all bookings, lunch breaks, and holidays
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -60,6 +61,20 @@ export const useCalendarBookings = () => {
       
       setLunchBreaks(lunchData || []);
       
+      // Fetch holidays
+      // @ts-ignore - Supabase types issue
+      const { data: holidaysData, error: holidaysError } = await supabase
+        .from('barber_holidays')
+        .select(`
+          *,
+          barber:barber_id(name, color)
+        `)
+        .order('start_date', { ascending: true });
+        
+      if (holidaysError) throw holidaysError;
+      
+      setHolidays(holidaysData || []);
+      
       // Convert bookings to calendar events
       const bookingEvents = (bookingsData || []).map(booking => {
         try {
@@ -80,8 +95,18 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      // Combine both event types
-      setCalendarEvents([...bookingEvents, ...lunchEvents]);
+      // Convert holidays to calendar events
+      const holidayEvents = (holidaysData || []).map(holiday => {
+        try {
+          return createHolidayEvent(holiday, holiday.barber);
+        } catch (err) {
+          console.error('Error converting holiday to event:', err, holiday);
+          return null;
+        }
+      }).filter(Boolean) as CalendarEvent[];
+      
+      // Combine all event types
+      setCalendarEvents([...bookingEvents, ...lunchEvents, ...holidayEvents]);
     } catch (err: any) {
       console.error('Error fetching calendar data:', err);
       setError(err.message);
@@ -220,8 +245,8 @@ export const useCalendarBookings = () => {
   // Subscribe to realtime updates
   useEffect(() => {
     // Function to handle booking changes
-    const handleBookingChange = (payload: any) => {
-      console.log('Realtime booking change detected:', payload);
+    const handleChange = (payload: any) => {
+      console.log('Realtime change detected:', payload);
       // Refresh the whole list for simplicity
       fetchData();
     };
@@ -232,7 +257,7 @@ export const useCalendarBookings = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings' },
-        handleBookingChange
+        handleChange
       )
       .subscribe();
       
@@ -242,7 +267,17 @@ export const useCalendarBookings = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'barber_lunch_breaks' },
-        handleBookingChange
+        handleChange
+      )
+      .subscribe();
+      
+    // Set up the subscription for holidays
+    const holidaysChannel = supabase
+      .channel('holidays-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'barber_holidays' },
+        handleChange
       )
       .subscribe();
 
@@ -252,11 +287,13 @@ export const useCalendarBookings = () => {
     return () => {
       supabase.removeChannel(bookingsChannel);
       supabase.removeChannel(lunchChannel);
+      supabase.removeChannel(holidaysChannel);
     };
   }, [fetchData]);
 
   return {
     bookings,
+    holidays,
     calendarEvents: filteredEvents,
     isLoading,
     error,

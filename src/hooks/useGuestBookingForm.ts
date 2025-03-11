@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { format, addDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { isBarberOnHoliday } from '@/utils/calendarUtils';
 import { BookingFormState, ExistingBooking } from '@/types/booking';
 import { Service } from '@/supabase-types';
 
@@ -82,24 +82,42 @@ export const useGuestBookingForm = () => {
     }
   };
 
-  const fetchExistingBookings = async (barberId: string, date: Date) => {
+  const fetchExistingBookings = async (
+    barberId: string,
+    date: Date,
+    service_id?: string | null
+  ) => {
     try {
       setIsLoadingBookings(true);
+  
       const formattedDate = format(date, 'yyyy-MM-dd');
       
+      // Check if barber is on holiday for this date
+      const isHoliday = await isBarberOnHoliday(barberId, date);
+      
+      if (isHoliday) {
+        toast.error('Barber is on holiday on this date. Please select another date.');
+        setExistingBookings([]);
+        return;
+      }
+  
+      // Fetch existing bookings for this barber and date
       const { data, error } = await supabase
         .from('bookings')
         .select('booking_time, service_id, services(duration)')
         .eq('barber_id', barberId)
         .eq('booking_date', formattedDate)
-        .eq('status', 'confirmed')
-        .order('booking_time');
-      
-      if (error) throw error;
-      
+        .eq('status', 'confirmed');
+  
+      if (error) {
+        throw error;
+      }
+  
+      console.log('Existing bookings:', data);
       setExistingBookings(data || []);
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
+  
+    } catch (error: any) {
+      console.error('Error fetching existing bookings:', error);
       toast.error('Failed to load existing bookings');
     } finally {
       setIsLoadingBookings(false);

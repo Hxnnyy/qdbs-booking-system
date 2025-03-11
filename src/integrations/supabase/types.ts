@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      barber_holidays: {
+        Row: {
+          barber_id: string
+          created_at: string
+          end_date: string
+          id: string
+          reason: string | null
+          start_date: string
+        }
+        Insert: {
+          barber_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          start_date: string
+        }
+        Update: {
+          barber_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_holidays_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       barber_lunch_breaks: {
         Row: {
           barber_id: string
@@ -265,6 +300,13 @@ export type Database = {
           user_email: string
         }
         Returns: string
+      }
+      is_barber_on_holiday: {
+        Args: {
+          p_barber_id: string
+          p_date: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

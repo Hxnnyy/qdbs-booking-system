@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -16,6 +15,7 @@ import { Barber, InsertableBarber, UpdatableBarber } from '@/supabase-types';
 import { OpeningHoursForm } from '@/components/admin/OpeningHoursForm';
 import { BarberServicesForm } from '@/components/admin/BarberServicesForm';
 import { LunchBreakForm } from '@/components/admin/LunchBreakForm';
+import { HolidayForm } from '@/components/admin/HolidayForm';
 import { useBarbers } from '@/hooks/useBarbers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -30,6 +30,7 @@ const ManageBarbers = () => {
   const [isHoursDialogOpen, setIsHoursDialogOpen] = useState(false);
   const [isLunchDialogOpen, setIsLunchDialogOpen] = useState(false);
   const [isColorDialogOpen, setIsColorDialogOpen] = useState(false);
+  const [isHolidayDialogOpen, setIsHolidayDialogOpen] = useState(false);
   
   const [currentBarber, setCurrentBarber] = useState<Barber | null>(null);
   const [formData, setFormData] = useState({
@@ -64,7 +65,6 @@ const ManageBarbers = () => {
         active: true
       };
       
-      // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('barbers')
         .insert(newBarber)
@@ -90,7 +90,6 @@ const ManageBarbers = () => {
       const updatedBarber: UpdatableBarber = { ...formData };
       const barberId = currentBarber.id;
       
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('barbers')
         .update(updatedBarber)
@@ -113,7 +112,6 @@ const ManageBarbers = () => {
     if (!currentBarber) return;
     
     try {
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('barbers')
         .update({ color: formData.color })
@@ -135,7 +133,6 @@ const ManageBarbers = () => {
     try {
       const barberId = currentBarber.id;
       
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('barbers')
         .update({ active: false })
@@ -200,7 +197,7 @@ const ManageBarbers = () => {
     setCurrentBarber(barber);
     setFormData(prev => ({
       ...prev,
-      color: barber.color || '#3B82F6' // Default to a blue color if none set
+      color: barber.color || '#3B82F6'
     }));
     setIsColorDialogOpen(true);
   };
@@ -228,6 +225,11 @@ const ManageBarbers = () => {
   const openLunchDialog = (barber: Barber) => {
     setCurrentBarber(barber);
     setIsLunchDialogOpen(true);
+  };
+  
+  const openHolidayDialog = (barber: Barber) => {
+    setCurrentBarber(barber);
+    setIsHolidayDialogOpen(true);
   };
   
   return (
@@ -319,6 +321,13 @@ const ManageBarbers = () => {
                       <Button 
                         variant="outline" 
                         size="sm" 
+                        onClick={() => openHolidayDialog(barber)}
+                      >
+                        Holidays
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
                         onClick={() => openColorDialog(barber)}
                       >
                         Color
@@ -366,7 +375,6 @@ const ManageBarbers = () => {
           )}
         </div>
         
-        {/* Add Barber Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -442,7 +450,6 @@ const ManageBarbers = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Edit Barber Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -518,7 +525,6 @@ const ManageBarbers = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Barber Color Dialog */}
         <Dialog open={isColorDialogOpen} onOpenChange={setIsColorDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -563,7 +569,6 @@ const ManageBarbers = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Deactivate Barber Dialog */}
         <Dialog open={isDeactivateDialogOpen} onOpenChange={setIsDeactivateDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -583,7 +588,6 @@ const ManageBarbers = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Barber Alert Dialog */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -602,7 +606,6 @@ const ManageBarbers = () => {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Services Dialog */}
         <Dialog open={isServicesDialogOpen} onOpenChange={setIsServicesDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -617,7 +620,6 @@ const ManageBarbers = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Hours Dialog */}
         <Dialog open={isHoursDialogOpen} onOpenChange={setIsHoursDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -632,7 +634,6 @@ const ManageBarbers = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Lunch Break Dialog */}
         <Dialog open={isLunchDialogOpen} onOpenChange={setIsLunchDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -646,9 +647,24 @@ const ManageBarbers = () => {
             )}
           </DialogContent>
         </Dialog>
+        
+        <Dialog open={isHolidayDialogOpen} onOpenChange={setIsHolidayDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manage {currentBarber?.name}'s Holidays</DialogTitle>
+            </DialogHeader>
+            {currentBarber && (
+              <HolidayForm 
+                barberId={currentBarber.id} 
+                onSaved={() => setIsHolidayDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </AdminLayout>
     </Layout>
   );
 };
 
 export default ManageBarbers;
+

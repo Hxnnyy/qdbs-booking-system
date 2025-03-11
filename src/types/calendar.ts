@@ -1,4 +1,6 @@
 
+import { format } from 'date-fns';
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -9,11 +11,12 @@ export interface CalendarEvent {
   barberColor?: string;
   service: string;
   serviceId: string;
-  status: string;
+  status: 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday';
   isGuest: boolean;
   notes: string;
   userId: string;
-  resourceId: string; // For resource view (per barber rows)
+  resourceId?: string;
+  allDay?: boolean;
 }
 
 export interface CalendarViewProps {
@@ -24,10 +27,8 @@ export interface CalendarViewProps {
   onEventClick: (event: CalendarEvent) => void;
 }
 
-export interface EventProps {
-  event: CalendarEvent;
-  onEventClick: (event: CalendarEvent) => void;
-  isDragging?: boolean;
+export interface DragPreview {
+  time: string;
+  top: number;
+  columnIndex?: number;
 }
-
-export type ViewMode = 'day' | 'week' | 'month';
