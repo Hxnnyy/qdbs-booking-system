@@ -47,7 +47,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     height: '100%',
     // Add z-index that increases on hover to ensure any event can be clicked
     zIndex: 10,
-    pointerEvents: 'all', // Ensure events are always clickable
+    pointerEvents: 'all' as React.CSSProperties['pointerEvents'], // Fix: Use type assertion for proper type
   };
   
   const handleClick = (e: React.MouseEvent) => {
