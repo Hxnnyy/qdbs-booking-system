@@ -2,7 +2,7 @@
 import React from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
-import { DayColumnGrid } from './DayColumnGrid';
+import { addDays, startOfWeek } from 'date-fns';
 
 interface DayColumnProps {
   dayIndex: number;
@@ -17,7 +17,7 @@ interface DayColumnProps {
   onEventClick: (event: CalendarEvent) => void;
 }
 
-export const DayColumn: React.FC<DayColumnProps> = ({ 
+export const DayColumn: React.FC<DayColumnProps> = ({
   dayIndex,
   startHour,
   totalHours,
@@ -29,28 +29,37 @@ export const DayColumn: React.FC<DayColumnProps> = ({
   calendarHeight,
   onEventClick
 }) => {
-  // Calculate endHour from startHour and totalHours
-  const endHour = startHour + totalHours;
-  
   return (
     <div 
       className="relative border-r last:border-r-0 border-border"
       style={{ height: `${calendarHeight}px` }}
       onDragOver={(e) => handleDragOver(e, dayIndex)}
       onDrop={handleDragEnd}
-      onDragLeave={() => {}} // This will be handled in the parent component
     >
-      <DayColumnGrid totalHours={totalHours} />
-      
-      <div className="absolute top-0 left-16 right-0 bottom-0">
-        {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-          const eventDay = event.start.getDay();
-          if (dayIndex !== eventDay) return null;
-          
+      {/* Time grid lines */}
+      {Array.from({ length: totalHours }).map((_, hourIndex) => (
+        <div 
+          key={`grid-${dayIndex}-${hourIndex}`}
+          className="h-[60px] border-b border-border"
+        />
+      ))}
+
+      {/* Events for this day */}
+      {processedEvents
+        .filter(({ event }) => {
+          const eventDate = event.start;
+          const columnDate = addDays(startOfWeek(eventDate, { weekStartsOn: 1 }), dayIndex);
+          return (
+            eventDate.getDate() === columnDate.getDate() &&
+            eventDate.getMonth() === columnDate.getMonth() &&
+            eventDate.getFullYear() === columnDate.getFullYear()
+          );
+        })
+        .map(({ event, slotIndex, totalSlots }) => {
           const eventHour = event.start.getHours();
           const eventMinute = event.start.getMinutes();
           
-          if (eventHour < startHour || eventHour >= endHour) return null;
+          if (eventHour < startHour || eventHour >= startHour + totalHours) return null;
           
           const top = (eventHour - startHour) * 60 + eventMinute;
           const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
@@ -59,13 +68,15 @@ export const DayColumn: React.FC<DayColumnProps> = ({
           return (
             <div 
               key={event.id}
-              draggable={event.status !== 'lunch-break'}
+              draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
               onDragStart={() => handleDragStart(event)}
-              className="absolute w-full"
+              className="absolute"
               style={{ 
                 top: `${top}px`, 
                 height: `${height}px`,
-                padding: 0 // Remove any padding that might be creating gaps
+                width: '100%',
+                padding: 0,
+                zIndex: 20
               }}
             >
               <CalendarEventComponent 
@@ -78,7 +89,6 @@ export const DayColumn: React.FC<DayColumnProps> = ({
             </div>
           );
         })}
-      </div>
     </div>
   );
 };

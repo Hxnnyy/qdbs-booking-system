@@ -81,7 +81,10 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
       {/* Day headers */}
-      <div className="grid grid-cols-7 border-b border-border">
+      <div className="grid grid-cols-8 border-b border-border">
+        {/* Empty cell for time column */}
+        <div className="border-r border-border w-16"></div>
+        
         {weekDays.map((day, index) => (
           <WeekDayHeader 
             key={index}
@@ -94,26 +97,30 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       </div>
       
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 flex-1 relative">
-        {/* Time markers - rendered once for the whole grid */}
-        <TimeMarkers startHour={startHour} totalHours={totalHours} />
-        
-        {/* Day columns */}
-        {weekDays.map((_, dayIndex) => (
-          <DayColumn
-            key={dayIndex}
-            dayIndex={dayIndex}
-            startHour={startHour}
-            totalHours={totalHours}
-            processedEvents={processedEvents}
-            handleDragOver={handleDragOver}
-            handleDragEnd={handleDragEnd}
-            handleDragStart={handleDragStart}
-            draggingEvent={draggingEvent}
-            calendarHeight={calendarHeight}
-            onEventClick={onEventClick}
-          />
-        ))}
+      <div className="flex-1 relative">
+        <div className="grid grid-cols-8 h-full absolute top-0 left-0 right-0 bottom-0">
+          {/* Time markers column */}
+          <div className="relative">
+            <TimeMarkers startHour={startHour} totalHours={totalHours} />
+          </div>
+          
+          {/* Day columns */}
+          {weekDays.map((_, dayIndex) => (
+            <DayColumn
+              key={dayIndex}
+              dayIndex={dayIndex}
+              startHour={startHour}
+              totalHours={totalHours}
+              processedEvents={processedEvents}
+              handleDragOver={handleDragOver}
+              handleDragEnd={handleDragEnd}
+              handleDragStart={handleDragStart}
+              draggingEvent={draggingEvent}
+              calendarHeight={calendarHeight}
+              onEventClick={onEventClick}
+            />
+          ))}
+        </div>
       </div>
       
       {/* Drag preview overlay */}

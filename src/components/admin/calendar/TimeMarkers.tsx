@@ -15,6 +15,7 @@ export const TimeMarkers: React.FC<TimeMarkersProps> = ({ startHour, totalHours 
           <div 
             key={`time-${hour}`}
             className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
+            style={{ position: 'relative' }}
           >
             {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
           </div>
