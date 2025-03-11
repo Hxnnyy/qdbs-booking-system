@@ -27,7 +27,12 @@ export const DayView: React.FC<CalendarViewProps> = ({
   );
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
-    const sortedEvents = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
+    // First, separate lunch breaks from other events
+    const lunchBreaks = events.filter(event => event.status === 'lunch-break');
+    const otherEvents = events.filter(event => event.status !== 'lunch-break');
+    
+    // Process regular events (non-lunch-breaks)
+    const sortedEvents = [...otherEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
     
     const overlappingGroups: CalendarEvent[][] = [];
     
@@ -89,6 +94,15 @@ export const DayView: React.FC<CalendarViewProps> = ({
           });
         });
       }
+    });
+    
+    // Process lunch breaks separately - always give them full width regardless of any holiday
+    lunchBreaks.forEach(lunchEvent => {
+      results.push({
+        event: lunchEvent,
+        slotIndex: 0, 
+        totalSlots: 1  // Always use full width for lunch breaks
+      });
     });
     
     return results;
