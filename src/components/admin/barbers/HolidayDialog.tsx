@@ -1,18 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
-import { format, addDays, eachDayOfInterval } from 'date-fns';
+import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
 import { Booking } from '@/supabase-types';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 
 interface HolidayDialogProps {
   isOpen: boolean;
@@ -32,14 +30,13 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
   const [holidays, setHolidays] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
+  const { deleteHoliday } = useCalendarBookings();
 
-  // Reset state when dialog opens or closes
   useEffect(() => {
     if (!isOpen) {
       setStartDate(undefined);
       setEndDate(undefined);
     } else {
-      // Fetch existing holidays when dialog opens
       fetchHolidays();
     }
   }, [isOpen, barberId]);
@@ -71,7 +68,6 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
       onSave(startDate, endDate);
       setStartDate(undefined);
       setEndDate(undefined);
-      // Refetch holidays after saving
       setTimeout(fetchHolidays, 1000);
     }
   };
@@ -84,53 +80,9 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
     
     setDeleteInProgress(true);
     try {
-      console.log('Deleting holiday with ID:', holidayId);
-      
-      // First, verify that the holiday exists before attempting to delete it
-      const { data: existingHoliday, error: checkError } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('id', holidayId)
-        .eq('status', 'holiday')
-        .single();
-        
-      if (checkError || !existingHoliday) {
-        console.error('Holiday not found:', holidayId);
-        throw new Error('Holiday not found');
-      }
-      
-      // Proceed with deletion - using .execute() to ensure the operation completes
-      const { error: deleteError } = await supabase
-        .from('bookings')
-        .delete()
-        .eq('id', holidayId)
-        .eq('status', 'holiday'); // Ensure we're only deleting holidays
-      
-      if (deleteError) {
-        console.error('Supabase delete error:', deleteError);
-        throw deleteError;
-      }
-      
-      // Verify deletion was successful by checking if it still exists
-      const { data: verifyDeletion, error: verifyError } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('id', holidayId)
-        .single();
-        
-      if (!verifyError && verifyDeletion) {
-        // If we can still find the record, deletion failed
-        console.error('Holiday still exists after deletion:', holidayId);
-        throw new Error('Holiday could not be deleted');
-      }
-      
-      console.log('Holiday deletion verified');
-      
-      // Update UI
+      await deleteHoliday(holidayId);
       setHolidays(prevHolidays => prevHolidays.filter(holiday => holiday.id !== holidayId));
-      
       toast.success('Holiday removed successfully');
-      
     } catch (err: any) {
       console.error('Error deleting holiday:', err);
       toast.error('Failed to remove holiday: ' + (err.message || err));
@@ -150,7 +102,6 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
         </DialogHeader>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-          {/* Left column - Schedule a new holiday */}
           <div className="space-y-4">
             <div className="flex items-center">
               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -188,7 +139,6 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
             </Button>
           </div>
           
-          {/* Right column - Existing holidays */}
           <div className="space-y-4">
             <div className="flex items-center">
               <CalendarIcon className="mr-2 h-4 w-4" />

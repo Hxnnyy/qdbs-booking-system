@@ -147,6 +147,26 @@ export const useCalendarBookings = () => {
     }
   };
 
+  const deleteHoliday = async (bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', bookingId)
+        .eq('status', 'holiday');
+
+      if (error) throw error;
+
+      setBookings(prev => prev.filter(booking => booking.id !== bookingId));
+      setCalendarEvents(prev => prev.filter(event => event.id !== bookingId));
+      
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting holiday:', err);
+      throw err;
+    }
+  };
+
   const updateBooking = async (
     bookingId: string, 
     updates: { 
@@ -245,6 +265,7 @@ export const useCalendarBookings = () => {
     setIsDialogOpen,
     selectedBarberId,
     setSelectedBarberId,
-    allEvents: calendarEvents
+    allEvents: calendarEvents,
+    deleteHoliday
   };
 };
