@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -23,6 +24,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
   // Check if there are any holiday events for this day
   const holidayEvents = getHolidayEventsForDate(events, date);
+
+  // For debugging
+  console.log("DayView - Date:", format(date, 'yyyy-MM-dd'));
+  console.log("DayView - Holiday events:", holidayEvents);
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
     // First, separate lunch breaks from other events
@@ -164,7 +169,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
           <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
         </div>
         
-        {/* Holiday Indicator */}
+        {/* Holiday Indicator - Now explicitly rendered with holidayEvents */}
         <HolidayIndicator holidayEvents={holidayEvents} />
       </div>
       
