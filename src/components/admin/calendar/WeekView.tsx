@@ -105,10 +105,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     
     const totalMinutes = Math.floor(y);
     const hours = Math.floor(totalMinutes / 60) + startHour;
-    const minutes = Math.round((totalMinutes % 60) / 15) * 15;
+    const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
     
     const previewTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'pm' : 'am'}`;
-    setDragPreview({ time: previewTime, top: y, columnIndex: dayIndex });
+    setDragPreview({ 
+      time: previewTime, 
+      top: Math.floor(totalMinutes / 15) * 15, 
+      columnIndex: dayIndex 
+    });
   };
 
   const handleDragEnd = (e: React.DragEvent, droppedDay: Date) => {
@@ -119,7 +123,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     
     const totalMinutes = Math.floor(y);
     const hours = Math.floor(totalMinutes / 60) + startHour;
-    const minutes = Math.round((totalMinutes % 60) / 15) * 15;
+    const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
     
     const newStart = new Date(droppedDay);
     newStart.setHours(hours, minutes, 0, 0);

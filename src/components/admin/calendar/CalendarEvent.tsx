@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { CalendarEvent as CalendarEventType } from '@/types/calendar';
@@ -40,14 +39,13 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     backgroundColor: backgroundColor,
     borderLeft: `4px solid ${borderColor}`,
     color: isLunchBreak ? '#fff' : '#000', // White text for lunch breaks, black for regular appointments
-    opacity: isDragging ? 0.5 : 0.5, // Make all appointment cards 50% transparent
+    opacity: isLunchBreak ? 0.5 : 1, // Only apply transparency to lunch breaks
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
     position: 'absolute' as const,
     height: '100%',
-    // Add z-index that increases on hover to ensure any event can be clicked
     zIndex: 10,
-    pointerEvents: 'all' as React.CSSProperties['pointerEvents'], // Fix: Use type assertion for proper type
+    pointerEvents: 'all' as React.CSSProperties['pointerEvents'],
   };
   
   const handleClick = (e: React.MouseEvent) => {
