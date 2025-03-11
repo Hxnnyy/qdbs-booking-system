@@ -29,11 +29,11 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   const styles = {
     backgroundColor: isLunchBreak ? lunchBreakBgColor : eventColor,
     borderLeft: isLunchBreak ? `4px solid ${lunchBreakBorderColor}` : `4px solid ${eventColor}`,
-    color: isLunchBreak ? '#333' : '#000', // Improved text readability with dark text
+    color: isLunchBreak ? '#fff' : '#000', // Make lunch break text white for better contrast
     opacity: isDragging ? 0.5 : 1,
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
-    position: 'absolute' as const, // Type assertion to fix the error
+    position: 'absolute' as const,
     height: '100%',
   };
   

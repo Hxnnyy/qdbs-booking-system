@@ -29,13 +29,15 @@ const ManageBarbers = () => {
   const [isServicesDialogOpen, setIsServicesDialogOpen] = useState(false);
   const [isHoursDialogOpen, setIsHoursDialogOpen] = useState(false);
   const [isLunchDialogOpen, setIsLunchDialogOpen] = useState(false);
+  const [isColorDialogOpen, setIsColorDialogOpen] = useState(false);
   
   const [currentBarber, setCurrentBarber] = useState<Barber | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     specialty: '',
     bio: '',
-    image_url: ''
+    image_url: '',
+    color: ''
   });
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -48,7 +50,8 @@ const ManageBarbers = () => {
       name: '',
       specialty: '',
       bio: '',
-      image_url: ''
+      image_url: '',
+      color: ''
     });
   };
   
@@ -98,6 +101,28 @@ const ManageBarbers = () => {
       toast.success('Barber updated successfully');
       setIsEditDialogOpen(false);
       resetForm();
+      await refreshBarbers();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleUpdateBarberColor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentBarber) return;
+    
+    try {
+      // @ts-ignore - Supabase types issue
+      const { error } = await supabase
+        .from('barbers')
+        .update({ color: formData.color })
+        .eq('id', currentBarber.id);
+      
+      if (error) throw error;
+      
+      toast.success('Barber color updated successfully');
+      setIsColorDialogOpen(false);
       await refreshBarbers();
     } catch (err: any) {
       toast.error(err.message);
@@ -165,9 +190,19 @@ const ManageBarbers = () => {
       name: barber.name || '',
       specialty: barber.specialty || '',
       bio: barber.bio || '',
-      image_url: barber.image_url || ''
+      image_url: barber.image_url || '',
+      color: barber.color || ''
     });
     setIsEditDialogOpen(true);
+  };
+  
+  const openColorDialog = (barber: Barber) => {
+    setCurrentBarber(barber);
+    setFormData(prev => ({
+      ...prev,
+      color: barber.color || '#3B82F6' // Default to a blue color if none set
+    }));
+    setIsColorDialogOpen(true);
   };
   
   const openDeactivateDialog = (barber: Barber) => {
@@ -245,6 +280,13 @@ const ManageBarbers = () => {
                       <p className="text-sm mb-4 line-clamp-3">{barber.bio}</p>
                     )}
                     
+                    {barber.color && (
+                      <div className="mb-4 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: barber.color }}></div>
+                        <span className="text-sm text-muted-foreground">Calendar Color</span>
+                      </div>
+                    )}
+                    
                     <div className="flex flex-wrap gap-2 mt-4">
                       <Button 
                         variant="outline" 
@@ -273,6 +315,13 @@ const ManageBarbers = () => {
                         onClick={() => openLunchDialog(barber)}
                       >
                         Lunch
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => openColorDialog(barber)}
+                      >
+                        Color
                       </Button>
                       
                       {barber.active ? (
@@ -365,6 +414,26 @@ const ManageBarbers = () => {
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="color">Calendar Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="color"
+                      name="color"
+                      type="color"
+                      value={formData.color || '#3B82F6'}
+                      onChange={handleInputChange}
+                      className="w-16 h-10 p-1"
+                    />
+                    <Input
+                      name="color"
+                      value={formData.color || '#3B82F6'}
+                      onChange={handleInputChange}
+                      placeholder="#000000"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="submit">Add Barber</Button>
@@ -421,9 +490,74 @@ const ManageBarbers = () => {
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="edit-color">Calendar Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="edit-color"
+                      name="color"
+                      type="color"
+                      value={formData.color || '#3B82F6'}
+                      onChange={handleInputChange}
+                      className="w-16 h-10 p-1"
+                    />
+                    <Input
+                      name="color"
+                      value={formData.color || '#3B82F6'}
+                      onChange={handleInputChange}
+                      placeholder="#000000"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="submit">Update Barber</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Barber Color Dialog */}
+        <Dialog open={isColorDialogOpen} onOpenChange={setIsColorDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Set {currentBarber?.name}'s Calendar Color</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdateBarberColor}>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="barber-color">Select Color</Label>
+                  <div className="flex gap-2 items-center mt-2">
+                    <Input
+                      id="barber-color"
+                      name="color"
+                      type="color"
+                      value={formData.color || '#3B82F6'}
+                      onChange={handleInputChange}
+                      className="w-16 h-10 p-1"
+                    />
+                    <Input
+                      name="color"
+                      value={formData.color || '#3B82F6'}
+                      onChange={handleInputChange}
+                      placeholder="#000000"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="p-4 border rounded-md">
+                  <p className="text-sm mb-2">Preview:</p>
+                  <div 
+                    className="h-12 rounded-md flex items-center justify-center text-white font-medium"
+                    style={{ backgroundColor: formData.color || '#3B82F6' }}
+                  >
+                    {currentBarber?.name}'s Appointments
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Save Color</Button>
               </DialogFooter>
             </form>
           </DialogContent>

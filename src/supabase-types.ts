@@ -7,6 +7,7 @@ export interface Barber {
   bio?: string;
   image_url?: string;
   active: boolean;
+  color?: string;
 }
 
 export interface Service {
@@ -31,6 +32,7 @@ export interface Booking {
   guest_booking?: boolean;
   barber?: {
     name: string;
+    color?: string;
   };
   service?: {
     name: string;

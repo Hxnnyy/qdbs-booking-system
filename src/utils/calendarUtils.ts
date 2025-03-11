@@ -1,7 +1,45 @@
-
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
+import { supabase } from '@/integrations/supabase/client';
+
+// Barber color cache to reduce database queries
+let barberColorsCache: Record<string, string | null> = {};
+
+// Function to get barber color from the database or cache
+const getBarberColorFromDb = async (barberId: string): Promise<string | null> => {
+  // Return from cache if available
+  if (barberColorsCache[barberId] !== undefined) {
+    return barberColorsCache[barberId];
+  }
+  
+  try {
+    // @ts-ignore - Supabase types issue
+    const { data, error } = await supabase
+      .from('barbers')
+      .select('color')
+      .eq('id', barberId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching barber color:', error);
+      return null;
+    }
+    
+    const color = data?.color || null;
+    // Update cache
+    barberColorsCache[barberId] = color;
+    return color;
+  } catch (error) {
+    console.error('Error getting barber color:', error);
+    return null;
+  }
+};
+
+// Clear cache function (can be called when barber colors are updated)
+export const clearBarberColorCache = () => {
+  barberColorsCache = {};
+};
 
 // Convert a booking to a calendar event
 export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
@@ -47,6 +85,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       end: endDate,
       barber: booking.barber?.name || 'Unknown',
       barberId: booking.barber_id,
+      barberColor: booking.barber?.color, // Add barber color to event
       service: booking.service?.name || 'Unknown',
       serviceId: booking.service_id,
       status: booking.status,
@@ -77,7 +116,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
 };
 
 // Create a calendar event for a lunch break
-export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name: string } }): CalendarEvent => {
+export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name: string, color?: string } }): CalendarEvent => {
   try {
     // Create a lunch break event for today
     const today = new Date();
@@ -95,6 +134,7 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
       end: endDate,
       barber: lunchBreak.barber?.name || 'Unknown',
       barberId: lunchBreak.barber_id,
+      barberColor: lunchBreak.barber?.color, // Add barber color to event
       service: 'Lunch Break',
       serviceId: '', // No service ID for lunch breaks
       status: 'lunch-break',
@@ -126,14 +166,26 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
 
 // Generate a color based on barber ID for consistency
 export const getBarberColor = (barberId: string, returnRGB: boolean = false): string => {
-  // Simple hash function to generate a hue value (0-360)
+  // Try to get the color from cache first
+  const cachedColor = barberColorsCache[barberId];
+  
+  if (cachedColor) {
+    if (returnRGB) {
+      // Convert hex to RGB
+      const r = parseInt(cachedColor.slice(1, 3), 16);
+      const g = parseInt(cachedColor.slice(3, 5), 16);
+      const b = parseInt(cachedColor.slice(5, 7), 16);
+      return `${r}, ${g}, ${b}`;
+    }
+    return cachedColor;
+  }
+  
+  // If no cached color, use the hash-based fallback
   const hash = Array.from(barberId).reduce(
     (acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0
   );
   const hue = Math.abs(hash) % 360;
   
-  // For lunch breaks, we want pastel colors (high lightness, medium saturation)
-  // For normal appointments, we want more vibrant colors
   const saturation = returnRGB ? '85' : '70';
   const lightness = returnRGB ? '40' : '60';
   
@@ -179,7 +231,12 @@ export const getEventColor = (event: CalendarEvent): string => {
     return `rgba(${getBarberColor(event.barberId, true)}, 0.2)`;
   }
   
-  // For regular bookings, use barber-based colors
+  // If the event has a barberColor property, use that
+  if (event.barberColor) {
+    return event.barberColor;
+  }
+  
+  // Otherwise, fall back to the generated color
   return getBarberColor(event.barberId);
 };
 

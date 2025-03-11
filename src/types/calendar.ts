@@ -6,6 +6,7 @@ export interface CalendarEvent {
   end: Date;
   barber: string;
   barberId: string;
+  barberColor?: string;
   service: string;
   serviceId: string;
   status: string;
