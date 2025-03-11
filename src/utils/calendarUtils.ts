@@ -1,6 +1,6 @@
 
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
-import { Booking } from '@/supabase-types';
+import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 
 // Convert a booking to a calendar event
@@ -76,6 +76,54 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
   }
 };
 
+// Create a calendar event for a lunch break
+export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name: string } }): CalendarEvent => {
+  try {
+    // Create a lunch break event for today
+    const today = new Date();
+    const [hours, minutes] = lunchBreak.start_time.split(':').map(Number);
+    
+    const startDate = new Date(today);
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    const endDate = addMinutes(startDate, lunchBreak.duration);
+    
+    return {
+      id: `lunch-${lunchBreak.id}`, // Prefix with "lunch-" to distinguish from regular bookings
+      title: `Lunch Break (${lunchBreak.duration} mins)`,
+      start: startDate,
+      end: endDate,
+      barber: lunchBreak.barber?.name || 'Unknown',
+      barberId: lunchBreak.barber_id,
+      service: 'Lunch Break',
+      serviceId: '', // No service ID for lunch breaks
+      status: 'lunch-break',
+      isGuest: false,
+      notes: `Daily lunch break for ${lunchBreak.barber?.name || 'barber'}`,
+      userId: '', // No user ID for lunch breaks
+      resourceId: lunchBreak.barber_id,
+    };
+  } catch (error) {
+    console.error('Error creating lunch break event:', error, lunchBreak);
+    // Return a fallback event to prevent crashes
+    return {
+      id: `lunch-error-${Date.now()}`,
+      title: 'Invalid Lunch Break',
+      start: new Date(),
+      end: addMinutes(new Date(), 30),
+      barber: 'Unknown',
+      barberId: lunchBreak.barber_id,
+      service: 'Lunch Break',
+      serviceId: '',
+      status: 'lunch-break',
+      isGuest: false,
+      notes: 'Error parsing lunch break data',
+      userId: '',
+      resourceId: lunchBreak.barber_id,
+    };
+  }
+};
+
 // Generate a color based on barber ID for consistency
 export const getBarberColor = (barberId: string): string => {
   // Simple hash function to generate a hue value (0-360)
@@ -87,9 +135,40 @@ export const getBarberColor = (barberId: string): string => {
   return `hsl(${hue}, 70%, 60%)`;
 };
 
+// Get a color for a specific event type
+export const getEventColor = (event: CalendarEvent): string => {
+  // For lunch breaks, use a distinct color
+  if (event.status === 'lunch-break') {
+    return 'hsl(280, 80%, 60%)'; // Purple for lunch breaks
+  }
+  
+  // For regular bookings, use barber-based colors
+  return getBarberColor(event.barberId);
+};
+
 // Filter events for calendar view based on date
 export const filterEventsByDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
-  return events.filter(event => isSameDay(event.start, date));
+  // Create lunch break events for this specific date
+  const eventsForDate = events.map(event => {
+    // If it's a lunch break, adjust the date to match the target date
+    if (event.status === 'lunch-break') {
+      const newStart = new Date(date);
+      newStart.setHours(event.start.getHours(), event.start.getMinutes(), 0, 0);
+      
+      const newEnd = new Date(date);
+      newEnd.setHours(event.end.getHours(), event.end.getMinutes(), 0, 0);
+      
+      return {
+        ...event,
+        start: newStart,
+        end: newEnd
+      };
+    }
+    
+    return event;
+  });
+  
+  return eventsForDate.filter(event => isSameDay(event.start, date));
 };
 
 // Filter events for a week view
@@ -97,7 +176,36 @@ export const filterEventsByWeek = (events: CalendarEvent[], date: Date): Calenda
   const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Week starts on Monday
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
   
-  return events.filter(event => {
+  // Create lunch break events for each day of the week
+  const allEvents: CalendarEvent[] = [];
+  
+  events.forEach(event => {
+    if (event.status === 'lunch-break') {
+      // For lunch breaks, create an event for each day of the week
+      for (let day = 0; day < 7; day++) {
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(weekStart.getDate() + day);
+        
+        const newStart = new Date(dayDate);
+        newStart.setHours(event.start.getHours(), event.start.getMinutes(), 0, 0);
+        
+        const newEnd = new Date(dayDate);
+        newEnd.setHours(event.end.getHours(), event.end.getMinutes(), 0, 0);
+        
+        allEvents.push({
+          ...event,
+          id: `${event.id}-${day}`, // Make ID unique for each day
+          start: newStart,
+          end: newEnd
+        });
+      }
+    } else {
+      // Regular bookings
+      allEvents.push(event);
+    }
+  });
+  
+  return allEvents.filter(event => {
     const eventDate = event.start;
     return eventDate >= weekStart && eventDate <= weekEnd;
   });

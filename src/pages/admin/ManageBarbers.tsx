@@ -15,17 +15,20 @@ import { toast } from 'sonner';
 import { Barber, InsertableBarber, UpdatableBarber } from '@/supabase-types';
 import { OpeningHoursForm } from '@/components/admin/OpeningHoursForm';
 import { BarberServicesForm } from '@/components/admin/BarberServicesForm';
+import { LunchBreakForm } from '@/components/admin/LunchBreakForm';
+import { useBarbers } from '@/hooks/useBarbers';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const ManageBarbers = () => {
-  const [barbers, setBarbers] = useState<Barber[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { barbers, isLoading, error, refreshBarbers, reactivateBarber, deleteBarber } = useBarbers();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isServicesDialogOpen, setIsServicesDialogOpen] = useState(false);
   const [isHoursDialogOpen, setIsHoursDialogOpen] = useState(false);
+  const [isLunchDialogOpen, setIsLunchDialogOpen] = useState(false);
   
   const [currentBarber, setCurrentBarber] = useState<Barber | null>(null);
   const [formData, setFormData] = useState({
@@ -34,33 +37,6 @@ const ManageBarbers = () => {
     bio: '',
     image_url: ''
   });
-  
-  const fetchBarbers = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // @ts-ignore - Supabase types issue
-      const { data, error } = await supabase
-        .from('barbers')
-        .select('*')
-        .order('active', { ascending: false })
-        .order('name');
-      
-      if (error) throw error;
-      
-      setBarbers(data || []);
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  useEffect(() => {
-    fetchBarbers();
-  }, []);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -96,7 +72,7 @@ const ManageBarbers = () => {
       toast.success('Barber added successfully');
       setIsAddDialogOpen(false);
       resetForm();
-      await fetchBarbers();
+      await refreshBarbers();
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -122,7 +98,7 @@ const ManageBarbers = () => {
       toast.success('Barber updated successfully');
       setIsEditDialogOpen(false);
       resetForm();
-      await fetchBarbers();
+      await refreshBarbers();
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -143,8 +119,41 @@ const ManageBarbers = () => {
       if (error) throw error;
       
       toast.success('Barber deactivated successfully');
-      setIsDeleteDialogOpen(false);
-      await fetchBarbers();
+      setIsDeactivateDialogOpen(false);
+      await refreshBarbers();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+  
+  const handleReactivateBarber = async () => {
+    if (!currentBarber) return;
+    
+    try {
+      const success = await reactivateBarber(currentBarber.id);
+      
+      if (success) {
+        toast.success('Barber reactivated successfully');
+      } else {
+        toast.error('Failed to reactivate barber');
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteBarber = async () => {
+    if (!currentBarber) return;
+    
+    try {
+      const success = await deleteBarber(currentBarber.id);
+      
+      if (success) {
+        toast.success('Barber deleted successfully');
+        setIsDeleteDialogOpen(false);
+      } else {
+        toast.error('Failed to delete barber');
+      }
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -161,6 +170,11 @@ const ManageBarbers = () => {
     setIsEditDialogOpen(true);
   };
   
+  const openDeactivateDialog = (barber: Barber) => {
+    setCurrentBarber(barber);
+    setIsDeactivateDialogOpen(true);
+  };
+
   const openDeleteDialog = (barber: Barber) => {
     setCurrentBarber(barber);
     setIsDeleteDialogOpen(true);
@@ -174,6 +188,11 @@ const ManageBarbers = () => {
   const openHoursDialog = (barber: Barber) => {
     setCurrentBarber(barber);
     setIsHoursDialogOpen(true);
+  };
+  
+  const openLunchDialog = (barber: Barber) => {
+    setCurrentBarber(barber);
+    setIsLunchDialogOpen(true);
   };
   
   return (
@@ -248,15 +267,42 @@ const ManageBarbers = () => {
                       >
                         Hours
                       </Button>
-                      {barber.active && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => openLunchDialog(barber)}
+                      >
+                        Lunch
+                      </Button>
+                      
+                      {barber.active ? (
                         <Button 
                           variant="destructive" 
                           size="sm" 
-                          onClick={() => openDeleteDialog(barber)}
+                          onClick={() => openDeactivateDialog(barber)}
                         >
                           Deactivate
                         </Button>
+                      ) : (
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          onClick={() => {
+                            setCurrentBarber(barber);
+                            handleReactivateBarber();
+                          }}
+                        >
+                          Reactivate
+                        </Button>
                       )}
+                      
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={() => openDeleteDialog(barber)}
+                      >
+                        Delete
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -383,8 +429,8 @@ const ManageBarbers = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Delete Barber Dialog */}
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        {/* Deactivate Barber Dialog */}
+        <Dialog open={isDeactivateDialogOpen} onOpenChange={setIsDeactivateDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Deactivate Barber</DialogTitle>
@@ -393,7 +439,7 @@ const ManageBarbers = () => {
               Are you sure you want to deactivate {currentBarber?.name}? They will no longer be available for bookings.
             </p>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsDeactivateDialogOpen(false)}>
                 Cancel
               </Button>
               <Button variant="destructive" onClick={handleDeactivateBarber}>
@@ -402,6 +448,25 @@ const ManageBarbers = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Barber Alert Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Barber</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action will permanently delete {currentBarber?.name} and ALL their appointments.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteBarber} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete Forever
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Services Dialog */}
         <Dialog open={isServicesDialogOpen} onOpenChange={setIsServicesDialogOpen}>
@@ -428,6 +493,21 @@ const ManageBarbers = () => {
               <OpeningHoursForm 
                 barberId={currentBarber.id} 
                 onSaved={() => setIsHoursDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+        
+        {/* Lunch Break Dialog */}
+        <Dialog open={isLunchDialogOpen} onOpenChange={setIsLunchDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manage {currentBarber?.name}'s Lunch Break</DialogTitle>
+            </DialogHeader>
+            {currentBarber && (
+              <LunchBreakForm 
+                barberId={currentBarber.id} 
+                onSaved={() => setIsLunchDialogOpen(false)}
               />
             )}
           </DialogContent>

@@ -9,6 +9,38 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      barber_lunch_breaks: {
+        Row: {
+          barber_id: string
+          duration: number
+          id: string
+          is_active: boolean | null
+          start_time: string
+        }
+        Insert: {
+          barber_id: string
+          duration: number
+          id?: string
+          is_active?: boolean | null
+          start_time: string
+        }
+        Update: {
+          barber_id?: string
+          duration?: number
+          id?: string
+          is_active?: boolean | null
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_lunch_breaks_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       barber_services: {
         Row: {
           barber_id: string
@@ -217,6 +249,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_lunch_break_conflict: {
+        Args: {
+          p_barber_id: string
+          p_date: string
+          p_start_time: string
+        }
+        Returns: boolean
+      }
       get_user_id_by_email: {
         Args: {
           user_email: string

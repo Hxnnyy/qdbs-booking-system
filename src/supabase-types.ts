@@ -48,6 +48,14 @@ export interface Profile {
   is_admin?: boolean;
 }
 
+export interface LunchBreak {
+  id: string;
+  barber_id: string;
+  start_time: string;
+  duration: number;
+  is_active: boolean;
+}
+
 // Utility types for Supabase operations
 export type InsertableBarber = Omit<Barber, 'id'>;
 export type UpdatableBarber = Partial<InsertableBarber>;
@@ -60,3 +68,6 @@ export type UpdatableBooking = Partial<Omit<InsertableBooking, 'user_id'>>;
 
 export type InsertableProfile = Omit<Profile, 'id'>;
 export type UpdatableProfile = Partial<InsertableProfile>;
+
+export type InsertableLunchBreak = Omit<LunchBreak, 'id'>;
+export type UpdatableLunchBreak = Partial<InsertableLunchBreak>;

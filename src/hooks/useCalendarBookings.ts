@@ -2,12 +2,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Booking } from '@/supabase-types';
+import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 import { bookingToCalendarEvent, formatNewBookingDate, formatNewBookingTime } from '@/utils/calendarUtils';
+import { createLunchBreakEvent } from '@/utils/calendarUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [lunchBreaks, setLunchBreaks] = useState<LunchBreak[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,16 +22,15 @@ export const useCalendarBookings = () => {
     ? calendarEvents.filter(event => event.barberId === selectedBarberId)
     : calendarEvents;
 
-  // Fetch all bookings
-  const fetchBookings = useCallback(async () => {
+  // Fetch all bookings and lunch breaks
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      console.log('Fetching bookings...');
-      
+      // Fetch bookings
       // @ts-ignore - Supabase types issue
-      const { data, error } = await supabase
+      const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
           *,
@@ -39,13 +40,26 @@ export const useCalendarBookings = () => {
         .order('booking_date', { ascending: true })
         .order('booking_time', { ascending: true });
       
-      if (error) throw error;
+      if (bookingsError) throw bookingsError;
       
-      console.log(`Fetched ${data?.length || 0} bookings`);
-      setBookings(data || []);
+      setBookings(bookingsData || []);
+      
+      // Fetch lunch breaks
+      // @ts-ignore - Supabase types issue
+      const { data: lunchData, error: lunchError } = await supabase
+        .from('barber_lunch_breaks')
+        .select(`
+          *,
+          barber:barber_id(name)
+        `)
+        .eq('is_active', true);
+        
+      if (lunchError) throw lunchError;
+      
+      setLunchBreaks(lunchData || []);
       
       // Convert bookings to calendar events
-      const events = (data || []).map(booking => {
+      const bookingEvents = (bookingsData || []).map(booking => {
         try {
           return bookingToCalendarEvent(booking);
         } catch (err) {
@@ -54,12 +68,22 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      console.log(`Created ${events.length} calendar events`);
-      setCalendarEvents(events);
+      // Convert lunch breaks to calendar events
+      const lunchEvents = (lunchData || []).map(lunchBreak => {
+        try {
+          return createLunchBreakEvent(lunchBreak);
+        } catch (err) {
+          console.error('Error converting lunch break to event:', err, lunchBreak);
+          return null;
+        }
+      }).filter(Boolean) as CalendarEvent[];
+      
+      // Combine both event types
+      setCalendarEvents([...bookingEvents, ...lunchEvents]);
     } catch (err: any) {
-      console.error('Error fetching bookings:', err);
+      console.error('Error fetching calendar data:', err);
       setError(err.message);
-      toast.error('Failed to load bookings');
+      toast.error('Failed to load calendar data');
     } finally {
       setIsLoading(false);
     }
@@ -67,13 +91,19 @@ export const useCalendarBookings = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
+    fetchData();
+  }, [fetchData]);
 
   // Update booking time/date (for drag and drop)
   const updateBookingTime = async (eventId: string, newStart: Date, newEnd: Date) => {
     try {
       setIsLoading(true);
+      
+      // Check if this is a lunch break event (starts with 'lunch-')
+      if (eventId.startsWith('lunch-')) {
+        toast.error('Lunch breaks cannot be moved via drag and drop. Please edit them in the barber settings.');
+        return;
+      }
       
       const newBookingDate = formatNewBookingDate(newStart);
       const newBookingTime = formatNewBookingTime(newStart);
@@ -149,7 +179,7 @@ export const useCalendarBookings = () => {
       if (error) throw error;
       
       // Refresh bookings to get updated data with joins
-      await fetchBookings();
+      await fetchData();
       
       return true;
     } catch (err: any) {
@@ -169,6 +199,12 @@ export const useCalendarBookings = () => {
 
   // Handle event click
   const handleEventClick = (event: CalendarEvent) => {
+    // Don't open dialog for lunch breaks
+    if (event.id.startsWith('lunch-')) {
+      toast.info(`${event.barber}'s lunch break: ${event.title}`);
+      return;
+    }
+    
     setSelectedEvent(event);
     setIsDialogOpen(true);
   };
@@ -179,33 +215,44 @@ export const useCalendarBookings = () => {
     const handleBookingChange = (payload: any) => {
       console.log('Realtime booking change detected:', payload);
       // Refresh the whole list for simplicity
-      fetchBookings();
+      fetchData();
     };
 
-    // Set up the subscription
-    const channel = supabase
-      .channel('booking-changes')
+    // Set up the subscription for bookings
+    const bookingsChannel = supabase
+      .channel('bookings-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings' },
         handleBookingChange
       )
       .subscribe();
+      
+    // Set up the subscription for lunch breaks
+    const lunchChannel = supabase
+      .channel('lunch-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'barber_lunch_breaks' },
+        handleBookingChange
+      )
+      .subscribe();
 
-    console.log('Subscribed to booking changes');
+    console.log('Subscribed to calendar data changes');
 
     // Cleanup
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(bookingsChannel);
+      supabase.removeChannel(lunchChannel);
     };
-  }, [fetchBookings]);
+  }, [fetchData]);
 
   return {
     bookings,
     calendarEvents: filteredEvents,
     isLoading,
     error,
-    fetchBookings,
+    fetchBookings: fetchData,
     handleEventDrop,
     handleEventClick,
     updateBooking,
