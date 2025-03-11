@@ -3,8 +3,9 @@ import React from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
-import { CalendarViewComponent } from '@/components/admin/calendar/CalendarView';
+import { CalendarViewComponent } from '@/components/admin/calendar/CalendarViewComponent';
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
+import { BarberFilter } from '@/components/admin/calendar/BarberFilter';
 
 const CalendarView = () => {
   const {
@@ -16,7 +17,9 @@ const CalendarView = () => {
     selectedEvent,
     setSelectedEvent,
     isDialogOpen,
-    setIsDialogOpen
+    setIsDialogOpen,
+    selectedBarberId,
+    setSelectedBarberId
   } = useCalendarBookings();
 
   return (
@@ -28,6 +31,11 @@ const CalendarView = () => {
           <p className="text-muted-foreground">
             View and manage appointments in calendar format. Drag and drop to reschedule.
           </p>
+          
+          <BarberFilter 
+            selectedBarberId={selectedBarberId} 
+            onSelectBarber={setSelectedBarberId} 
+          />
           
           <CalendarViewComponent
             events={calendarEvents}

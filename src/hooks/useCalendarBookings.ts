@@ -13,6 +13,12 @@ export const useCalendarBookings = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
+
+  // Filter events by selected barber
+  const filteredEvents = selectedBarberId 
+    ? calendarEvents.filter(event => event.barberId === selectedBarberId)
+    : calendarEvents;
 
   // Fetch all bookings
   const fetchBookings = useCallback(async () => {
@@ -169,7 +175,7 @@ export const useCalendarBookings = () => {
 
   // Subscribe to realtime updates
   useEffect(() => {
-    // Function to handle booking updates
+    // Function to handle booking changes
     const handleBookingChange = (payload: any) => {
       console.log('Realtime booking change detected:', payload);
       // Refresh the whole list for simplicity
@@ -196,7 +202,7 @@ export const useCalendarBookings = () => {
 
   return {
     bookings,
-    calendarEvents,
+    calendarEvents: filteredEvents,
     isLoading,
     error,
     fetchBookings,
@@ -206,6 +212,9 @@ export const useCalendarBookings = () => {
     selectedEvent,
     setSelectedEvent,
     isDialogOpen,
-    setIsDialogOpen
+    setIsDialogOpen,
+    selectedBarberId,
+    setSelectedBarberId,
+    allEvents: calendarEvents // Provide access to all events (unfiltered)
   };
 };
