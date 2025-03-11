@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -19,6 +20,11 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const totalHours = endHour - startHour;
   
   const calendarHeight = totalHours * 60;
+
+  // Check if there are any holiday events for this day
+  const holidayEvents = displayEvents.filter(event => 
+    event.status === 'holiday' && event.allDay === true
+  );
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
     const sortedEvents = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -94,7 +100,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   }, [events, date]);
 
   const handleDragStart = (event: CalendarEvent) => {
-    if (event.status === 'lunch-break') return;
+    if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
   };
 
@@ -138,11 +144,25 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
-      <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center ${
-        isToday(date) ? 'bg-primary/10' : ''
-      }`}>
-        <div className="text-sm">{format(date, 'EEEE')}</div>
-        <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
+      <div className="flex flex-col">
+        <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center ${
+          isToday(date) ? 'bg-primary/10' : ''
+        }`}>
+          <div className="text-sm">{format(date, 'EEEE')}</div>
+          <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
+        </div>
+        
+        {/* Holiday Indicator */}
+        {holidayEvents.length > 0 && (
+          <div className="bg-red-100 border-b border-red-300 py-1 px-2 text-xs text-center">
+            <div className="flex items-center justify-center space-x-1">
+              <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+              <span className="font-medium text-red-800">
+                {holidayEvents.map(event => `${event.barber} - ${event.title}`).join(', ')}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
       
       <div 

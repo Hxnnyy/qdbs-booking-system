@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -106,7 +107,8 @@ export const useCalendarBookings = () => {
       }).filter(Boolean) as CalendarEvent[];
       
       // Combine all event types
-      setCalendarEvents([...bookingEvents, ...lunchEvents, ...holidayEvents]);
+      // Ensure lunch breaks come after holidays in the array so they're rendered on top
+      setCalendarEvents([...bookingEvents, ...holidayEvents, ...lunchEvents]);
     } catch (err: any) {
       console.error('Error fetching calendar data:', err);
       setError(err.message);

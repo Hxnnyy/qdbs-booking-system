@@ -46,8 +46,8 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   const styles = {
     backgroundColor: backgroundColor,
     borderLeft: `4px solid ${borderColor}`,
-    color: isLunchBreak || isHoliday ? '#fff' : '#000', // White text for lunch breaks and holidays, black for regular appointments
-    opacity: isLunchBreak ? 0.5 : 1, // Only apply transparency to lunch breaks
+    color: isLunchBreak || isHoliday ? '#333' : '#000', // Darker text for lunch breaks and holidays for better readability
+    opacity: isLunchBreak ? 0.7 : 1, // Only apply transparency to lunch breaks
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
     position: 'absolute' as const,

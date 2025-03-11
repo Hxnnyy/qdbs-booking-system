@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -92,7 +93,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   };
 
   const handleDragStart = (event: CalendarEvent) => {
-    if (event.status === 'lunch-break') return;
+    if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
   };
 
@@ -138,19 +139,38 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
-      <div className="flex border-b border-border h-12">
-        <div className="w-16 border-r border-border"></div>
-        {weekDays.map((day) => (
-          <div 
-            key={day.toISOString()} 
-            className={`flex-1 font-medium flex flex-col items-center justify-center min-w-[120px] ${
-              isToday(day) ? 'bg-primary/10' : ''
-            }`}
-          >
-            <div className="text-sm">{format(day, 'EEE')}</div>
-            <div className="text-xs text-muted-foreground">{format(day, 'd MMM')}</div>
-          </div>
-        ))}
+      <div className="flex border-b border-border">
+        <div className="w-16 border-r border-border h-12"></div>
+        {weekDays.map((day) => {
+          // Check if there are any holiday events for this day
+          const dayEvents = filterEventsByDate(events, day);
+          const holidayEvents = dayEvents.filter(event => 
+            event.status === 'holiday' && event.allDay === true
+          );
+          
+          return (
+            <div key={day.toISOString()} className="flex-1 min-w-[120px]">
+              <div className={`font-medium flex flex-col items-center justify-center h-12 ${
+                isToday(day) ? 'bg-primary/10' : ''
+              }`}>
+                <div className="text-sm">{format(day, 'EEE')}</div>
+                <div className="text-xs text-muted-foreground">{format(day, 'd MMM')}</div>
+              </div>
+              
+              {/* Holiday Indicator */}
+              {holidayEvents.length > 0 && (
+                <div className="bg-red-100 border-b border-red-300 py-1 px-1 text-xs text-center">
+                  <div className="flex items-center justify-center space-x-1">
+                    <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                    <span className="font-medium text-red-800 truncate">
+                      {holidayEvents[0].barber}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
       <div 
         className="flex-1 relative"
