@@ -19,7 +19,7 @@ import { useBarbers } from '@/hooks/useBarbers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ColorPickerDialog } from '@/components/admin/barbers/ColorPickerDialog';
 import { HolidayDialog } from '@/components/admin/barbers/HolidayDialog';
-import { format } from 'date-fns';
+import { format, eachDayOfInterval } from 'date-fns';
 
 const ManageBarbers = () => {
   const { barbers, isLoading, error, refreshBarbers, reactivateBarber, deleteBarber } = useBarbers();

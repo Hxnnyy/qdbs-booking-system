@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { format } from 'date-fns';
+import { format, addDays, eachDayOfInterval } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,14 +10,14 @@ interface HolidayDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (startDate: Date, endDate: Date) => void;
-  barberId: string; // Add the barberId prop
+  barberId: string;
 }
 
 export const HolidayDialog: React.FC<HolidayDialogProps> = ({
   isOpen,
   onClose,
   onSave,
-  barberId, // Include the prop in the function parameters
+  barberId,
 }) => {
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();

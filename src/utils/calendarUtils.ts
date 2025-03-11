@@ -1,4 +1,4 @@
-import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
+import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +6,11 @@ import { supabase } from '@/integrations/supabase/client';
 // Convert a booking to a calendar event
 export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
   try {
+    // Special handling for holiday bookings
+    if (booking.status === 'holiday') {
+      return createHolidayEvent(booking);
+    }
+    
     // Parse date and time properly
     const dateStr = booking.booking_date;
     const timeStr = booking.booking_time;
@@ -70,6 +75,59 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       status: 'error',
       isGuest: false,
       notes: 'Error parsing booking data',
+      userId: booking.user_id,
+      resourceId: booking.barber_id,
+    };
+  }
+};
+
+// Create a calendar event for a holiday
+export const createHolidayEvent = (booking: Booking): CalendarEvent => {
+  try {
+    // Parse date and create a full-day event
+    const dateStr = booking.booking_date;
+    
+    if (!dateStr) {
+      console.error('Missing date in holiday booking:', booking);
+      throw new Error('Missing date in holiday booking');
+    }
+    
+    // Create a date object for the start of the day
+    const startDate = parseISO(`${dateStr}T00:00:00`);
+    
+    // End at the end of the day
+    const endDate = parseISO(`${dateStr}T23:59:59`);
+    
+    return {
+      id: booking.id,
+      title: 'Holiday',
+      start: startDate,
+      end: endDate,
+      barber: booking.barber?.name || 'Unknown',
+      barberId: booking.barber_id,
+      service: 'Holiday',
+      serviceId: booking.service_id,
+      status: 'holiday',
+      isGuest: false,
+      notes: booking.notes || 'Barber holiday',
+      userId: booking.user_id,
+      resourceId: booking.barber_id,
+    };
+  } catch (error) {
+    console.error('Error creating holiday event:', error, booking);
+    // Return a fallback event to prevent crashes
+    return {
+      id: booking.id,
+      title: 'Holiday (Error)',
+      start: new Date(),
+      end: addMinutes(new Date(), 24 * 60), // Full day
+      barber: 'Unknown',
+      barberId: booking.barber_id,
+      service: 'Holiday',
+      serviceId: booking.service_id,
+      status: 'holiday',
+      isGuest: false,
+      notes: 'Error parsing holiday data',
       userId: booking.user_id,
       resourceId: booking.barber_id,
     };
