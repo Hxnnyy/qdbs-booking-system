@@ -4,7 +4,7 @@ import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
 import { filterEventsByDate, getHolidayEventsForDate } from '@/utils/calendarUtils';
-import { useCalendarSettings } from '@/context/CalendarSettingsContext';
+import { useCalendarSettings } from '@/hooks/useCalendarSettings';
 import { HolidayIndicator } from './HolidayIndicator';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
@@ -117,7 +117,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   }, [events, date]);
 
   const handleDragStart = (event: CalendarEvent) => {
-    if (event.status === 'lunch-break' || event.status === 'holiday') return;
+    if (event.status === 'lunch-break') return;
     setDraggingEvent(event);
   };
 
@@ -260,7 +260,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
               return (
                 <div 
                   key={event.id}
-                  draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
+                  draggable={event.status !== 'lunch-break'}
                   onDragStart={() => handleDragStart(event)}
                   className="absolute w-full"
                   style={{ 

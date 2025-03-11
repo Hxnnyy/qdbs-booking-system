@@ -34,7 +34,7 @@ const CalendarView: React.FC = () => {
               <h1 className="text-3xl font-bold">Calendar</h1>
               <BarberFilter 
                 selectedBarberId={selectedBarberId}
-                onBarberSelect={setSelectedBarberId} 
+                onChange={setSelectedBarberId} 
               />
             </div>
             

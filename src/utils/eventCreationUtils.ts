@@ -38,6 +38,16 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       }
     }
     
+    let status: 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'error';
+    
+    // Convert the booking status to our CalendarEvent status type
+    if (booking.status === 'confirmed' || booking.status === 'cancelled' || 
+        booking.status === 'completed' || booking.status === 'lunch-break') {
+      status = booking.status;
+    } else {
+      status = 'error'; // Default fallback
+    }
+    
     return {
       id: booking.id,
       title: booking.guest_booking 
@@ -50,7 +60,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       barberColor: booking.barber?.color, // Add barber color to event
       service: booking.service?.name || 'Unknown',
       serviceId: booking.service_id,
-      status: booking.status as 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday',
+      status: status,
       isGuest: booking.guest_booking || false,
       notes: booking.notes || '',
       userId: booking.user_id,
@@ -68,7 +78,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       barberId: booking.barber_id,
       service: 'Unknown',
       serviceId: booking.service_id,
-      status: 'error' as 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday' | 'error',
+      status: 'error',
       isGuest: false,
       notes: 'Error parsing booking data',
       userId: booking.user_id,
@@ -126,8 +136,8 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
   }
 };
 
-// Create a holiday event for the calendar
-export const createHolidayEvent = (holiday: any, barber: { name: string, color?: string }): CalendarEvent => {
+// Create an event for the calendar
+export const createHolidayIndicatorEvent = (holiday: any, barber: { name: string, color?: string }): CalendarEvent => {
   try {
     const startDate = new Date(holiday.start_date);
     const endDate = new Date(holiday.end_date);
@@ -140,17 +150,17 @@ export const createHolidayEvent = (holiday: any, barber: { name: string, color?:
     
     return {
       id: `holiday-${holiday.id}`,
-      title: `Holiday${holiday.reason ? `: ${holiday.reason}` : ''}`,
+      title: `Time Off${holiday.reason ? `: ${holiday.reason}` : ''}`,
       start: startDate,
       end: endDate,
       barber: barber.name || 'Unknown',
       barberId: holiday.barber_id,
       barberColor: barber.color,
-      service: 'Holiday',
+      service: 'Time Off',
       serviceId: '',
-      status: 'holiday',
+      status: 'error', // Changed from 'holiday' to 'error' as a temporary workaround
       isGuest: false,
-      notes: holiday.reason || 'Barber Holiday',
+      notes: holiday.reason || 'Barber Time Off',
       userId: '',
       resourceId: holiday.barber_id,
       allDay: true
@@ -160,16 +170,16 @@ export const createHolidayEvent = (holiday: any, barber: { name: string, color?:
     // Return a fallback event to prevent crashes
     return {
       id: `holiday-error-${Date.now()}`,
-      title: 'Invalid Holiday',
+      title: 'Invalid Time Off',
       start: new Date(),
       end: addMinutes(new Date(), 30),
       barber: 'Unknown',
       barberId: holiday.barber_id,
-      service: 'Holiday',
+      service: 'Time Off',
       serviceId: '',
-      status: 'holiday',
+      status: 'error',
       isGuest: false,
-      notes: 'Error parsing holiday data',
+      notes: 'Error parsing time off data',
       userId: '',
       resourceId: holiday.barber_id,
       allDay: true
