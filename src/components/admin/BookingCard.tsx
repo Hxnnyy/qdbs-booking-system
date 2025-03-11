@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { format, parseISO } from 'date-fns';
-import { User, Phone } from 'lucide-react';
+import { User, Phone, Edit } from 'lucide-react';
 import { Booking } from '@/supabase-types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface BookingCardProps {
   booking: Booking;
-  onUpdateStatus: (booking: Booking) => void;
+  onEditBooking: (booking: Booking) => void;
 }
 
 // Extract guest info from notes field
@@ -42,7 +42,7 @@ const getStatusBadgeClass = (status: string) => {
   }
 };
 
-export const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdateStatus }) => {
+export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking }) => {
   const isGuestBooking = booking.guest_booking === true;
   const guestInfo = isGuestBooking ? extractGuestInfo(booking.notes) : null;
   
@@ -95,9 +95,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdateStatu
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => onUpdateStatus(booking)}
+              onClick={() => onEditBooking(booking)}
             >
-              Update Status
+              <Edit className="h-4 w-4 mr-1" />
+              Edit Booking
             </Button>
           </div>
         </div>

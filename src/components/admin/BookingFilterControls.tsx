@@ -35,11 +35,12 @@ export const BookingFilterControls: React.FC<BookingFilterControlsProps> = ({
 }) => {
   return (
     <>
-      <TabsList className="grid grid-cols-4 mb-4">
+      <TabsList className="grid grid-cols-5 mb-4">
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="today">Today</TabsTrigger>
         <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
         <TabsTrigger value="past">Past</TabsTrigger>
+        <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
       </TabsList>
       
       <div className="flex flex-col sm:flex-row justify-end gap-2 mb-4">

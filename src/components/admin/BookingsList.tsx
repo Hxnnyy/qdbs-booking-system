@@ -8,14 +8,14 @@ interface BookingsListProps {
   bookings: Booking[];
   isLoading: boolean;
   error: string | null;
-  onUpdateStatus: (booking: Booking) => void;
+  onEditBooking: (booking: Booking) => void;
 }
 
 export const BookingsList: React.FC<BookingsListProps> = ({ 
   bookings, 
   isLoading, 
   error, 
-  onUpdateStatus 
+  onEditBooking
 }) => {
   if (isLoading) {
     return (
@@ -47,7 +47,7 @@ export const BookingsList: React.FC<BookingsListProps> = ({
         <BookingCard 
           key={booking.id} 
           booking={booking} 
-          onUpdateStatus={onUpdateStatus} 
+          onEditBooking={onEditBooking} 
         />
       ))}
     </div>

@@ -8,10 +8,12 @@ import { format, isToday, isPast, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { Booking } from '@/supabase-types';
 
-// Import our new components
+// Import our components
 import { BookingsList } from '@/components/admin/BookingsList';
 import { BookingFilterControls } from '@/components/admin/BookingFilterControls';
-import { StatusUpdateDialog } from '@/components/admin/StatusUpdateDialog';
+import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
+import { CalendarEvent } from '@/types/calendar';
+import { bookingToCalendarEvent } from '@/utils/calendarUtils';
 
 const ManageBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -19,12 +21,13 @@ const ManageBookings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [currentTab, setCurrentTab] = useState('all');
+  const [currentTab, setCurrentTab] = useState('today'); // Changed default to 'today'
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   
-  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
-  const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
-  const [newBookingStatus, setNewBookingStatus] = useState('');
+  // For the EventDetailsDialog (same as CalendarView)
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const fetchBookings = async () => {
     try {
@@ -76,6 +79,9 @@ const ManageBookings = () => {
         isPast(parseISO(booking.booking_date)) && 
         !isToday(parseISO(booking.booking_date))
       );
+    } else if (tab === 'cancelled') {
+      // Add cancelled tab filter
+      filtered = filtered.filter(booking => booking.status === 'cancelled');
     }
     
     // Filter by status
@@ -99,33 +105,51 @@ const ManageBookings = () => {
     filterBookings(bookings, currentTab, statusFilter, typeFilter);
   }, [currentTab, statusFilter, typeFilter, bookings]);
   
-  const handleUpdateStatus = async () => {
-    if (!currentBooking || !newBookingStatus) return;
-    
+  // Update booking status and details using EventDetailsDialog
+  const updateBooking = async (
+    bookingId: string, 
+    updates: { 
+      title?: string; 
+      barber_id?: string; 
+      service_id?: string; 
+      notes?: string;
+      booking_date?: string;
+      booking_time?: string;
+      status?: string;
+    }
+  ) => {
     try {
-      const bookingId = currentBooking.id;
-      const newStatus = newBookingStatus;
-      
       // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('bookings')
-        .update({ status: newStatus })
+        .update(updates)
         .eq('id', bookingId);
       
       if (error) throw error;
       
-      toast.success(`Booking status updated to ${newStatus}`);
-      setIsStatusDialogOpen(false);
+      toast.success('Booking updated successfully');
       await fetchBookings();
+      return true;
     } catch (err: any) {
-      toast.error(err.message);
+      console.error('Error updating booking:', err);
+      toast.error('Failed to update booking');
+      return false;
     }
   };
   
-  const openStatusDialog = (booking: Booking) => {
-    setCurrentBooking(booking);
-    setNewBookingStatus(booking.status);
-    setIsStatusDialogOpen(true);
+  // Open edit dialog (similar to calendar view)
+  const openEditDialog = (booking: Booking) => {
+    setSelectedBooking(booking);
+    
+    // Convert booking to calendar event format for the dialog
+    try {
+      const event = bookingToCalendarEvent(booking);
+      setSelectedEvent(event);
+      setIsDialogOpen(true);
+    } catch (err) {
+      console.error('Error converting booking to event:', err);
+      toast.error('Could not open booking details');
+    }
   };
   
   return (
@@ -136,7 +160,7 @@ const ManageBookings = () => {
           
           <div className="flex flex-col sm:flex-row gap-4">
             <Tabs 
-              defaultValue="all" 
+              defaultValue="today" 
               className="w-full" 
               onValueChange={(value) => setCurrentTab(value)}
             >
@@ -154,7 +178,7 @@ const ManageBookings = () => {
                   bookings={filteredBookings} 
                   isLoading={isLoading} 
                   error={error}
-                  onUpdateStatus={openStatusDialog}
+                  onEditBooking={openEditDialog}
                 />
               </TabsContent>
               
@@ -163,7 +187,7 @@ const ManageBookings = () => {
                   bookings={filteredBookings} 
                   isLoading={isLoading} 
                   error={error}
-                  onUpdateStatus={openStatusDialog}
+                  onEditBooking={openEditDialog}
                 />
               </TabsContent>
               
@@ -172,7 +196,7 @@ const ManageBookings = () => {
                   bookings={filteredBookings} 
                   isLoading={isLoading} 
                   error={error}
-                  onUpdateStatus={openStatusDialog}
+                  onEditBooking={openEditDialog}
                 />
               </TabsContent>
               
@@ -181,20 +205,32 @@ const ManageBookings = () => {
                   bookings={filteredBookings} 
                   isLoading={isLoading} 
                   error={error}
-                  onUpdateStatus={openStatusDialog}
+                  onEditBooking={openEditDialog}
+                />
+              </TabsContent>
+              
+              <TabsContent value="cancelled" className="mt-0">
+                <BookingsList 
+                  bookings={filteredBookings} 
+                  isLoading={isLoading} 
+                  error={error}
+                  onEditBooking={openEditDialog}
                 />
               </TabsContent>
             </Tabs>
           </div>
         </div>
         
-        <StatusUpdateDialog
-          isOpen={isStatusDialogOpen}
-          setIsOpen={setIsStatusDialogOpen}
-          booking={currentBooking}
-          newStatus={newBookingStatus}
-          setNewStatus={setNewBookingStatus}
-          onUpdateStatus={handleUpdateStatus}
+        {/* Use EventDetailsDialog for editing bookings, same as in CalendarView */}
+        <EventDetailsDialog
+          event={selectedEvent}
+          isOpen={isDialogOpen}
+          onClose={() => {
+            setIsDialogOpen(false);
+            setSelectedEvent(null);
+            setSelectedBooking(null);
+          }}
+          onUpdateBooking={updateBooking}
         />
       </AdminLayout>
     </Layout>
