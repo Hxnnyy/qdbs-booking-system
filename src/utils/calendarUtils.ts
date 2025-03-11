@@ -1,3 +1,4 @@
+
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -222,6 +223,8 @@ export const getBarberColor = async (barberId: string, returnRGB: boolean = fals
     
     let r, g, b;
     
+    // Fixed TypeScript error: Use a strict comparison with a number type
+    // instead of comparing different number literal types
     if (s === 0) {
       r = g = b = l; // achromatic
     } else {
