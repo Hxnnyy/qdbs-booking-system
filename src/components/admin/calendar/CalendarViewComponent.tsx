@@ -53,7 +53,12 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <Tabs defaultValue="week" className="w-full sm:w-auto" onValueChange={(value) => setViewMode(value as ViewMode)}>
+        <Tabs 
+          defaultValue="week" 
+          className="w-full sm:w-auto" 
+          onValueChange={(value) => setViewMode(value as ViewMode)}
+          value={viewMode}
+        >
           <TabsList>
             <TabsTrigger value="day">Day</TabsTrigger>
             <TabsTrigger value="week">Week</TabsTrigger>
@@ -92,7 +97,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
         </div>
       </div>
 
-      <div className="border rounded-md overflow-hidden">
+      <div className="border rounded-md overflow-hidden bg-white">
         {viewMode === 'day' ? (
           <DayView
             date={currentDate}
