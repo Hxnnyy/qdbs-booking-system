@@ -10,15 +10,25 @@ interface HolidayDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (startDate: Date, endDate: Date) => void;
+  barberId: string; // Add the barberId prop
 }
 
 export const HolidayDialog: React.FC<HolidayDialogProps> = ({
   isOpen,
   onClose,
   onSave,
+  barberId, // Include the prop in the function parameters
 }) => {
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
+
+  // Reset state when dialog opens or closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setStartDate(undefined);
+      setEndDate(undefined);
+    }
+  }, [isOpen]);
 
   const handleSave = () => {
     if (startDate && endDate) {
