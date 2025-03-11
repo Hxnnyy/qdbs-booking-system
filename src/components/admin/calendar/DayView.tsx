@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -192,8 +193,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
                 style={{ 
                   top: `${top}px`, 
                   height: `${height}px`,
-                  paddingLeft: '16px',
-                  paddingRight: '4px'
+                  padding: 0 // Remove any padding that might be creating gaps
                 }}
               >
                 <CalendarEventComponent 

@@ -44,9 +44,13 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
   // Clean up title by removing "Guest: " prefix if present
   const cleanTitle = event.title.replace('Guest: ', '');
 
-  // Calculate width and position for overlapping events
-  const width = totalSlots > 1 ? `calc((100% - ${(totalSlots - 1) * 4}px) / ${totalSlots})` : 'calc(100% - 8px)';
-  const leftOffset = slotIndex * (100 / totalSlots) + 4; // 4px left padding
+  // Calculate width based on total slots - make cards more compact
+  const width = totalSlots > 1 
+    ? `calc((100% - ${(totalSlots - 1) * 2}px) / ${totalSlots})` 
+    : '100%';
+  
+  // Calculate left offset based on slot index
+  const leftOffset = slotIndex * (100 / totalSlots);
   
   return (
     <TooltipProvider>
@@ -76,16 +80,16 @@ export const CalendarEventComponent: React.FC<EventComponentProps> = ({
             onClick={() => onEventClick(event)}
             layout
           >
-            <div className="flex flex-col h-full overflow-hidden p-1.5">
+            <div className="flex flex-col h-full overflow-hidden p-1">
               <div className="flex items-center gap-1">
-                <p className="text-[11px] font-medium truncate">{cleanTitle}</p>
-                <span className="text-[11px] text-muted-foreground truncate">• {event.service}</span>
+                <p className="text-[10px] font-medium truncate">{cleanTitle}</p>
+                <span className="text-[10px] text-muted-foreground truncate">• {event.service}</span>
               </div>
               
               {duration >= 30 && (
-                <div className="mt-auto pt-0.5 flex items-center justify-between">
-                  <p className="text-[11px] text-muted-foreground truncate">{event.barber}</p>
-                  <span className="text-[11px] text-muted-foreground truncate">{startTime}</span>
+                <div className="mt-auto flex items-center justify-between">
+                  <p className="text-[10px] text-muted-foreground truncate">{event.barber}</p>
+                  <span className="text-[10px] text-muted-foreground truncate">{startTime}</span>
                 </div>
               )}
             </div>
