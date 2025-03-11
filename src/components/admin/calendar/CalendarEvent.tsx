@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarEvent as CalendarEventType } from '@/types/calendar';
 import { getBarberColor, getEventColor } from '@/utils/calendarUtils';
@@ -21,15 +21,39 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   totalSlots = 1,
   onEventClick
 }) => {
+  const [backgroundColor, setBackgroundColor] = useState<string>('');
+  const [borderColor, setBorderColor] = useState<string>('');
+  
+  useEffect(() => {
+    const initColors = async () => {
+      const isLunchBreak = event.status === 'lunch-break';
+      const isHoliday = event.status === 'holiday';
+      
+      if (isLunchBreak) {
+        const rgb = await getBarberColor(event.barberId, true);
+        setBackgroundColor(`rgba(${rgb}, 0.2)`);
+        setBorderColor(`rgb(${rgb})`);
+      } else if (isHoliday) {
+        const rgb = await getBarberColor(event.barberId, true);
+        setBackgroundColor(`repeating-linear-gradient(45deg, rgba(${rgb}, 0.2), rgba(${rgb}, 0.2) 10px, rgba(${rgb}, 0.3) 10px, rgba(${rgb}, 0.3) 20px)`);
+        setBorderColor(`rgb(${rgb})`);
+      } else {
+        const color = await getBarberColor(event.barberId);
+        setBackgroundColor(color);
+        setBorderColor(color);
+      }
+    };
+    
+    initColors();
+  }, [event.barberId, event.status]);
+
   const isLunchBreak = event.status === 'lunch-break';
-  const eventColor = getEventColor(event);
-  const lunchBreakBgColor = `rgba(${getBarberColor(event.barberId, true)}, 0.2)`;
-  const lunchBreakBorderColor = `rgb(${getBarberColor(event.barberId, true)})`;
+  const isHoliday = event.status === 'holiday';
   
   const styles = {
-    backgroundColor: isLunchBreak ? lunchBreakBgColor : eventColor,
-    borderLeft: isLunchBreak ? `4px solid ${lunchBreakBorderColor}` : `4px solid ${eventColor}`,
-    color: isLunchBreak ? '#fff' : '#000', // Changed lunch break text to white
+    backgroundColor,
+    borderLeft: `4px solid ${borderColor}`,
+    color: isLunchBreak || isHoliday ? '#fff' : '#000',
     opacity: isDragging ? 0.5 : 1,
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',

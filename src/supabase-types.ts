@@ -1,4 +1,3 @@
-
 // Custom type definitions for Supabase tables
 export interface Barber {
   id: string;
@@ -7,6 +6,7 @@ export interface Barber {
   bio?: string;
   image_url?: string;
   active: boolean;
+  color?: string;
 }
 
 export interface Service {
