@@ -13,15 +13,17 @@ interface HolidayDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (startDate: Date, endDate: Date) => void;
+  barberId: string;
 }
 
 export const HolidayDialog: React.FC<HolidayDialogProps> = ({
   isOpen,
   onClose,
   onSave,
+  barberId
 }) => {
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [existingServiceId, setExistingServiceId] = useState<string | null>(null);
 
@@ -69,9 +71,22 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
       }
       
       onSave(startDate, endDate);
+      
+      // Reset dates after saving
+      setStartDate(undefined);
+      setEndDate(undefined);
+      
       onClose();
     }
   };
+
+  // Reset dates when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setStartDate(undefined);
+      setEndDate(undefined);
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
