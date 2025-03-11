@@ -6,7 +6,6 @@ import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 import { CalendarViewComponent } from '@/components/admin/calendar/CalendarViewComponent';
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
 import { BarberFilter } from '@/components/admin/calendar/BarberFilter';
-import { CalendarSettingsProvider } from '@/context/CalendarSettingsContext';
 
 const CalendarView = () => {
   const {
@@ -40,24 +39,22 @@ const CalendarView = () => {
             />
           </div>
           
-          <CalendarSettingsProvider>
-            <CalendarViewComponent
-              events={calendarEvents}
-              isLoading={isLoading}
-              onEventDrop={handleEventDrop}
-              onEventClick={handleEventClick}
-            />
-            
-            <EventDetailsDialog
-              event={selectedEvent}
-              isOpen={isDialogOpen}
-              onClose={() => {
-                setIsDialogOpen(false);
-                setSelectedEvent(null);
-              }}
-              onUpdateBooking={updateBooking}
-            />
-          </CalendarSettingsProvider>
+          <CalendarViewComponent
+            events={calendarEvents}
+            isLoading={isLoading}
+            onEventDrop={handleEventDrop}
+            onEventClick={handleEventClick}
+          />
+          
+          <EventDetailsDialog
+            event={selectedEvent}
+            isOpen={isDialogOpen}
+            onClose={() => {
+              setIsDialogOpen(false);
+              setSelectedEvent(null);
+            }}
+            onUpdateBooking={updateBooking}
+          />
         </div>
       </AdminLayout>
     </Layout>

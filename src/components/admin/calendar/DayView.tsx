@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -18,7 +19,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const [dragPreview, setDragPreview] = useState<{ time: string, top: number } | null>(null);
   const totalHours = endHour - startHour;
   
-  const calendarHeight = Math.max(totalHours * 60, 600);
+  const calendarHeight = totalHours * 60;
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
     const sortedEvents = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());

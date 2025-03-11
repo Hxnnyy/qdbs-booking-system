@@ -18,8 +18,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const [dragPreview, setDragPreview] = useState<{ time: string, top: number, columnIndex: number } | null>(null);
   const totalHours = endHour - startHour;
   
-  // Set a specific minimum height to ensure visibility
-  const calendarHeight = Math.max(totalHours * 60, 600);
+  const calendarHeight = totalHours * 60;
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }).map((_, index) => {
     return addDays(weekStart, index);
@@ -126,7 +125,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         style={{ height: `${calendarHeight}px` }}
       >
         <div className="flex h-full">
-          <div className="w-16 relative border-r border-border h-full z-10 bg-background">
+          <div className="w-16 relative border-r border-border h-full z-10">
             {Array.from({ length: totalHours + 1 }).map((_, index) => {
               const hour = startHour + index;
               return (
@@ -147,7 +146,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
             return (
               <div 
                 key={day.toISOString()}
-                className="flex-1 relative border-r border-border min-w-[120px] h-full bg-white"
+                className="flex-1 relative border-r border-border min-w-[120px] h-full"
                 onDragOver={(e) => handleDragOver(e, dayIndex)}
                 onDrop={(e) => handleDragEnd(e, day)}
                 onDragLeave={() => setDragPreview(null)}
