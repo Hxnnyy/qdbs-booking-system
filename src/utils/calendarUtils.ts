@@ -1,12 +1,14 @@
+
 import { format } from 'date-fns';
 import { Booking, Barber, Service, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
+import { supabase } from '@/integrations/supabase/client';
 
 // Function to convert HSL color to RGB
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   let r: number, g: number, b: number;
 
-  if (s === 0) {
+  if (Number(s) === 0) {
     r = g = b = l; // achromatic
   } else {
     const hue2rgb = (p: number, q: number, t: number): number => {
@@ -47,7 +49,6 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     title: `${service.name} - ${booking.guest_booking ? 'Guest' : booking.user_id}`,
     start,
     end,
-    allDay: false,
     resourceId: barber.id,
     backgroundColor,
     borderColor: backgroundColor,
@@ -58,15 +59,23 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     service: service.name,
     barberId: barber.id,
     serviceId: service.id,
+    status: booking.status || 'confirmed',
+    isGuest: booking.guest_booking || false,
+    notes: booking.notes || '',
+    userId: booking.user_id || '',
   };
 };
 
 export const createLunchBreakEvent = (lunchBreak: LunchBreak): CalendarEvent => {
-  if (!lunchBreak.barber) {
+  // Supabase joined query returns barber info in the barber property
+  if (!lunchBreak.barber_id) {
     throw new Error('Barber data is missing in lunch break');
   }
 
-  const barber = lunchBreak.barber as Barber;
+  // Get barber name from barber property if available
+  const barberName = (lunchBreak as any).barber?.name || 'Unknown';
+  const barberId = lunchBreak.barber_id;
+  
   const startTime = lunchBreak.start_time;
   const [hours, minutes] = startTime.split(':').map(Number);
 
@@ -82,13 +91,17 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak): CalendarEvent => 
     title: 'Lunch Break',
     start,
     end,
-    allDay: false,
-    resourceId: barber.id,
+    resourceId: barberId,
     backgroundColor,
     borderColor: backgroundColor,
-    editable: false,
-    barber: barber.name,
-    barberId: barber.id,
+    barber: barberName,
+    service: 'Lunch Break',
+    barberId: barberId,
+    serviceId: '',
+    status: 'lunch-break',
+    isGuest: false,
+    notes: '',
+    userId: '',
   };
 };
 
@@ -144,3 +157,59 @@ export function hexToRgba(hexColor: string, alpha: number = 1, returnRGB: boolea
   // Return rgba format
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
+
+// New utility functions needed by other components
+
+// Fetch barber color from database and return in various formats
+export const getBarberColor = async (barberId: string, returnRGB: boolean = false): Promise<string> => {
+  try {
+    const { data, error } = await supabase
+      .from('barbers')
+      .select('color')
+      .eq('id', barberId)
+      .single();
+      
+    if (error) throw error;
+    
+    const color = data?.color || '#3b82f6'; // Default blue if no color set
+    
+    if (returnRGB) {
+      // Strip the # and convert to RGB values
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      
+      return `${r}, ${g}, ${b}`;
+    }
+    
+    return color;
+  } catch (err) {
+    console.error('Error fetching barber color:', err);
+    return returnRGB ? '59, 130, 246' : '#3b82f6'; // Default blue
+  }
+};
+
+// Get event color based on status
+export const getEventColor = (event: CalendarEvent): string => {
+  if (event.status === 'holiday') {
+    return '#ef4444'; // Red for holidays
+  } else if (event.status === 'lunch-break') {
+    return '#a8a29e'; // Slate for lunch breaks
+  } else {
+    return event.backgroundColor || '#3b82f6'; // Default blue
+  }
+};
+
+// Filter events for a specific date
+export const filterEventsByDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
+  const targetDate = new Date(date);
+  targetDate.setHours(0, 0, 0, 0);
+  
+  return events.filter(event => {
+    const eventDate = new Date(event.start);
+    eventDate.setHours(0, 0, 0, 0);
+    
+    return eventDate.getTime() === targetDate.getTime();
+  });
+};

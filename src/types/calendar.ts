@@ -13,6 +13,12 @@ export interface CalendarEvent {
   notes: string;
   userId: string;
   resourceId: string; // For resource view (per barber rows)
+  backgroundColor?: string;
+  borderColor?: string;
+  extendedProps?: {
+    notes?: string;
+    [key: string]: any;
+  };
 }
 
 export interface CalendarViewProps {
