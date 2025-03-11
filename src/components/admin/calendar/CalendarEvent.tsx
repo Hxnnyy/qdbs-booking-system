@@ -45,9 +45,13 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
     position: 'absolute' as const,
     height: '100%',
+    // Add z-index that increases on hover to ensure any event can be clicked
+    zIndex: 10,
+    pointerEvents: 'all', // Ensure events are always clickable
   };
   
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling
     if (onEventClick) {
       onEventClick(event);
     } else if (onClick) {
@@ -58,11 +62,12 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   return (
     <div
       className={`
-        rounded-sm px-2 py-1 text-xs truncate cursor-pointer hover:opacity-90
+        rounded-sm px-2 py-1 text-xs truncate cursor-pointer hover:opacity-90 hover:z-20
         ${isLunchBreak ? 'font-bold' : ''}
       `}
       style={styles}
       onClick={handleClick}
+      draggable={!isLunchBreak} // Only make non-lunch break events draggable
     >
       <div className="font-semibold truncate">
         {format(event.start, 'HH:mm')} - {event.title}

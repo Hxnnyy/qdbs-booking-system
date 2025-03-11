@@ -45,16 +45,44 @@ export const DayView: React.FC<CalendarViewProps> = ({
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
     overlappingGroups.forEach(group => {
-      const sortedGroup = group.sort((a, b) => a.start.getTime() - b.start.getTime());
-      const totalSlots = sortedGroup.length;
+      const barberGroups: Record<string, CalendarEvent[]> = {};
       
-      sortedGroup.forEach((event, index) => {
-        results.push({
-          event,
-          slotIndex: index,
-          totalSlots
-        });
+      group.forEach(event => {
+        if (!barberGroups[event.barberId]) {
+          barberGroups[event.barberId] = [];
+        }
+        barberGroups[event.barberId].push(event);
       });
+      
+      if (Object.keys(barberGroups).length > 1) {
+        let slotOffset = 0;
+        
+        Object.values(barberGroups).forEach(barberGroup => {
+          const sortedBarberGroup = barberGroup.sort((a, b) => a.start.getTime() - b.start.getTime());
+          const barberTotalSlots = group.length;
+          
+          sortedBarberGroup.forEach((event, index) => {
+            results.push({
+              event,
+              slotIndex: slotOffset + index,
+              totalSlots: barberTotalSlots
+            });
+          });
+          
+          slotOffset += barberGroup.length;
+        });
+      } else {
+        const sortedGroup = group.sort((a, b) => a.start.getTime() - b.start.getTime());
+        const totalSlots = sortedGroup.length;
+        
+        sortedGroup.forEach((event, index) => {
+          results.push({
+            event,
+            slotIndex: index,
+            totalSlots
+          });
+        });
+      }
     });
     
     return results;
@@ -66,6 +94,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   }, [events, date]);
 
   const handleDragStart = (event: CalendarEvent) => {
+    if (event.status === 'lunch-break') return;
     setDraggingEvent(event);
   };
 
@@ -186,7 +215,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
             return (
               <div 
                 key={event.id}
-                draggable 
+                draggable={event.status !== 'lunch-break'}
                 onDragStart={() => handleDragStart(event)}
                 className="absolute w-full"
                 style={{ 

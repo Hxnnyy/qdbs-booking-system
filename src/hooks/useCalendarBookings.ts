@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -197,13 +196,19 @@ export const useCalendarBookings = () => {
 
   // Handle event drop (from drag and drop)
   const handleEventDrop = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
+    // Don't allow moving lunch breaks
+    if (event.status === 'lunch-break' || event.id.startsWith('lunch-')) {
+      toast.error('Lunch breaks cannot be moved via drag and drop. Please edit them in the barber settings.');
+      return;
+    }
+    
     updateBookingTime(event.id, newStart, newEnd);
   };
 
   // Handle event click
   const handleEventClick = (event: CalendarEvent) => {
-    // Don't open dialog for lunch breaks
-    if (event.id.startsWith('lunch-')) {
+    // Just show a toast for lunch breaks instead of opening dialog
+    if (event.status === 'lunch-break' || event.id.startsWith('lunch-')) {
       toast.info(`${event.barber}'s lunch break: ${event.title}`);
       return;
     }
