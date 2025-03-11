@@ -6,7 +6,7 @@ import { CalendarViewComponent } from '@/components/admin/calendar/CalendarViewC
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
 import { CalendarSettingsProvider } from '@/context/CalendarSettingsContext';
-import { useCalendarSettings } from '@/hooks/useCalendarSettings';
+import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { BarberFilter } from '@/components/admin/calendar/BarberFilter';
 
 const CalendarView: React.FC = () => {
