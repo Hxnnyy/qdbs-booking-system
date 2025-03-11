@@ -219,27 +219,51 @@ const ManageBarbers = () => {
   
   const handleHolidaySet = async (barberId: string, startDate: Date, endDate: Date) => {
     try {
-      const holidayBooking = {
+      // First, get the first available service to use for foreign key constraint
+      // @ts-ignore - Supabase types issue
+      const { data: services, error: servicesError } = await supabase
+        .from('services')
+        .select('id')
+        .limit(1);
+      
+      if (servicesError) throw servicesError;
+      
+      if (!services || services.length === 0) {
+        toast.error('No services found. Please create at least one service first.');
+        return;
+      }
+      
+      const serviceId = services[0].id;
+      
+      // Create an array of dates between start and end (inclusive)
+      const dateRange = eachDayOfInterval({ 
+        start: startDate, 
+        end: endDate 
+      });
+      
+      // Create a holiday booking for each day in the range
+      const holidayBookings = dateRange.map(date => ({
         barber_id: barberId,
-        service_id: '00000000-0000-0000-0000-000000000000', // Default service ID for holidays
-        booking_date: format(startDate, 'yyyy-MM-dd'),
+        service_id: serviceId, // Use a real service ID
+        booking_date: format(date, 'yyyy-MM-dd'),
         booking_time: '00:00',
         status: 'holiday',
         user_id: '00000000-0000-0000-0000-000000000000', // System user ID
-        notes: `Holiday from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`,
+        notes: `Holiday on ${format(date, 'yyyy-MM-dd')}`,
         guest_booking: true
-      };
+      }));
       
       // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('bookings')
-        .insert(holidayBooking);
+        .insert(holidayBookings);
       
       if (error) throw error;
       
       toast.success('Holiday period set successfully');
     } catch (err: any) {
-      toast.error(err.message);
+      console.error('Error setting holiday:', err);
+      toast.error(err.message || 'Failed to set holiday');
     }
   };
 
