@@ -23,11 +23,13 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
 }) => {
   const isLunchBreak = event.status === 'lunch-break';
   const eventColor = getEventColor(event);
+  const lunchBreakBgColor = `rgba(${getBarberColor(event.barberId, true)}, 0.2)`;
+  const lunchBreakBorderColor = `rgb(${getBarberColor(event.barberId, true)})`;
   
   const styles = {
-    backgroundColor: isLunchBreak ? 'rgba(138, 43, 226, 0.2)' : eventColor,
-    borderLeft: isLunchBreak ? '4px solid blueviolet' : `4px solid ${eventColor}`,
-    color: isLunchBreak ? 'rgb(94, 53, 177)' : '#fff',
+    backgroundColor: isLunchBreak ? lunchBreakBgColor : eventColor,
+    borderLeft: isLunchBreak ? `4px solid ${lunchBreakBorderColor}` : `4px solid ${eventColor}`,
+    color: isLunchBreak ? '#333' : '#000', // Improved text readability with dark text
     opacity: isDragging ? 0.5 : 1,
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
@@ -55,7 +57,9 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       <div className="font-semibold truncate">
         {format(event.start, 'HH:mm')} - {event.title}
       </div>
-      {!isLunchBreak && (
+      {isLunchBreak ? (
+        <div className="truncate opacity-90">{event.barber}'s Lunch</div>
+      ) : (
         <div className="truncate opacity-90">{event.barber} - {event.service}</div>
       )}
     </div>

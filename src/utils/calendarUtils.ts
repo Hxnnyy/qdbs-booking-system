@@ -125,21 +125,58 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
 };
 
 // Generate a color based on barber ID for consistency
-export const getBarberColor = (barberId: string): string => {
+export const getBarberColor = (barberId: string, returnRGB: boolean = false): string => {
   // Simple hash function to generate a hue value (0-360)
   const hash = Array.from(barberId).reduce(
     (acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0
   );
   const hue = Math.abs(hash) % 360;
   
-  return `hsl(${hue}, 70%, 60%)`;
+  // For lunch breaks, we want pastel colors (high lightness, medium saturation)
+  // For normal appointments, we want more vibrant colors
+  const saturation = returnRGB ? '85' : '70';
+  const lightness = returnRGB ? '40' : '60';
+  
+  if (returnRGB) {
+    // Convert HSL to RGB for better control of transparency
+    const h = hue / 360;
+    const s = parseInt(saturation) / 100;
+    const l = parseInt(lightness) / 100;
+    
+    let r, g, b;
+    
+    if (s === 0) {
+      r = g = b = l; // achromatic
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      
+      r = Math.round(hue2rgb(p, q, h + 1/3) * 255);
+      g = Math.round(hue2rgb(p, q, h) * 255);
+      b = Math.round(hue2rgb(p, q, h - 1/3) * 255);
+    }
+    
+    return `${r}, ${g}, ${b}`;
+  }
+  
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
 // Get a color for a specific event type
 export const getEventColor = (event: CalendarEvent): string => {
-  // For lunch breaks, use a distinct color
+  // For lunch breaks, use barber-specific colors
   if (event.status === 'lunch-break') {
-    return 'hsl(280, 80%, 60%)'; // Purple for lunch breaks
+    // This will be overridden in the component, but we provide a fallback here
+    return `rgba(${getBarberColor(event.barberId, true)}, 0.2)`;
   }
   
   // For regular bookings, use barber-based colors
