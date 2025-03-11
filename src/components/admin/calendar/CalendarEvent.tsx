@@ -31,7 +31,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     opacity: isDragging ? 0.5 : 1,
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
-    position: 'absolute',
+    position: 'absolute' as const, // Type assertion to fix the error
     height: '100%',
   };
   
