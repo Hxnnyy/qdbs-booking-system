@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
@@ -119,7 +120,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     if (!draggingEvent) return;
     
     const container = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - container.left;
     const y = e.clientY - container.top;
     
     const totalMinutes = Math.floor(y);
@@ -134,13 +134,16 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     });
   };
 
-  const handleDragEnd = (e: React.DragEvent) => {
-    if (!draggingEvent || !dragPreview?.columnIndex) return;
+  const handleDragEnd = (e: React.DragEvent, dayIndex: number) => {
+    if (!draggingEvent) return;
     
-    const dayIndex = dragPreview.columnIndex;
-    const selectedDate = addDays(weekStart, dayIndex);
+    // Get the day for this column
+    const selectedDate = weekDays[dayIndex];
     
-    const totalMinutes = Math.floor(e.clientY - e.currentTarget.getBoundingClientRect().top);
+    const container = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - container.top;
+    
+    const totalMinutes = Math.floor(y);
     const hours = Math.floor(totalMinutes / 60) + startHour;
     const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
     
@@ -149,6 +152,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     
     const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
     const newEnd = new Date(newStart.getTime() + duration);
+
+    console.log('Drop event:', {
+      event: draggingEvent.title,
+      oldStart: draggingEvent.start.toISOString(),
+      newStart: newStart.toISOString(),
+      dayIndex,
+      selectedDate: selectedDate.toISOString()
+    });
 
     onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
@@ -191,24 +202,26 @@ export const WeekView: React.FC<CalendarViewProps> = ({
             className="relative border-r last:border-r-0 border-border"
             style={{ height: `${calendarHeight}px` }}
             onDragOver={(e) => handleDragOver(e, dayIndex)}
-            onDrop={handleDragEnd}
+            onDrop={(e) => handleDragEnd(e, dayIndex)}
             onDragLeave={() => setDragPreview(null)}
           >
-            <div className="absolute top-0 left-0 bottom-0 w-16 z-10 border-r border-border bg-background">
-              {Array.from({ length: totalHours + 1 }).map((_, index) => {
-                const hour = startHour + index;
-                return (
-                  <div 
-                    key={`time-${hour}`}
-                    className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
-                  >
-                    {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
-                  </div>
-                );
-              })}
-            </div>
+            {dayIndex === 0 && (
+              <div className="absolute top-0 left-0 bottom-0 w-16 z-10 border-r border-border bg-background">
+                {Array.from({ length: totalHours + 1 }).map((_, index) => {
+                  const hour = startHour + index;
+                  return (
+                    <div 
+                      key={`time-${hour}`}
+                      className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
+                    >
+                      {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             
-            <div className="absolute top-0 left-16 right-0 bottom-0">
+            <div className={`absolute top-0 ${dayIndex === 0 ? 'left-16' : 'left-0'} right-0 bottom-0`}>
               {Array.from({ length: totalHours + 1 }).map((_, index) => (
                 <div 
                   key={`grid-${index}`}
@@ -226,8 +239,15 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               ))}
               
               {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-                const eventDay = event.start.getDay();
-                if (dayIndex !== eventDay) return null;
+                // Fix: Calculate the correct day to display events properly
+                const eventDate = event.start;
+                const eventDay = weekDays.findIndex(day => 
+                  day.getDate() === eventDate.getDate() &&
+                  day.getMonth() === eventDate.getMonth() &&
+                  day.getFullYear() === eventDate.getFullYear()
+                );
+                
+                if (eventDay !== dayIndex) return null;
                 
                 const eventHour = event.start.getHours();
                 const eventMinute = event.start.getMinutes();
@@ -240,14 +260,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 
                 return (
                   <div 
-                    key={event.id}
-                    draggable={event.status !== 'lunch-break'}
+                    key={`${event.id}-${dayIndex}`}
+                    draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
                     onDragStart={() => handleDragStart(event)}
                     className="absolute w-full"
                     style={{ 
                       top: `${top}px`, 
                       height: `${height}px`,
-                      padding: 0 // Remove any padding that might be creating gaps
+                      padding: 0
                     }}
                   >
                     <CalendarEventComponent 

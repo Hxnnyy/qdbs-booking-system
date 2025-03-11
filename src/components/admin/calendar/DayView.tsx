@@ -152,6 +152,12 @@ export const DayView: React.FC<CalendarViewProps> = ({
     const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
     const newEnd = new Date(newStart.getTime() + duration);
 
+    console.log('Day view drop event:', {
+      event: draggingEvent.title,
+      oldStart: draggingEvent.start.toISOString(),
+      newStart: newStart.toISOString()
+    });
+
     onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
     setDragPreview(null);
@@ -243,7 +249,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
             return (
               <div 
                 key={event.id}
-                draggable={event.status !== 'lunch-break'}
+                draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
                 onDragStart={() => handleDragStart(event)}
                 className="absolute w-full"
                 style={{ 
