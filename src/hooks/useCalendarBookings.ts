@@ -34,6 +34,7 @@ export const useCalendarBookings = () => {
           barber:barber_id(name),
           service:service_id(name, price, duration)
         `)
+        .neq('status', 'holiday') // Filter out any remaining holidays
         .order('booking_date', { ascending: true })
         .order('booking_time', { ascending: true });
       
@@ -151,43 +152,6 @@ export const useCalendarBookings = () => {
     }
   };
 
-  const deleteHoliday = async (bookingId: string) => {
-    try {
-      console.log(`Attempting to delete holiday with ID: ${bookingId}`);
-      
-      // Perform the deletion
-      const { data, error } = await supabase
-        .from('bookings')
-        .delete()
-        .eq('id', bookingId)
-        .eq('status', 'holiday')
-        .select();
-
-      if (error) {
-        console.error('Supabase deletion error:', error);
-        throw new Error(`Database error: ${error.message}`);
-      }
-      
-      if (!data || data.length === 0) {
-        console.warn('No holiday was deleted, ID may not exist:', bookingId);
-      } else {
-        console.log('Successfully deleted holiday:', data);
-      }
-
-      // Update local state after successful deletion
-      setBookings(prev => prev.filter(booking => booking.id !== bookingId));
-      setCalendarEvents(prev => prev.filter(event => event.id !== bookingId));
-      
-      // Trigger a refresh to ensure data consistency
-      setLastUpdate(Date.now());
-      
-      return true;
-    } catch (err: any) {
-      console.error('Error deleting holiday:', err);
-      throw err;
-    }
-  };
-
   const updateBooking = async (
     bookingId: string, 
     updates: { 
@@ -286,7 +250,6 @@ export const useCalendarBookings = () => {
     setIsDialogOpen,
     selectedBarberId,
     setSelectedBarberId,
-    allEvents: calendarEvents,
-    deleteHoliday
+    allEvents: calendarEvents
   };
 };
