@@ -1,3 +1,4 @@
+
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -88,7 +89,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       barberColor: booking.barber?.color, // Add barber color to event
       service: booking.service?.name || 'Unknown',
       serviceId: booking.service_id,
-      status: booking.status,
+      status: booking.status as 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday',
       isGuest: booking.guest_booking || false,
       notes: booking.notes || '',
       userId: booking.user_id,
@@ -106,7 +107,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       barberId: booking.barber_id,
       service: 'Unknown',
       serviceId: booking.service_id,
-      status: 'error',
+      status: 'error' as 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday' | 'error',
       isGuest: false,
       notes: 'Error parsing booking data',
       userId: booking.user_id,

@@ -14,6 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Scissors, Clock, ArrowRight, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Service } from '@/supabase-types';
+import { isBarberOnHoliday } from '@/utils/calendarUtils';
 
 interface TimeSlotProps {
   time: string;

@@ -11,7 +11,7 @@ export interface CalendarEvent {
   barberColor?: string;
   service: string;
   serviceId: string;
-  status: 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday';
+  status: 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday' | 'error';
   isGuest: boolean;
   notes: string;
   userId: string;
@@ -32,3 +32,6 @@ export interface DragPreview {
   top: number;
   columnIndex?: number;
 }
+
+// Add the missing ViewMode type
+export type ViewMode = 'day' | 'week';

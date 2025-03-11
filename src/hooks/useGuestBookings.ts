@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,6 +12,16 @@ interface GuestBooking {
   booking_date: string;
   booking_time: string;
   status: string;
+  notes?: string;
+}
+
+interface CreateGuestBookingParams {
+  barber_id: string;
+  service_id: string;
+  booking_date: string;
+  booking_time: string;
+  guest_name: string;
+  guest_phone: string;
   notes?: string;
 }
 
@@ -147,10 +158,61 @@ export const useGuestBookings = () => {
     }
   };
 
+  // Add the missing createGuestBooking method
+  const createGuestBooking = async (params: CreateGuestBookingParams) => {
+    try {
+      setIsLoading(true);
+      
+      // Generate a 6-digit verification code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Include guest info and verification code in notes
+      const formattedNotes = `Guest booking by ${params.guest_name} (${params.guest_phone}). Verification code: ${verificationCode}${params.notes ? `. Notes: ${params.notes}` : ''}`;
+      
+      // Check if barber is on holiday
+      const isHoliday = await isBarberOnHoliday(params.barber_id, new Date(params.booking_date));
+      
+      if (isHoliday) {
+        throw new Error('Cannot book on this date as the barber is on holiday');
+      }
+      
+      // Create the booking
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert({
+          barber_id: params.barber_id,
+          service_id: params.service_id,
+          booking_date: params.booking_date,
+          booking_time: params.booking_time,
+          status: 'confirmed',
+          notes: formattedNotes,
+          guest_booking: true
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      toast.success('Booking created successfully! Your verification code is: ' + verificationCode);
+      
+      return {
+        ...data,
+        verificationCode
+      };
+    } catch (err: any) {
+      console.error('Error creating guest booking:', err);
+      toast.error(err.message || 'Failed to create booking');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     getGuestBookingByCode,
     cancelGuestBooking,
     updateGuestBooking,
+    createGuestBooking, // Export the newly added method
     isLoading
   };
 };
