@@ -138,18 +138,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
-      {displayEvents.some(event => event.status === 'holiday') && (
-        <div className="bg-red-100 px-4 py-2 text-sm text-red-800 border-b border-red-200">
-          {displayEvents
-            .filter(event => event.status === 'holiday')
-            .map(event => (
-              <div key={event.id}>
-                {event.barber} on Holiday: {event.title}
-              </div>
-            ))}
-        </div>
-      )}
-      
       <div className={`h-12 border-b border-border font-medium flex flex-col items-center justify-center ${
         isToday(date) ? 'bg-primary/10' : ''
       }`}>

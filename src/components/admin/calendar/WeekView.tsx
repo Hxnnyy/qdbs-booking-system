@@ -138,36 +138,19 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
-      <div className="flex border-b border-border">
+      <div className="flex border-b border-border h-12">
         <div className="w-16 border-r border-border"></div>
-        {weekDays.map((day) => {
-          const dayEvents = filterEventsByDate(events, day);
-          const holidayEvents = dayEvents.filter(event => event.status === 'holiday');
-          
-          return (
-            <div 
-              key={day.toISOString()} 
-              className={`flex-1 min-w-[120px] ${
-                isToday(day) ? 'bg-primary/10' : ''
-              }`}
-            >
-              <div className="font-medium flex flex-col items-center justify-center h-12">
-                <div className="text-sm">{format(day, 'EEE')}</div>
-                <div className="text-xs text-muted-foreground">{format(day, 'd MMM')}</div>
-              </div>
-              
-              {holidayEvents.length > 0 && (
-                <div className="bg-red-100 px-2 py-1 text-xs text-red-800 border-y border-red-200">
-                  {holidayEvents.map(event => (
-                    <div key={event.id} className="truncate">
-                      {event.barber} on Holiday
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {weekDays.map((day) => (
+          <div 
+            key={day.toISOString()} 
+            className={`flex-1 font-medium flex flex-col items-center justify-center min-w-[120px] ${
+              isToday(day) ? 'bg-primary/10' : ''
+            }`}
+          >
+            <div className="text-sm">{format(day, 'EEE')}</div>
+            <div className="text-xs text-muted-foreground">{format(day, 'd MMM')}</div>
+          </div>
+        ))}
       </div>
       <div 
         className="flex-1 relative"
