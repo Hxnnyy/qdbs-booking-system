@@ -8,7 +8,7 @@ interface TimeMarkersProps {
 
 export const TimeMarkers: React.FC<TimeMarkersProps> = ({ startHour, totalHours }) => {
   return (
-    <div className="h-full border-r border-border bg-background">
+    <div className="absolute top-0 left-0 bottom-0 w-16 z-10 border-r border-border bg-background">
       {Array.from({ length: totalHours + 1 }).map((_, index) => {
         const hour = startHour + index;
         return (
