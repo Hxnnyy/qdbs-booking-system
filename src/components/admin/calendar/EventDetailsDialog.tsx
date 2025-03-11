@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/types/calendar';
@@ -41,6 +42,7 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const { barbers } = useBarbers();
   const { services } = useServices();
+  const [barberColorDisplay, setBarberColorDisplay] = useState<string>('');
   
   const [editForm, setEditForm] = useState({
     title: '',
@@ -51,7 +53,7 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
     booking_date: ''
   });
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (event) {
       setEditForm({
         title: event.title.replace('Guest: ', ''),
@@ -62,12 +64,20 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
         booking_date: format(event.start, 'yyyy-MM-dd')
       });
       setIsEditing(false);
+      
+      // Load barber color asynchronously
+      const loadBarberColor = async () => {
+        if (event.barberId) {
+          const color = await getBarberColor(event.barberId);
+          setBarberColorDisplay(color);
+        }
+      };
+      
+      loadBarberColor();
     }
   }, [event]);
   
   if (!event) return null;
-  
-  const barberColor = getBarberColor(event.barberId);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -258,7 +268,7 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
             <div className="flex items-start gap-4">
               <div 
                 className="w-4 h-4 rounded-full mt-1 flex-shrink-0" 
-                style={{ backgroundColor: barberColor }}
+                style={{ backgroundColor: barberColorDisplay }}
               />
               <div>
                 <h3 className="text-lg font-medium">{event.title}</h3>

@@ -160,8 +160,8 @@ export const getBarberColor = async (barberId: string, returnRGB: boolean = fals
   if (returnRGB) {
     // Convert HSL to RGB for better control of transparency
     const h = hue / 360;
-    const s = 0.70;
-    const l = 0.60;
+    const s = 0.70; // Fix: Use a number instead of string
+    const l = 0.60; // Fix: Use a number instead of string
     
     let r, g, b;
     

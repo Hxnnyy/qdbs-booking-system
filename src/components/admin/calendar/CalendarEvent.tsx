@@ -50,18 +50,21 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   const isLunchBreak = event.status === 'lunch-break';
   const isHoliday = event.status === 'holiday';
   
-  const styles = {
+  const styles: React.CSSProperties = {
     backgroundColor,
     borderLeft: `4px solid ${borderColor}`,
     color: isLunchBreak || isHoliday ? '#fff' : '#000',
     opacity: isDragging ? 0.5 : 1,
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
-    position: 'absolute' as const,
+    position: 'absolute',
     height: '100%',
+    zIndex: 10, // Add zIndex to ensure events can be clicked
+    pointerEvents: 'auto', // Ensure pointer events work
   };
   
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling
     if (onEventClick) {
       onEventClick(event);
     } else if (onClick) {

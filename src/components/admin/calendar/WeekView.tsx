@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -196,22 +197,24 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                   return (
                     <div 
                       key={event.id}
-                      draggable 
-                      onDragStart={() => handleDragStart(event)}
                       className="absolute w-full"
                       style={{ 
                         top: `${top}px`, 
-                        height: `${height}px`,
-                        padding: 0 // Remove any padding that might be creating gaps
+                        height: `${height}px`
                       }}
                     >
-                      <CalendarEventComponent 
-                        event={event} 
-                        onEventClick={onEventClick}
-                        isDragging={draggingEvent?.id === event.id}
-                        slotIndex={slotIndex}
-                        totalSlots={totalSlots}
-                      />
+                      <div 
+                        draggable 
+                        onDragStart={() => handleDragStart(event)}
+                      >
+                        <CalendarEventComponent 
+                          event={event} 
+                          onEventClick={onEventClick}
+                          isDragging={draggingEvent?.id === event.id}
+                          slotIndex={slotIndex}
+                          totalSlots={totalSlots}
+                        />
+                      </div>
                     </div>
                   );
                 })}

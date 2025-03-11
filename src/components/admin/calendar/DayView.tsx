@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -173,6 +174,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
             );
           })()}
 
+          {/* Create a wrapper for each event position to maintain layout structure */}
           {processedEvents.map(({ event, slotIndex, totalSlots }) => {
             const eventHour = event.start.getHours();
             const eventMinute = event.start.getMinutes();
@@ -186,22 +188,25 @@ export const DayView: React.FC<CalendarViewProps> = ({
             return (
               <div 
                 key={event.id}
-                draggable 
-                onDragStart={() => handleDragStart(event)}
-                className="absolute w-full"
+                className="absolute"
                 style={{ 
                   top: `${top}px`, 
                   height: `${height}px`,
-                  padding: 0 // Remove any padding that might be creating gaps
+                  width: '100%'
                 }}
               >
-                <CalendarEventComponent 
-                  event={event} 
-                  onEventClick={onEventClick}
-                  isDragging={draggingEvent?.id === event.id}
-                  slotIndex={slotIndex}
-                  totalSlots={totalSlots}
-                />
+                <div 
+                  draggable 
+                  onDragStart={() => handleDragStart(event)}
+                >
+                  <CalendarEventComponent 
+                    event={event} 
+                    onEventClick={onEventClick}
+                    isDragging={draggingEvent?.id === event.id}
+                    slotIndex={slotIndex}
+                    totalSlots={totalSlots}
+                  />
+                </div>
               </div>
             );
           })}
