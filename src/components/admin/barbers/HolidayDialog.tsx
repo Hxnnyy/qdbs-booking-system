@@ -86,26 +86,32 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
     try {
       console.log('Deleting holiday with ID:', holidayId);
       
-      // Use rpc instead of from().delete() to avoid potential RLS issues
-      const { data, error } = await supabase
+      // First, verify that the holiday exists before attempting to delete it
+      const { data: existingHoliday, error: checkError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('id', holidayId)
+        .eq('status', 'holiday')
+        .single();
+        
+      if (checkError || !existingHoliday) {
+        console.error('Holiday not found:', holidayId);
+        throw new Error('Holiday not found');
+      }
+      
+      // Proceed with deletion since we verified it exists
+      const { error: deleteError } = await supabase
         .from('bookings')
         .delete()
         .eq('id', holidayId)
-        .eq('status', 'holiday') // Ensure we're only deleting holidays
-        .select();
-        
-      if (error) {
-        console.error('Supabase delete error:', error);
-        throw error;
+        .eq('status', 'holiday'); // Ensure we're only deleting holidays
+      
+      if (deleteError) {
+        console.error('Supabase delete error:', deleteError);
+        throw deleteError;
       }
       
       console.log('Holiday deleted successfully from database');
-      
-      // Verify deletion was successful
-      if (!data || data.length === 0) {
-        console.error('Holiday not found or not deleted:', holidayId);
-        throw new Error('Holiday could not be deleted');
-      }
       
       // Update UI
       setHolidays(prevHolidays => prevHolidays.filter(holiday => holiday.id !== holidayId));
