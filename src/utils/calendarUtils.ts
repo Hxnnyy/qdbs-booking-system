@@ -1,3 +1,4 @@
+
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -134,7 +135,7 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name
       end: endDate,
       barber: lunchBreak.barber?.name || 'Unknown',
       barberId: lunchBreak.barber_id,
-      barberColor: lunchBreak.barber?.color, // Add barber color to event
+      barberColor: lunchBreak.barber?.color, // Use the barber's color for lunch breaks
       service: 'Lunch Break',
       serviceId: '', // No service ID for lunch breaks
       status: 'lunch-break',
@@ -225,10 +226,14 @@ export const getBarberColor = (barberId: string, returnRGB: boolean = false): st
 
 // Get a color for a specific event type
 export const getEventColor = (event: CalendarEvent): string => {
-  // For lunch breaks, use barber-specific colors
+  // For lunch breaks, use barber-specific colors with transparency
   if (event.status === 'lunch-break') {
-    // This will be overridden in the component, but we provide a fallback here
-    return `rgba(${getBarberColor(event.barberId, true)}, 0.2)`;
+    // If the event has a barberColor property, use that with transparency
+    if (event.barberColor) {
+      const rgbColor = getBarberColor(event.barberId, true);
+      return `rgba(${rgbColor}, 0.5)`;
+    }
+    return `rgba(${getBarberColor(event.barberId, true)}, 0.5)`;
   }
   
   // If the event has a barberColor property, use that

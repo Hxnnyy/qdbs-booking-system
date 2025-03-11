@@ -22,14 +22,17 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   onEventClick
 }) => {
   const isLunchBreak = event.status === 'lunch-break';
-  const eventColor = getEventColor(event);
-  const lunchBreakBgColor = `rgba(${getBarberColor(event.barberId, true)}, 0.2)`;
-  const lunchBreakBorderColor = `rgb(${getBarberColor(event.barberId, true)})`;
+  
+  // Use barberColor from the event if available, otherwise fall back to generated color
+  const barberColor = event.barberColor || getBarberColor(event.barberId);
+  const eventColor = isLunchBreak 
+    ? `rgba(${getBarberColor(event.barberId, true)}, 0.5)` // 50% transparency for lunch breaks
+    : barberColor;
   
   const styles = {
-    backgroundColor: isLunchBreak ? lunchBreakBgColor : eventColor,
-    borderLeft: isLunchBreak ? `4px solid ${lunchBreakBorderColor}` : `4px solid ${eventColor}`,
-    color: isLunchBreak ? '#fff' : '#000', // Make lunch break text white for better contrast
+    backgroundColor: eventColor,
+    borderLeft: `4px solid ${isLunchBreak ? barberColor : eventColor}`,
+    color: isLunchBreak ? '#fff' : '#000', // White text for lunch breaks
     opacity: isDragging ? 0.5 : 1,
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',

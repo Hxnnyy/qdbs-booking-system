@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 import { bookingToCalendarEvent, formatNewBookingDate, formatNewBookingTime } from '@/utils/calendarUtils';
-import { createLunchBreakEvent } from '@/utils/calendarUtils';
+import { createLunchBreakEvent, clearBarberColorCache } from '@/utils/calendarUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -28,13 +28,16 @@ export const useCalendarBookings = () => {
       setIsLoading(true);
       setError(null);
       
+      // Clear the barber color cache to ensure we fetch fresh colors
+      clearBarberColorCache();
+      
       // Fetch bookings
       // @ts-ignore - Supabase types issue
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
           *,
-          barber:barber_id(name),
+          barber:barber_id(name, color),
           service:service_id(name, price, duration)
         `)
         .order('booking_date', { ascending: true })
@@ -50,7 +53,7 @@ export const useCalendarBookings = () => {
         .from('barber_lunch_breaks')
         .select(`
           *,
-          barber:barber_id(name)
+          barber:barber_id(name, color)
         `)
         .eq('is_active', true);
         
