@@ -1,10 +1,11 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
-import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
+import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
-import { filterEventsByDate } from '@/utils/calendarUtils';
+import { filterEventsByDateRange } from '@/utils/calendarUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -15,14 +16,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 }) => {
   const { startHour, endHour } = useCalendarSettings();
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
-  const [dragPreview, setDragPreview] = useState<{ time: string, top: number, columnIndex: number } | null>(null);
-  const totalHours = endHour - startHour;
-  
-  const calendarHeight = totalHours * 60;
+  const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
+  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }).map((_, index) => {
-    return addDays(weekStart, index);
-  });
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const totalHours = endHour - startHour;
+  const calendarHeight = totalHours * 60;
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
     // First, separate lunch breaks from other events
@@ -106,6 +105,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     return results;
   };
 
+  useEffect(() => {
+    const filtered = filterEventsByDateRange(events, weekStart, addDays(weekStart, 6));
+    setDisplayEvents(filtered);
+  }, [events, weekStart]);
+
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
@@ -116,6 +120,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     if (!draggingEvent) return;
     
     const container = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - container.left;
     const y = e.clientY - container.top;
     
     const totalMinutes = Math.floor(y);
@@ -125,22 +130,22 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const previewTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'pm' : 'am'}`;
     setDragPreview({ 
       time: previewTime, 
-      top: Math.floor(totalMinutes / 15) * 15, 
-      columnIndex: dayIndex 
+      top: Math.floor(totalMinutes / 15) * 15,
+      columnIndex: dayIndex
     });
   };
 
-  const handleDragEnd = (e: React.DragEvent, droppedDay: Date) => {
-    if (!draggingEvent) return;
+  const handleDragEnd = (e: React.DragEvent) => {
+    if (!draggingEvent || !dragPreview?.columnIndex) return;
     
-    const container = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - container.top;
+    const dayIndex = dragPreview.columnIndex;
+    const selectedDate = addDays(weekStart, dayIndex);
     
-    const totalMinutes = Math.floor(y);
+    const totalMinutes = Math.floor(e.clientY - e.currentTarget.getBoundingClientRect().top);
     const hours = Math.floor(totalMinutes / 60) + startHour;
     const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
     
-    const newStart = new Date(droppedDay);
+    const newStart = new Date(selectedDate);
     newStart.setHours(hours, minutes, 0, 0);
     
     const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
@@ -151,34 +156,58 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     setDragPreview(null);
   };
 
+  const processedEvents = processOverlappingEvents(displayEvents);
+
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
-      <div className="flex border-b border-border">
-        <div className="w-16 border-r border-border h-12"></div>
-        {weekDays.map((day) => {
+      <div className="grid grid-cols-7 border-b border-border">
+        {weekDays.map((day, index) => {
           // Check if there are any holiday events for this day
-          const dayEvents = filterEventsByDate(events, day);
-          const holidayEvents = dayEvents.filter(event => 
-            event.status === 'holiday' && event.allDay === true
+          const dayDate = addDays(weekStart, index);
+          const holidayEvents = displayEvents.filter(event => 
+            event.status === 'holiday' && 
+            event.allDay === true &&
+            event.start.getDate() === dayDate.getDate() &&
+            event.start.getMonth() === dayDate.getMonth() &&
+            event.start.getFullYear() === dayDate.getFullYear()
           );
           
           return (
-            <div key={day.toISOString()} className="flex-1 min-w-[120px]">
-              <div className={`font-medium flex flex-col items-center justify-center h-12 ${
+            <div 
+              key={index} 
+              className={`flex flex-col border-r last:border-r-0 border-border ${
                 isToday(day) ? 'bg-primary/10' : ''
-              }`}>
+              }`}
+            >
+              <div className="h-12 flex flex-col items-center justify-center">
                 <div className="text-sm">{format(day, 'EEE')}</div>
-                <div className="text-xs text-muted-foreground">{format(day, 'd MMM')}</div>
+                <div className="text-xs text-muted-foreground">{format(day, 'd')}</div>
               </div>
               
-              {/* Holiday Indicator */}
+              {/* Holiday Indicator with Tooltip */}
               {holidayEvents.length > 0 && (
                 <div className="bg-red-100 border-b border-red-300 py-1 px-1 text-xs text-center">
                   <div className="flex items-center justify-center space-x-1">
                     <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
-                    <span className="font-medium text-red-800 truncate">
-                      {holidayEvents[0].barber}
-                    </span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="font-medium text-red-800 flex items-center truncate">
+                            <span className="truncate">{holidayEvents.map(event => event.barber).join(', ')}</span>
+                            <Info className="inline-block shrink-0 ml-0.5 w-3.5 h-3.5 text-red-800" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="max-w-xs">
+                            {holidayEvents.map((event, idx) => (
+                              <div key={event.id} className={idx > 0 ? "mt-1 pt-1 border-t border-gray-200" : ""}>
+                                <span className="font-semibold">{event.barber}:</span> {event.notes || event.title}
+                              </div>
+                            ))}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </div>
               )}
@@ -186,118 +215,108 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           );
         })}
       </div>
-      <div 
-        className="flex-1 relative"
-        style={{ height: `${calendarHeight}px` }}
-      >
-        <div className="flex h-full">
-          <div className="w-16 relative border-r border-border h-full z-10">
-            {Array.from({ length: totalHours + 1 }).map((_, index) => {
-              const hour = startHour + index;
-              return (
-                <div 
-                  key={`time-${hour}`}
-                  className="absolute h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
-                  style={{ top: `${index * 60}px`, right: 0, width: '100%' }}
-                >
-                  {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
-                </div>
-              );
-            })}
-          </div>
-          {weekDays.map((day, dayIndex) => {
-            const dayEvents = filterEventsByDate(events, day);
-            const processedEvents = processOverlappingEvents(dayEvents);
+      
+      <div className="grid grid-cols-7 flex-1">
+        {weekDays.map((day, dayIndex) => (
+          <div 
+            key={dayIndex}
+            className="relative border-r last:border-r-0 border-border"
+            style={{ height: `${calendarHeight}px` }}
+            onDragOver={(e) => handleDragOver(e, dayIndex)}
+            onDrop={handleDragEnd}
+            onDragLeave={() => setDragPreview(null)}
+          >
+            <div className="absolute top-0 left-0 bottom-0 w-16 z-10 border-r border-border bg-background">
+              {Array.from({ length: totalHours + 1 }).map((_, index) => {
+                const hour = startHour + index;
+                return (
+                  <div 
+                    key={`time-${hour}`}
+                    className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
+                  >
+                    {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
+                  </div>
+                );
+              })}
+            </div>
             
-            return (
-              <div 
-                key={day.toISOString()}
-                className="flex-1 relative border-r border-border min-w-[120px] h-full"
-                onDragOver={(e) => handleDragOver(e, dayIndex)}
-                onDrop={(e) => handleDragEnd(e, day)}
-                onDragLeave={() => setDragPreview(null)}
-              >
-                {Array.from({ length: totalHours + 1 }).map((_, index) => (
-                  <div 
-                    key={`grid-${index}`}
-                    className="absolute w-full h-[60px] border-b border-border"
-                    style={{ top: `${index * 60}px` }}
-                  >
-                    {index < totalHours && (
-                      <>
-                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
-                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
-                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
-                      </>
-                    )}
-                  </div>
-                ))}
+            <div className="absolute top-0 left-16 right-0 bottom-0">
+              {Array.from({ length: totalHours + 1 }).map((_, index) => (
+                <div 
+                  key={`grid-${index}`}
+                  className="absolute w-full h-[60px] border-b border-border"
+                  style={{ top: `${index * 60}px` }}
+                >
+                  {index < totalHours && (
+                    <>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
+                    </>
+                  )}
+                </div>
+              ))}
+              
+              {processedEvents.map(({ event, slotIndex, totalSlots }) => {
+                const eventDay = event.start.getDay();
+                if (dayIndex !== eventDay) return null;
                 
-                {isToday(day) && (() => {
-                  const now = new Date();
-                  const hours = now.getHours();
-                  const minutes = now.getMinutes();
-                  
-                  if (hours < startHour || hours >= endHour) return null;
-                  
-                  const position = (hours - startHour) * 60 + minutes;
-                  
-                  return (
-                    <div 
-                      className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
-                      style={{ top: `${position}px` }}
+                const eventHour = event.start.getHours();
+                const eventMinute = event.start.getMinutes();
+                
+                if (eventHour < startHour || eventHour >= endHour) return null;
+                
+                const top = (eventHour - startHour) * 60 + eventMinute;
+                const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+                const height = Math.max(durationMinutes, 15);
+                
+                return (
+                  <div 
+                    key={event.id}
+                    draggable={event.status !== 'lunch-break'}
+                    onDragStart={() => handleDragStart(event)}
+                    className="absolute w-full"
+                    style={{ 
+                      top: `${top}px`, 
+                      height: `${height}px`,
+                      padding: 0 // Remove any padding that might be creating gaps
+                    }}
+                  >
+                    <CalendarEventComponent 
+                      event={event} 
+                      onEventClick={onEventClick}
+                      isDragging={draggingEvent?.id === event.id}
+                      slotIndex={slotIndex}
+                      totalSlots={totalSlots}
                     />
-                  );
-                })()}
-                
-                {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-                  const eventHour = event.start.getHours();
-                  const eventMinute = event.start.getMinutes();
-                  
-                  if (eventHour < startHour || eventHour >= endHour) return null;
-                  
-                  const top = (eventHour - startHour) * 60 + eventMinute;
-                  const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-                  const height = Math.max(durationMinutes, 15);
-                  
-                  return (
-                    <div 
-                      key={event.id}
-                      draggable={event.status !== 'lunch-break'}
-                      onDragStart={() => handleDragStart(event)}
-                      className="absolute w-full"
-                      style={{ 
-                        top: `${top}px`, 
-                        height: `${height}px`,
-                        padding: 0 // Remove any padding that might be creating gaps
-                      }}
-                    >
-                      <CalendarEventComponent 
-                        event={event} 
-                        onEventClick={onEventClick}
-                        isDragging={draggingEvent?.id === event.id}
-                        slotIndex={slotIndex}
-                        totalSlots={totalSlots}
-                      />
-                    </div>
-                  );
-                })}
-                
-                {dragPreview && dragPreview.columnIndex === dayIndex && (
-                  <div 
-                    className="absolute left-0 right-0 pointer-events-none z-50"
-                    style={{ top: `${dragPreview.top}px` }}
-                  >
-                    <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
-                      Drop to schedule at {dragPreview.time}
-                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
+      
+      {dragPreview && dragPreview.columnIndex !== undefined && (
+        <div 
+          className="absolute left-0 top-0 pointer-events-none z-50 w-full h-full"
+          style={{
+            gridColumnStart: dragPreview.columnIndex + 1,
+            gridColumnEnd: dragPreview.columnIndex + 2,
+          }}
+        >
+          <div 
+            className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md absolute"
+            style={{
+              top: `${dragPreview.top}px`,
+              left: '50%',
+              transform: 'translateX(-50%)'
+            }}
+          >
+            Drop to schedule at {dragPreview.time}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
