@@ -6,10 +6,21 @@ import { getBarberColor, getEventColor } from '@/utils/calendarUtils';
 
 interface CalendarEventProps {
   event: CalendarEventType;
-  onClick: (event: CalendarEventType) => void;
+  onClick?: (event: CalendarEventType) => void;
+  isDragging?: boolean;
+  slotIndex?: number;
+  totalSlots?: number;
+  onEventClick?: (event: CalendarEventType) => void;
 }
 
-export const CalendarEvent: React.FC<CalendarEventProps> = ({ event, onClick }) => {
+export const CalendarEvent: React.FC<CalendarEventProps> = ({ 
+  event, 
+  onClick, 
+  isDragging = false,
+  slotIndex = 0,
+  totalSlots = 1,
+  onEventClick
+}) => {
   const isLunchBreak = event.status === 'lunch-break';
   const eventColor = getEventColor(event);
   
@@ -17,6 +28,19 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({ event, onClick }) 
     backgroundColor: isLunchBreak ? 'rgba(138, 43, 226, 0.2)' : eventColor,
     borderLeft: isLunchBreak ? '4px solid blueviolet' : `4px solid ${eventColor}`,
     color: isLunchBreak ? 'rgb(94, 53, 177)' : '#fff',
+    opacity: isDragging ? 0.5 : 1,
+    width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
+    left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
+    position: 'absolute',
+    height: '100%',
+  };
+  
+  const handleClick = () => {
+    if (onEventClick) {
+      onEventClick(event);
+    } else if (onClick) {
+      onClick(event);
+    }
   };
   
   return (
@@ -26,7 +50,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({ event, onClick }) 
         ${isLunchBreak ? 'font-bold' : ''}
       `}
       style={styles}
-      onClick={() => onClick(event)}
+      onClick={handleClick}
     >
       <div className="font-semibold truncate">
         {format(event.start, 'HH:mm')} - {event.title}

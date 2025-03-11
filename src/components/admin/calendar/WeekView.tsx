@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
-import { CalendarEventComponent } from './CalendarEvent';
+import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
 import { filterEventsByDate } from '@/utils/calendarUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 
