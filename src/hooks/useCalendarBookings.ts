@@ -16,6 +16,7 @@ export const useCalendarBookings = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<number>(Date.now());
 
   // Filter events by selected barber
   const filteredEvents = selectedBarberId 
@@ -42,6 +43,7 @@ export const useCalendarBookings = () => {
       
       if (bookingsError) throw bookingsError;
       
+      console.log(`Fetched ${bookingsData?.length || 0} bookings`);
       setBookings(bookingsData || []);
       
       // Fetch lunch breaks
@@ -89,10 +91,19 @@ export const useCalendarBookings = () => {
     }
   }, []);
 
-  // Initial fetch
+  // Initial fetch and set up timers
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    
+    // Set up a refresh interval (every 5 minutes)
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 5 * 60 * 1000);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [fetchData, lastUpdate]);
 
   // Update booking time/date (for drag and drop)
   const updateBookingTime = async (eventId: string, newStart: Date, newEnd: Date) => {
@@ -179,7 +190,7 @@ export const useCalendarBookings = () => {
       if (error) throw error;
       
       // Refresh bookings to get updated data with joins
-      await fetchData();
+      setLastUpdate(Date.now()); // Trigger a full data refresh
       
       return true;
     } catch (err: any) {
@@ -200,7 +211,7 @@ export const useCalendarBookings = () => {
   // Handle event click
   const handleEventClick = (event: CalendarEvent) => {
     // Don't open dialog for lunch breaks
-    if (event.id.startsWith('lunch-')) {
+    if (event.id.toString().startsWith('lunch-')) {
       toast.info(`${event.barber}'s lunch break: ${event.title}`);
       return;
     }

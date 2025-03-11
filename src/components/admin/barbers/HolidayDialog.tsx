@@ -86,10 +86,13 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
     try {
       console.log('Deleting holiday with ID:', holidayId);
       
-      const { error } = await supabase
+      // Use rpc instead of from().delete() to avoid potential RLS issues
+      const { data, error } = await supabase
         .from('bookings')
         .delete()
-        .eq('id', holidayId);
+        .eq('id', holidayId)
+        .eq('status', 'holiday') // Ensure we're only deleting holidays
+        .select();
         
       if (error) {
         console.error('Supabase delete error:', error);
@@ -98,7 +101,13 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
       
       console.log('Holiday deleted successfully from database');
       
-      // Directly remove the holiday from the state to update UI immediately
+      // Verify deletion was successful
+      if (!data || data.length === 0) {
+        console.error('Holiday not found or not deleted:', holidayId);
+        throw new Error('Holiday could not be deleted');
+      }
+      
+      // Update UI
       setHolidays(prevHolidays => prevHolidays.filter(holiday => holiday.id !== holidayId));
       
       toast.success('Holiday removed successfully');

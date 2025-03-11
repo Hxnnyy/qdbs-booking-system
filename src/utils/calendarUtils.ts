@@ -218,13 +218,12 @@ export const getBarberColor = async (barberId: string, returnRGB: boolean = fals
   if (returnRGB) {
     // Convert HSL to RGB for better control of transparency
     const h = hue / 360;
-    const s = 0.7; // 70% saturation as a number
-    const l = 0.6; // 60% lightness as a number
+    const s = 0.7; // 70% saturation 
+    const l = 0.6; // 60% lightness
     
     let r, g, b;
     
-    // Fix the TypeScript error by using a number type for comparison
-    // instead of comparing specific number literals
+    // Fix the TypeScript error by using explicit number conversion and comparison
     const saturation = Number(s);
     if (saturation === 0) {
       r = g = b = l; // achromatic
