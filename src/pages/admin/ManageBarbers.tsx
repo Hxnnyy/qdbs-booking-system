@@ -261,106 +261,126 @@ const ManageBarbers = () => {
               {barbers.map((barber) => (
                 <Card 
                   key={barber.id} 
-                  className={barber.active ? 'border-green-200' : 'border-red-200 opacity-60'}
+                  className={`overflow-hidden transition-all duration-200 ${
+                    barber.active 
+                      ? 'hover:shadow-md hover:border-primary/20' 
+                      : 'opacity-60'
+                  }`}
                 >
-                  <CardContent className="p-6">
-                    <div className="flex justify-between mb-4">
-                      <div>
-                        <h3 className="font-bold text-lg">{barber.name}</h3>
-                        <p className="text-sm text-muted-foreground">{barber.specialty}</p>
+                  <CardContent className="p-0">
+                    <div className="p-6 space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1.5">
+                          <h3 className="font-semibold text-lg leading-none">{barber.name}</h3>
+                          <p className="text-sm text-muted-foreground">{barber.specialty}</p>
+                        </div>
+                        <div>
+                          {barber.active ? (
+                            <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+                              Inactive
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-start">
-                        {barber.active ? (
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">Active</span>
-                        ) : (
-                          <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">Inactive</span>
-                        )}
+                      
+                      {barber.bio && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{barber.bio}</p>
+                      )}
+                      
+                      {barber.color && (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full" 
+                            style={{ backgroundColor: barber.color }}
+                          />
+                          <span className="text-xs text-muted-foreground">Calendar Color</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="border-t">
+                      <div className="grid grid-cols-3 divide-x">
+                        <Button 
+                          variant="ghost" 
+                          className="rounded-none h-10"
+                          onClick={() => openServicesDialog(barber)}
+                        >
+                          Services
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          className="rounded-none h-10"
+                          onClick={() => openHoursDialog(barber)}
+                        >
+                          Hours
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          className="rounded-none h-10"
+                          onClick={() => openHolidayDialog(barber)}
+                        >
+                          Holidays
+                        </Button>
                       </div>
                     </div>
                     
-                    {barber.bio && (
-                      <p className="text-sm mb-4 line-clamp-3">{barber.bio}</p>
-                    )}
-                    
-                    {barber.color && (
-                      <div className="mb-4 flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: barber.color }}></div>
-                        <span className="text-sm text-muted-foreground">Calendar Color</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => openEditDialog(barber)}
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => openServicesDialog(barber)}
-                      >
-                        Services
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => openHoursDialog(barber)}
-                      >
-                        Hours
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => openLunchDialog(barber)}
-                      >
-                        Lunch
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => openHolidayDialog(barber)}
-                      >
-                        Holidays
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => openColorDialog(barber)}
-                      >
-                        Color
-                      </Button>
-                      
-                      {barber.active ? (
+                    <div className="border-t p-4 bg-muted/5">
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openEditDialog(barber)}
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openLunchDialog(barber)}
+                        >
+                          Lunch
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openColorDialog(barber)}
+                        >
+                          Color
+                        </Button>
+                        
+                        {barber.active ? (
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => openDeactivateDialog(barber)}
+                          >
+                            Deactivate
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => {
+                              setCurrentBarber(barber);
+                              handleReactivateBarber();
+                            }}
+                          >
+                            Reactivate
+                          </Button>
+                        )}
+                        
                         <Button 
                           variant="destructive" 
-                          size="sm" 
-                          onClick={() => openDeactivateDialog(barber)}
+                          size="sm"
+                          onClick={() => openDeleteDialog(barber)}
                         >
-                          Deactivate
+                          Delete
                         </Button>
-                      ) : (
-                        <Button 
-                          variant="default" 
-                          size="sm" 
-                          onClick={() => {
-                            setCurrentBarber(barber);
-                            handleReactivateBarber();
-                          }}
-                        >
-                          Reactivate
-                        </Button>
-                      )}
-                      
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        onClick={() => openDeleteDialog(barber)}
-                      >
-                        Delete
-                      </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -667,4 +687,3 @@ const ManageBarbers = () => {
 };
 
 export default ManageBarbers;
-
