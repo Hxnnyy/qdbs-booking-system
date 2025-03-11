@@ -26,9 +26,9 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   // Use barberColor from the event if available, otherwise fall back to generated color
   const barberColor = event.barberColor || getBarberColor(event.barberId);
   
-  // For lunch breaks, use the barber's color with 50% transparency
+  // For lunch breaks, use transparent background with only colored border
   const backgroundColor = isLunchBreak 
-    ? `rgba(${getBarberColor(event.barberId, true)}, 0.5)` // 50% transparency for lunch breaks
+    ? 'transparent' // Completely transparent background for lunch breaks
     : barberColor;
   
   // For lunch breaks, use the solid barber color for the border
@@ -39,7 +39,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   const styles = {
     backgroundColor: backgroundColor,
     borderLeft: `4px solid ${borderColor}`,
-    color: isLunchBreak ? '#fff' : '#000', // White text for lunch breaks
+    color: isLunchBreak ? '#000' : '#000', // Black text for all cards for better visibility
     opacity: isDragging ? 0.5 : 1,
     width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
     left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
