@@ -86,6 +86,8 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       </div>
       {isLunchBreak ? (
         <div className="truncate opacity-90">{event.barber}'s Lunch</div>
+      ) : isHoliday ? (
+        <div className="truncate opacity-90">{event.barber}'s Holiday</div>
       ) : (
         <div className="truncate opacity-90">{event.barber} - {event.service}</div>
       )}

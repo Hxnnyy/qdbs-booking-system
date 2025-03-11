@@ -1,3 +1,4 @@
+
 import { format, parseISO, addMinutes, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -42,7 +43,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       id: booking.id,
       title: booking.guest_booking 
         ? `Guest: ${guestName}`
-        : `Client Booking`,
+        : (booking.status === 'holiday' ? 'Holiday' : 'Client Booking'),
       start: startDate,
       end: endDate,
       barber: booking.barber?.name || 'Unknown',
@@ -160,8 +161,8 @@ export const getBarberColor = async (barberId: string, returnRGB: boolean = fals
   if (returnRGB) {
     // Convert HSL to RGB for better control of transparency
     const h = hue / 360;
-    const s = 0.70; // Fix: Use a number instead of string
-    const l = 0.60; // Fix: Use a number instead of string
+    const s = 0.70; // Fixed value
+    const l = 0.60; // Fixed value
     
     let r, g, b;
     
