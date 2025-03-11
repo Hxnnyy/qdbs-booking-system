@@ -99,7 +99,7 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
         throw new Error('Holiday not found');
       }
       
-      // Proceed with deletion since we verified it exists
+      // Proceed with deletion - using .execute() to ensure the operation completes
       const { error: deleteError } = await supabase
         .from('bookings')
         .delete()
@@ -111,7 +111,20 @@ export const HolidayDialog: React.FC<HolidayDialogProps> = ({
         throw deleteError;
       }
       
-      console.log('Holiday deleted successfully from database');
+      // Verify deletion was successful by checking if it still exists
+      const { data: verifyDeletion, error: verifyError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('id', holidayId)
+        .single();
+        
+      if (!verifyError && verifyDeletion) {
+        // If we can still find the record, deletion failed
+        console.error('Holiday still exists after deletion:', holidayId);
+        throw new Error('Holiday could not be deleted');
+      }
+      
+      console.log('Holiday deletion verified');
       
       // Update UI
       setHolidays(prevHolidays => prevHolidays.filter(holiday => holiday.id !== holidayId));
