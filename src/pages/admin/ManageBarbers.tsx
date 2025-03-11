@@ -63,7 +63,6 @@ const ManageBarbers = () => {
         active: true
       };
       
-      // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('barbers')
         .insert(newBarber)
@@ -89,7 +88,6 @@ const ManageBarbers = () => {
       const updatedBarber: UpdatableBarber = { ...formData };
       const barberId = currentBarber.id;
       
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('barbers')
         .update(updatedBarber)
@@ -112,7 +110,6 @@ const ManageBarbers = () => {
     try {
       const barberId = currentBarber.id;
       
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('barbers')
         .update({ active: false })
@@ -202,7 +199,6 @@ const ManageBarbers = () => {
   
   const handleColorUpdate = async (barberId: string, color: string) => {
     try {
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('barbers')
         .update({ color })
@@ -219,8 +215,6 @@ const ManageBarbers = () => {
   
   const handleHolidaySet = async (barberId: string, startDate: Date, endDate: Date) => {
     try {
-      // First, get the first available service to use for foreign key constraint
-      // @ts-ignore - Supabase types issue
       const { data: services, error: servicesError } = await supabase
         .from('services')
         .select('id')
@@ -235,25 +229,22 @@ const ManageBarbers = () => {
       
       const serviceId = services[0].id;
       
-      // Create an array of dates between start and end (inclusive)
       const dateRange = eachDayOfInterval({ 
         start: startDate, 
         end: endDate 
       });
       
-      // Create a holiday booking for each day in the range
       const holidayBookings = dateRange.map(date => ({
         barber_id: barberId,
-        service_id: serviceId, // Use a real service ID
+        service_id: serviceId,
         booking_date: format(date, 'yyyy-MM-dd'),
         booking_time: '00:00',
         status: 'holiday',
-        user_id: '00000000-0000-0000-0000-000000000000', // System user ID
+        user_id: '00000000-0000-0000-0000-000000000000',
         notes: `Holiday on ${format(date, 'yyyy-MM-dd')}`,
         guest_booking: true
       }));
       
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('bookings')
         .insert(holidayBookings);

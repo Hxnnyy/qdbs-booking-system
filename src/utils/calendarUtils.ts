@@ -217,8 +217,8 @@ export const getBarberColor = async (barberId: string, returnRGB: boolean = fals
   if (returnRGB) {
     // Convert HSL to RGB for better control of transparency
     const h = hue / 360;
-    const s = 0.7; // 70% saturation
-    const l = 0.6; // 60% lightness
+    const s = 0.7; // 70% saturation as a number
+    const l = 0.6; // 60% lightness as a number
     
     let r, g, b;
     
@@ -340,3 +340,4 @@ export const formatNewBookingTime = (date: Date): string => {
 export const formatNewBookingDate = (date: Date): string => {
   return format(date, 'yyyy-MM-dd');
 };
+
