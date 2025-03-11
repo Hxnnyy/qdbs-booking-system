@@ -11,6 +11,7 @@ import { Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HolidayDialogProps {
   isOpen: boolean;
