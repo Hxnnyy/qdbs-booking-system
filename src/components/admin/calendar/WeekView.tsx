@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -15,15 +14,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 }) => {
   const { startHour, endHour } = useCalendarSettings();
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ time: string, top: number, columnIndex: number } | null>(null);
   const totalHours = endHour - startHour;
   
-  // Define the height of the calendar based on hours range
-  const calendarHeight = totalHours * 60; // 60px per hour
-
-  // Calculate the start of the week
-  const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Week starts on Monday
-  
-  // Generate days for the week (Monday to Sunday)
+  const calendarHeight = totalHours * 60;
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }).map((_, index) => {
     return addDays(weekStart, index);
   });
@@ -32,40 +27,46 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     setDraggingEvent(event);
   };
 
+  const handleDragOver = (e: React.DragEvent, dayIndex: number) => {
+    e.preventDefault();
+    if (!draggingEvent) return;
+    
+    const container = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - container.top;
+    
+    const totalMinutes = Math.floor(y);
+    const hours = Math.floor(totalMinutes / 60) + startHour;
+    const minutes = Math.round((totalMinutes % 60) / 15) * 15;
+    
+    const previewTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'pm' : 'am'}`;
+    setDragPreview({ time: previewTime, top: y, columnIndex: dayIndex });
+  };
+
   const handleDragEnd = (e: React.DragEvent, droppedDay: Date) => {
     if (!draggingEvent) return;
     
     const container = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - container.top;
     
-    // Calculate time from position with 15-minute snapping
     const totalMinutes = Math.floor(y);
     const hours = Math.floor(totalMinutes / 60) + startHour;
     const minutes = Math.round((totalMinutes % 60) / 15) * 15;
     
-    // Create new start date with the dropped day and time
     const newStart = new Date(droppedDay);
     newStart.setHours(hours, minutes, 0, 0);
     
-    // Calculate original duration to maintain it
     const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
-    
-    // Calculate new end time based on original duration
     const newEnd = new Date(newStart.getTime() + duration);
 
-    // Call the parent handler with the updated event info
     onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
+    setDragPreview(null);
   };
 
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden">
-      {/* Day headers row */}
       <div className="flex border-b border-border h-12">
-        {/* Empty cell for time column alignment */}
         <div className="w-16 border-r border-border"></div>
-        
-        {/* Day header cells */}
         {weekDays.map((day) => (
           <div 
             key={day.toISOString()} 
@@ -78,14 +79,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           </div>
         ))}
       </div>
-      
-      {/* Time grid and days */}
       <div 
         className="flex-1 relative"
         style={{ height: `${calendarHeight}px` }}
       >
         <div className="flex h-full">
-          {/* Time column */}
           <div className="w-16 relative border-r border-border h-full z-10">
             {Array.from({ length: totalHours + 1 }).map((_, index) => {
               const hour = startHour + index;
@@ -100,23 +98,20 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               );
             })}
           </div>
-          
-          {/* Day columns */}
-          {weekDays.map((day) => (
+          {weekDays.map((day, index) => (
             <div 
               key={day.toISOString()}
               className="flex-1 relative border-r border-border min-w-[120px] h-full"
-              onDragOver={(e) => e.preventDefault()}
+              onDragOver={(e) => handleDragOver(e, index)}
               onDrop={(e) => handleDragEnd(e, day)}
+              onDragLeave={() => setDragPreview(null)}
             >
-              {/* Time grid lines */}
               {Array.from({ length: totalHours + 1 }).map((_, index) => (
                 <div 
                   key={`grid-${index}`}
                   className="absolute w-full h-[60px] border-b border-border"
                   style={{ top: `${index * 60}px` }}
                 >
-                  {/* Quarter-hour markers */}
                   {index < totalHours && (
                     <>
                       <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
@@ -126,14 +121,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                   )}
                 </div>
               ))}
-              
-              {/* Current time indicator */}
               {isToday(day) && (() => {
                 const now = new Date();
                 const hours = now.getHours();
                 const minutes = now.getMinutes();
                 
-                // Only show if time is within our visible range
                 if (hours < startHour || hours >= endHour) return null;
                 
                 const position = (hours - startHour) * 60 + minutes;
@@ -145,22 +137,16 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                   />
                 );
               })()}
-
-              {/* Events for this day */}
               {filterEventsByDate(events, day).map((event) => {
-                // Calculate position based on event time
                 const eventHour = event.start.getHours();
                 const eventMinute = event.start.getMinutes();
                 
-                // Only show events that are within our time range
                 if (eventHour < startHour || eventHour >= endHour) return null;
                 
-                // Calculate top position in pixels (each hour = 60px)
                 const top = (eventHour - startHour) * 60 + eventMinute;
                 
-                // Calculate event duration in minutes
                 const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-                const height = Math.max(durationMinutes, 15); // Minimum 15px height
+                const height = Math.max(durationMinutes, 15);
                 
                 return (
                   <div 
@@ -181,6 +167,16 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                   </div>
                 );
               })}
+              {dragPreview && dragPreview.columnIndex === index && (
+                <div 
+                  className="absolute left-0 right-0 pointer-events-none"
+                  style={{ top: `${dragPreview.top}px` }}
+                >
+                  <div className="bg-primary/20 border border-primary rounded px-2 py-1 text-xs inline-block">
+                    Drop to schedule at {dragPreview.time}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
