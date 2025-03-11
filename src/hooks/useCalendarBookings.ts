@@ -9,10 +9,12 @@ import { bookingToCalendarEvent, formatNewBookingDate, formatNewBookingTime } fr
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
 
   // Fetch all bookings
   const fetchBookings = useCallback(async () => {
@@ -50,6 +52,9 @@ export const useCalendarBookings = () => {
       
       console.log(`Created ${events.length} calendar events`);
       setCalendarEvents(events);
+      
+      // Apply barber filter if one is selected
+      filterEventsByBarber(events, selectedBarberId);
     } catch (err: any) {
       console.error('Error fetching bookings:', err);
       setError(err.message);
@@ -57,7 +62,30 @@ export const useCalendarBookings = () => {
     } finally {
       setIsLoading(false);
     }
+  }, [selectedBarberId]);
+
+  // Filter events by barber ID
+  const filterEventsByBarber = useCallback((events: CalendarEvent[], barberId: string | null) => {
+    if (!barberId) {
+      setFilteredEvents(events);
+      return;
+    }
+    
+    const filtered = events.filter(event => event.barberId === barberId);
+    setFilteredEvents(filtered);
   }, []);
+
+  // Set selected barber filter
+  const setBarberFilter = useCallback((barberId: string | null) => {
+    setSelectedBarberId(barberId);
+    filterEventsByBarber(calendarEvents, barberId);
+  }, [calendarEvents, filterEventsByBarber]);
+
+  // Clear barber filter
+  const clearBarberFilter = useCallback(() => {
+    setSelectedBarberId(null);
+    setFilteredEvents(calendarEvents);
+  }, [calendarEvents]);
 
   // Initial fetch
   useEffect(() => {
@@ -86,13 +114,14 @@ export const useCalendarBookings = () => {
       if (error) throw error;
       
       // Update local state
-      setCalendarEvents(prev => 
-        prev.map(event => 
-          event.id === eventId 
-            ? { ...event, start: newStart, end: newEnd }
-            : event
-        )
+      const updatedEvents = calendarEvents.map(event => 
+        event.id === eventId 
+          ? { ...event, start: newStart, end: newEnd }
+          : event
       );
+      
+      setCalendarEvents(updatedEvents);
+      filterEventsByBarber(updatedEvents, selectedBarberId);
       
       // Also update the bookings array
       setBookings(prev => 
@@ -196,7 +225,7 @@ export const useCalendarBookings = () => {
 
   return {
     bookings,
-    calendarEvents,
+    calendarEvents: filteredEvents.length > 0 ? filteredEvents : calendarEvents,
     isLoading,
     error,
     fetchBookings,
@@ -206,6 +235,9 @@ export const useCalendarBookings = () => {
     selectedEvent,
     setSelectedEvent,
     isDialogOpen,
-    setIsDialogOpen
+    setIsDialogOpen,
+    selectedBarberId,
+    setBarberFilter,
+    clearBarberFilter
   };
 };
