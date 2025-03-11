@@ -171,7 +171,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
       {/* Header grid - now with 8 columns (time column + 7 days) */}
-      <div className="grid grid-cols-8 border-b border-border">
+      <div className="grid grid-cols-[4rem_repeat(7,1fr)] border-b border-border">
         {/* Empty cell for time column */}
         <div className="border-r border-border h-12"></div>
         
@@ -201,7 +201,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       </div>
       
       {/* Main grid - now with 8 columns */}
-      <div className="grid grid-cols-8 flex-1">
+      <div className="grid grid-cols-[4rem_repeat(7,1fr)] flex-1">
         {/* Time column */}
         <div className="relative border-r border-border">
           <div className="absolute top-0 left-0 bottom-0 w-full z-10 bg-background">

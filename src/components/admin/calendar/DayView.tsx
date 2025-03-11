@@ -168,7 +168,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   return (
     <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
       {/* Header for the day */}
-      <div className="grid grid-cols-2 border-b border-border">
+      <div className="grid grid-cols-[4rem_1fr] border-b border-border">
         {/* Empty cell for time column */}
         <div className="border-r border-border h-12"></div>
         
@@ -185,7 +185,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
       </div>
       
       {/* Main grid with time column and day column */}
-      <div className="grid grid-cols-2 flex-1">
+      <div className="grid grid-cols-[4rem_1fr] flex-1">
         {/* Time column */}
         <div className="relative border-r border-border">
           <div className="absolute top-0 left-0 bottom-0 w-full z-10 bg-background">
@@ -286,7 +286,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
       {/* Drag preview */}
       {dragPreview && (
         <div 
-          className="absolute pointer-events-none z-50 grid grid-cols-2"
+          className="absolute pointer-events-none z-50 grid grid-cols-[4rem_1fr]"
           style={{ top: `${dragPreview.top}px` }}
         >
           <div></div> {/* Empty cell for time column */}
