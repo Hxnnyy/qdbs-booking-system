@@ -1,4 +1,5 @@
-import { format, addMinutes, isWithinInterval } from 'date-fns';
+
+import { format, addMinutes, isWithinInterval, isSameDay } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 
@@ -22,6 +23,9 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     serviceId: booking.service_id,
     status: booking.status,
     notes: booking.notes || '',
+    isGuest: booking.guest_booking || false,
+    userId: booking.user_id || '',
+    resourceId: booking.barber_id // Using barber_id as resourceId for resource view
   };
 };
 
@@ -42,6 +46,9 @@ export const createLunchBreakEvent = (lunchBreak: LunchBreak): CalendarEvent => 
     serviceId: 'lunch',
     status: 'lunch-break',
     notes: 'Lunch Break',
+    isGuest: false,
+    userId: '',
+    resourceId: lunchBreak.barber_id
   };
 };
 
@@ -96,13 +103,16 @@ export const getEventColor = async (status: string, pastEvent = false): Promise<
   } else if (status === 'pending') {
     return `rgba(255, 165, 0, ${opacity})`; // Orange for pending events
   } else {
-    // The problem is here - we're comparing 0.7 (number) with '0' (string)
-    // Fixed by converting '0' to a number or comparing with 0 directly
-    // Instead of if (opacity < '0'), we'll use:
+    // Fixed by comparing opacity as a number, not as a string
     if (opacity < 0) {
       return `rgba(${defaultRed}, ${defaultGreen}, ${defaultBlue}, 0.3)`;
     }
     
     return `rgba(${defaultRed}, ${defaultGreen}, ${defaultBlue}, ${opacity})`;
   }
+};
+
+// Add the missing filterEventsByDate function
+export const filterEventsByDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
+  return events.filter(event => isSameDay(event.start, date));
 };
