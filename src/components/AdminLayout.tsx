@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   Sidebar, 
@@ -43,13 +44,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <Sidebar>
-          <div className="pt-16">
-            <SidebarHeader className="sticky top-16 z-50 bg-sidebar border-b border-sidebar-border">
+          <div className="h-full flex flex-col">
+            {/* Fixed header with enough top padding to clear the navbar */}
+            <SidebarHeader className="sticky top-0 z-50 bg-sidebar border-b border-sidebar-border pt-16">
               <div className="px-3 py-2">
                 <h2 className="text-lg font-semibold">Admin Panel</h2>
               </div>
             </SidebarHeader>
-            <SidebarContent>
+            <SidebarContent className="flex-1 overflow-y-auto">
               <SidebarGroup>
                 <SidebarGroupLabel>Management</SidebarGroupLabel>
                 <SidebarGroupContent>
