@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -30,12 +31,13 @@ export const DayView: React.FC<CalendarViewProps> = ({
   console.log("DayView - Holiday events:", holidayEvents);
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
-    // Separate holidays from other events (including lunch breaks now)
+    // First, separate lunch breaks and holidays from other events
+    const lunchBreaks = events.filter(event => event.status === 'lunch-break');
     const holidays = events.filter(event => event.status === 'holiday');
-    const regularEvents = events.filter(event => event.status !== 'holiday');
+    const otherEvents = events.filter(event => event.status !== 'lunch-break' && event.status !== 'holiday');
     
-    // Process regular events and lunch breaks together
-    const sortedEvents = [...regularEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
+    // Process regular events (non-lunch-breaks, non-holidays)
+    const sortedEvents = [...otherEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
     
     const overlappingGroups: CalendarEvent[][] = [];
     
@@ -100,6 +102,15 @@ export const DayView: React.FC<CalendarViewProps> = ({
           });
         });
       }
+    });
+    
+    // Process lunch breaks separately - always give them full width
+    lunchBreaks.forEach(lunchEvent => {
+      results.push({
+        event: lunchEvent,
+        slotIndex: 0, 
+        totalSlots: 1  // Always use full width for lunch breaks
+      });
     });
     
     // Process holidays separately - always give them full width
@@ -224,15 +235,15 @@ export const DayView: React.FC<CalendarViewProps> = ({
         {/* Empty cell for time column */}
         <div className="border-r border-border h-12"></div>
         
-        {/* Holiday Indicator - placed above the day header */}
-        <div className="flex flex-col">
-          <HolidayIndicator holidayEvents={holidayEvents} />
-          
-          {/* Day header */}
-          <div className={`h-12 flex flex-col items-center justify-center ${isToday(date) ? 'bg-primary/10' : ''}`}>
+        {/* Day header */}
+        <div className={`flex flex-col ${isToday(date) ? 'bg-primary/10' : ''}`}>
+          <div className="h-12 flex flex-col items-center justify-center">
             <div className="text-sm">{format(date, 'EEEE')}</div>
             <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
           </div>
+          
+          {/* Holiday Indicator */}
+          <HolidayIndicator holidayEvents={holidayEvents} />
         </div>
       </div>
       
