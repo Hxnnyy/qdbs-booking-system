@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -8,6 +9,7 @@ import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { processOverlappingEvents } from '@/utils/processOverlappingEvents';
 import { TimeColumn } from './TimeColumn';
 import { DayHeader } from './DayHeader';
+import { isBarberAvailable } from '@/utils/bookingUpdateUtils';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -19,7 +21,8 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const { startHour, endHour, autoScrollToCurrentTime } = useCalendarSettings();
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
-  const [dragPreview, setDragPreview] = useState<{ time: string, top: number } | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ time: string, top: number, lastCheck?: number } | null>(null);
+  const [dragAvailability, setDragAvailability] = useState<{ available: boolean; reason?: string } | null>(null);
   const totalHours = endHour - startHour;
   const calendarHeight = totalHours * 60;
   const holidayEvents = getHolidayEventsForDate(events, date);
@@ -51,9 +54,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
+    setDragAvailability(null);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = async (e: React.DragEvent) => {
     e.preventDefault();
     if (!draggingEvent) return;
     
@@ -65,7 +69,34 @@ export const DayView: React.FC<CalendarViewProps> = ({
     const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
     
     const previewTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'pm' : 'am'}`;
-    setDragPreview({ time: previewTime, top: Math.floor(totalMinutes / 15) * 15 });
+    
+    // Format time for availability check (24-hour format)
+    const checkTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    
+    // Check if barber is available (debounced to avoid too many checks)
+    if (draggingEvent.barberId) {
+      // Use a simple debounce mechanism
+      const now = new Date().getTime();
+      
+      if (!dragPreview || now - (dragPreview.lastCheck || 0) > 500) {
+        const availability = await isBarberAvailable(draggingEvent.barberId, date, checkTime);
+        setDragAvailability(availability);
+        
+        setDragPreview({ 
+          time: previewTime, 
+          top: Math.floor(totalMinutes / 15) * 15,
+          lastCheck: now
+        });
+      } else {
+        setDragPreview({ 
+          ...dragPreview,
+          time: previewTime, 
+          top: Math.floor(totalMinutes / 15) * 15
+        });
+      }
+    } else {
+      setDragPreview({ time: previewTime, top: Math.floor(totalMinutes / 15) * 15 });
+    }
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
@@ -93,6 +124,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
     onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
     setDragPreview(null);
+    setDragAvailability(null);
   };
 
   const processedEvents = processOverlappingEvents(displayEvents);
@@ -110,7 +142,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
           style={{ height: `${calendarHeight}px` }}
           onDragOver={handleDragOver}
           onDrop={handleDragEnd}
-          onDragLeave={() => setDragPreview(null)}
+          onDragLeave={() => {
+            setDragPreview(null);
+            setDragAvailability(null);
+          }}
         >
           <div className="absolute top-0 left-0 right-0 bottom-0">
             {Array.from({ length: totalHours + 1 }).map((_, index) => (
@@ -189,8 +224,16 @@ export const DayView: React.FC<CalendarViewProps> = ({
           style={{ top: `${dragPreview.top}px` }}
         >
           <div></div>
-          <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
-            Drop to schedule at {dragPreview.time}
+          <div 
+            className={`border-2 text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md
+              ${dragAvailability && !dragAvailability.available 
+                ? 'bg-destructive/70 border-destructive' 
+                : 'bg-primary/70 border-primary'}`
+            }
+          >
+            {dragAvailability && !dragAvailability.available 
+              ? `Unavailable: ${dragAvailability.reason}` 
+              : `Drop to schedule at ${dragPreview.time}`}
           </div>
         </div>
       )}
