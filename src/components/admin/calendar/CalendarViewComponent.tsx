@@ -51,7 +51,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
   };
 
   return (
-    <div className="space-y-4 h-[calc(100vh-12rem)]">
+    <div className="space-y-4 h-[calc(100vh-12rem)] flex flex-col">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Tabs defaultValue="week" className="w-full sm:w-auto" onValueChange={(value) => setViewMode(value as ViewMode)}>
           <TabsList>
@@ -92,24 +92,26 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
         </div>
       </div>
 
-      <div className="border rounded-md overflow-hidden h-[calc(100%-4rem)]">
-        {viewMode === 'day' ? (
-          <DayView
-            date={currentDate}
-            onDateChange={handleDateChange}
-            events={events}
-            onEventDrop={onEventDrop}
-            onEventClick={onEventClick}
-          />
-        ) : (
-          <WeekView
-            date={currentDate}
-            onDateChange={handleDateChange}
-            events={events}
-            onEventDrop={onEventDrop}
-            onEventClick={onEventClick}
-          />
-        )}
+      <div className="border rounded-md overflow-hidden flex-1 flex flex-col">
+        <div className="calendar-scrollable-container">
+          {viewMode === 'day' ? (
+            <DayView
+              date={currentDate}
+              onDateChange={handleDateChange}
+              events={events}
+              onEventDrop={onEventDrop}
+              onEventClick={onEventClick}
+            />
+          ) : (
+            <WeekView
+              date={currentDate}
+              onDateChange={handleDateChange}
+              events={events}
+              onEventDrop={onEventDrop}
+              onEventClick={onEventClick}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

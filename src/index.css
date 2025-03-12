@@ -234,3 +234,64 @@
   pointer-events: none;
   clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
 }
+
+/* Calendar Styling */
+.calendar-scrollable-container {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.calendar-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.calendar-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background-color: hsl(var(--background));
+}
+
+.calendar-body {
+  flex: 1;
+}
+
+.time-column {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background-color: hsl(var(--background));
+}
+
+.day-column {
+  min-width: 100px;
+}
+
+/* Custom scrollbar for calendar */
+.calendar-scrollable-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.calendar-scrollable-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.calendar-scrollable-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.calendar-scrollable-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* For Firefox */
+.calendar-scrollable-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) rgba(0, 0, 0, 0.05);
+}

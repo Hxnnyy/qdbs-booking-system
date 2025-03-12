@@ -110,6 +110,29 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     setDisplayEvents(filtered);
   }, [events, date]);
 
+  useEffect(() => {
+    // Scroll to current time on initial load
+    const now = new Date();
+    const today = weekDays.findIndex(day => isToday(day));
+    
+    if (today !== -1) {
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      
+      if (hours >= startHour && hours < endHour) {
+        const position = (hours - startHour) * 60 + minutes;
+        
+        setTimeout(() => {
+          const container = document.querySelector('.calendar-scrollable-container');
+          if (container) {
+            // Scroll to current time minus some offset to show context
+            container.scrollTop = position - 100;
+          }
+        }, 100);
+      }
+    }
+  }, [date, weekDays, startHour, endHour]);
+
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
@@ -169,9 +192,9 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const processedEvents = processOverlappingEvents(displayEvents);
 
   return (
-    <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-background">
-      {/* Header grid - now with 8 columns (time column + 7 days) */}
-      <div className="grid grid-cols-[4rem_repeat(7,1fr)] border-b border-border">
+    <div className="h-full calendar-view week-view">
+      {/* Header grid - Fixed at the top */}
+      <div className="calendar-header grid grid-cols-[4rem_repeat(7,1fr)] border-b border-border sticky top-0 z-20 bg-background">
         {/* Empty cell for time column */}
         <div className="border-r border-border h-12"></div>
         
@@ -200,30 +223,28 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         })}
       </div>
       
-      {/* Main grid - now with 8 columns */}
-      <div className="grid grid-cols-[4rem_repeat(7,1fr)] flex-1">
+      {/* Main grid - Scrollable content */}
+      <div className="calendar-body grid grid-cols-[4rem_repeat(7,1fr)]">
         {/* Time column */}
-        <div className="relative border-r border-border">
-          <div className="absolute top-0 left-0 bottom-0 w-full z-10 bg-background">
-            {Array.from({ length: totalHours + 1 }).map((_, index) => {
-              const hour = startHour + index;
-              return (
-                <div 
-                  key={`time-${hour}`}
-                  className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
-                >
-                  {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
-                </div>
-              );
-            })}
-          </div>
+        <div className="time-column border-r border-border">
+          {Array.from({ length: totalHours + 1 }).map((_, index) => {
+            const hour = startHour + index;
+            return (
+              <div 
+                key={`time-${hour}`}
+                className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
+              >
+                {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
+              </div>
+            );
+          })}
         </div>
         
         {/* Day columns */}
         {weekDays.map((day, dayIndex) => (
           <div 
             key={dayIndex}
-            className="relative border-r last:border-r-0 border-border"
+            className="relative border-r last:border-r-0 border-border day-column"
             style={{ height: `${calendarHeight}px` }}
             onDragOver={(e) => handleDragOver(e, dayIndex)}
             onDrop={(e) => handleDragEnd(e, dayIndex)}
