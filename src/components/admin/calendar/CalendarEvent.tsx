@@ -43,13 +43,17 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     borderColor = barberColor;
   }
   
+  // Fix for overlapping lunch breaks - ensure consistent width calculation
+  const slotWidth = 100 / totalSlots;
+  const leftPosition = slotIndex * slotWidth;
+  
   const styles = {
     backgroundColor: backgroundColor,
     borderLeft: `4px solid ${borderColor}`,
-    color: isLunchBreak ? '#fff' : (isHoliday ? '#333' : '#000'), // Set lunch break text to white
-    opacity: isLunchBreak ? 0.7 : 1, // Only apply transparency to lunch breaks
-    width: totalSlots > 1 ? `calc(100% / ${totalSlots})` : '100%',
-    left: totalSlots > 1 ? `calc(${slotIndex} * (100% / ${totalSlots}))` : '0',
+    color: isLunchBreak ? '#fff' : (isHoliday ? '#333' : '#000'),
+    opacity: isLunchBreak ? 0.7 : 1,
+    width: `${slotWidth}%`, // Use percentage for consistent sizing
+    left: `${leftPosition}%`, // Use percentage for consistent positioning
     position: 'absolute' as const,
     height: '100%',
     zIndex: 10,

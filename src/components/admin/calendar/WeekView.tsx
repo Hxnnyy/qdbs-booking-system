@@ -58,18 +58,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         if (hasOverlap) {
           // Add to existing group based on event type
           if (event.status === 'lunch-break') {
-            // Find the correct position to insert the lunch break based on overlap
-            let inserted = false;
-            for (let i = 0; i < group.lunchBreaks.length; i++) {
-              if (event.start < group.lunchBreaks[i].start) {
-                group.lunchBreaks.splice(i, 0, event);
-                inserted = true;
-                break;
-              }
-            }
-            if (!inserted) {
-              group.lunchBreaks.push(event);
-            }
+            group.lunchBreaks.push(event);
           } else {
             group.appointments.push(event);
           }
@@ -92,6 +81,9 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     
     // Process each group
     overlappingGroups.forEach(group => {
+      // Sort lunch breaks by start time for consistent display
+      group.lunchBreaks.sort((a, b) => a.start.getTime() - b.start.getTime());
+      
       const totalSlots = Math.max(1, group.appointments.length + group.lunchBreaks.length);
       
       // Add appointments first (they'll be on the left)
@@ -103,7 +95,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         });
       });
       
-      // Add lunch breaks consecutively
+      // Add lunch breaks right after appointments with contiguous slot indices
       const appointmentCount = group.appointments.length;
       group.lunchBreaks.forEach((event, index) => {
         results.push({
