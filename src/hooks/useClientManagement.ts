@@ -118,40 +118,61 @@ export const useClientManagement = () => {
         ...Array.from(guestClientsMap.values())
       ];
 
-      // Remove duplicates by phone and email
-      const clientsByPhone = new Map();
-      const clientsByEmail = new Map();
-      const uniqueClients: Client[] = [];
-
-      // First, process registered users (prioritize them over guests)
+      // Better deduplication by phone and email
+      // Create a map of phones and emails to prioritize registered users
+      const phoneMap = new Map();
+      const emailMap = new Map();
+      
+      // First, prioritize registered users
       allClients
         .filter(client => !client.isGuest)
         .forEach(client => {
-          if (client.phone) {
-            clientsByPhone.set(client.phone, client);
-          } else if (client.email) {
-            clientsByEmail.set(client.email, client);
-          } else {
+          if (client.phone) phoneMap.set(client.phone, client);
+          if (client.email) emailMap.set(client.email, client);
+        });
+      
+      // Deduplicate clients
+      const uniqueClients: Client[] = [];
+      const addedIds = new Set();
+      
+      // Add all registered users first
+      allClients
+        .filter(client => !client.isGuest)
+        .forEach(client => {
+          if (!addedIds.has(client.id)) {
             uniqueClients.push(client);
+            addedIds.add(client.id);
           }
         });
-
-      // Then process guests, only add if we don't already have a registered user with same phone/email
+      
+      // Then add guests only if their phone/email doesn't conflict with a registered user
       allClients
         .filter(client => client.isGuest)
         .forEach(client => {
-          if (client.phone && !clientsByPhone.has(client.phone)) {
-            clientsByPhone.set(client.phone, client);
-          } else if (client.email && !clientsByEmail.has(client.email)) {
-            clientsByEmail.set(client.email, client);
-          } else if (!client.phone && !client.email) {
-            uniqueClients.push(client);
+          // Skip if the phone or email is already associated with a registered user
+          if (
+            (client.phone && phoneMap.has(client.phone) && !phoneMap.get(client.phone).isGuest) ||
+            (client.email && emailMap.has(client.email) && !emailMap.get(client.email).isGuest)
+          ) {
+            return;
           }
+          
+          // Skip if this guest already has a duplicate in our list
+          if (
+            (client.phone && phoneMap.has(client.phone)) ||
+            (client.email && emailMap.has(client.email))
+          ) {
+            return;
+          }
+          
+          // Add this guest to our unique clients
+          uniqueClients.push(client);
+          
+          // Mark this phone and email as used
+          if (client.phone) phoneMap.set(client.phone, client);
+          if (client.email) emailMap.set(client.email, client);
         });
-
-      // Combine all unique clients
-      uniqueClients.push(...clientsByPhone.values(), ...clientsByEmail.values());
-
+      
       // Sort by name
       const sortedClients = uniqueClients.sort((a, b) => {
         return a.name.localeCompare(b.name);
@@ -162,6 +183,75 @@ export const useClientManagement = () => {
       console.error('Error fetching clients:', err);
       setError(err.message);
       toast.error('Failed to load clients');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update client information
+  const updateClientProfile = async (clientId: string, data: { name?: string, phone?: string, email?: string }) => {
+    try {
+      setIsLoading(true);
+      
+      // Get the client to determine whether it's a guest or registered user
+      const client = clients.find(c => c.id === clientId);
+      if (!client) {
+        throw new Error('Client not found');
+      }
+      
+      let success = false;
+      
+      // Different update logic for guests vs registered users
+      if (client.isGuest) {
+        // For guest clients, we need to update all bookings with this information
+        // First, identify all bookings that might belong to this guest
+        const matchQuery = [];
+        if (client.phone) matchQuery.push(`notes.ilike.%${client.phone}%`);
+        if (client.email) matchQuery.push(`guest_email.eq.${client.email}`);
+        
+        if (matchQuery.length === 0) {
+          throw new Error('Cannot identify guest bookings to update');
+        }
+        
+        // Update guest bookings
+        const { error: updateError } = await supabase
+          .from('bookings')
+          .update({
+            guest_email: data.email || client.email,
+            notes: data.name || data.phone 
+              ? `Guest booking by ${data.name || client.name}${data.phone ? ` (${data.phone})` : client.phone ? ` (${client.phone})` : ''}`
+              : client.notes
+          })
+          .or(matchQuery.join(','));
+          
+        if (updateError) throw updateError;
+        success = true;
+      } else {
+        // For registered users, update the profile table
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: data.name ? data.name.split(' ')[0] : undefined,
+            last_name: data.name && data.name.split(' ').length > 1 
+              ? data.name.split(' ').slice(1).join(' ') 
+              : undefined,
+            phone: data.phone,
+            email: data.email
+          })
+          .eq('id', clientId);
+          
+        if (updateError) throw updateError;
+        success = true;
+      }
+      
+      if (success) {
+        toast.success('Client profile updated successfully');
+        await fetchClients(); // Refresh the client list
+      }
+      
+    } catch (err: any) {
+      console.error('Error updating client profile:', err);
+      toast.error(`Failed to update client: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -213,6 +303,7 @@ export const useClientManagement = () => {
     fetchClients,
     sendEmailToClients,
     showGuestBookings,
-    toggleShowGuestBookings
+    toggleShowGuestBookings,
+    updateClientProfile
   };
 };

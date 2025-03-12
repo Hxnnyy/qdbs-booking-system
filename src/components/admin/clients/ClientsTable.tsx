@@ -5,13 +5,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Client } from '@/types/client';
 import { useClients } from '@/context/ClientsContext';
+import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
 
 interface ClientsTableProps {
   clients: Client[];
   isLoading: boolean;
+  onEditClient: (client: Client) => void;
 }
 
-export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading }) => {
+export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading, onEditClient }) => {
   const { 
     toggleClientSelection, 
     selectAllClients, 
@@ -64,6 +67,7 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading }
             <TableHead>Email</TableHead>
             <TableHead>Type</TableHead>
             <TableHead className="text-right">Appointments</TableHead>
+            <TableHead className="w-20"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -91,6 +95,16 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading }
                 )}
               </TableCell>
               <TableCell className="text-right">{client.bookingCount}</TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEditClient(client)}
+                  aria-label={`Edit ${client.name}`}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

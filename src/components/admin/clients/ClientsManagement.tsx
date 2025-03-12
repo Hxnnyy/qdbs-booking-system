@@ -3,12 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientsTable } from './ClientsTable';
 import { ClientsEmailDialog } from './ClientsEmailDialog';
+import { EditClientDialog } from './EditClientDialog';
 import { Button } from '@/components/ui/button';
 import { Mail, RefreshCw, Users } from 'lucide-react';
 import { useClientManagement } from '@/hooks/useClientManagement';
 import { useClients } from '@/context/ClientsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Client } from '@/types/client';
 
 export const ClientsManagement = () => {
   const { 
@@ -17,10 +19,13 @@ export const ClientsManagement = () => {
     fetchClients, 
     sendEmailToClients, 
     showGuestBookings, 
-    toggleShowGuestBookings 
+    toggleShowGuestBookings,
+    updateClientProfile
   } = useClientManagement();
   const { selectedClients, deselectAllClients } = useClients();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
 
   const handleRefresh = () => {
     fetchClients();
@@ -32,6 +37,16 @@ export const ClientsManagement = () => {
 
   const handleCloseEmailDialog = () => {
     setEmailDialogOpen(false);
+  };
+
+  const handleEditClient = (client: Client) => {
+    setClientToEdit(client);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setClientToEdit(null);
   };
 
   const handleSendEmailSubmit = async (subject: string, content: string) => {
@@ -81,13 +96,25 @@ export const ClientsManagement = () => {
         </div>
       </CardHeader>
       <CardContent>
-        <ClientsTable clients={clients} isLoading={isLoading} />
+        <ClientsTable 
+          clients={clients} 
+          isLoading={isLoading} 
+          onEditClient={handleEditClient} 
+        />
         
         <ClientsEmailDialog 
           isOpen={emailDialogOpen}
           onOpenChange={setEmailDialogOpen}
           onSend={handleSendEmailSubmit}
           selectedClientsCount={selectedClients.length}
+        />
+
+        <EditClientDialog
+          isOpen={editDialogOpen}
+          onClose={handleCloseEditDialog}
+          client={clientToEdit}
+          onSave={updateClientProfile}
+          isLoading={isLoading}
         />
       </CardContent>
     </Card>
