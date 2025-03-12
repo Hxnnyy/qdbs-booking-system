@@ -256,13 +256,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 isToday(day) ? 'bg-primary/10' : ''
               }`}
             >
+              {/* Holiday Indicator - Moved above the day/date row */}
+              <HolidayIndicator holidayEvents={holidayEvents} />
+              
               <div className="h-12 flex flex-col items-center justify-center">
                 <div className="text-sm">{format(day, 'EEE')}</div>
                 <div className="text-xs text-muted-foreground">{format(day, 'd')}</div>
               </div>
-              
-              {/* Holiday Indicator */}
-              <HolidayIndicator holidayEvents={holidayEvents} />
             </div>
           );
         })}
