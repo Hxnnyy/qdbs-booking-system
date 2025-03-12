@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ interface EventDetailsDialogProps {
       notes?: string;
       booking_date?: string;
       booking_time?: string;
+      status?: string;
     }
   ) => Promise<boolean>;
 }
@@ -48,7 +50,8 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
     service_id: '',
     notes: '',
     booking_time: '',
-    booking_date: ''
+    booking_date: '',
+    status: ''
   });
   
   React.useEffect(() => {
@@ -59,7 +62,8 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
         service_id: event.serviceId,
         notes: event.notes || '',
         booking_time: format(event.start, 'HH:mm'),
-        booking_date: format(event.start, 'yyyy-MM-dd')
+        booking_date: format(event.start, 'yyyy-MM-dd'),
+        status: event.status
       });
       setIsEditing(false);
     }
@@ -93,7 +97,8 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
         booking_date: editForm.booking_date !== format(event.start, 'yyyy-MM-dd') ? 
           editForm.booking_date : undefined,
         booking_time: editForm.booking_time !== format(event.start, 'HH:mm') ? 
-          editForm.booking_time : undefined
+          editForm.booking_time : undefined,
+        status: editForm.status !== event.status ? editForm.status : undefined
       };
       
       const hasChanges = Object.values(updates).some(value => value !== undefined);
@@ -194,6 +199,24 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
                         {service.name} (${service.price} - {service.duration} min)
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="status" className="text-sm font-medium">Status</label>
+                <Select 
+                  value={editForm.status} 
+                  onValueChange={(value) => handleSelectChange('status', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="no-show">No Show</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

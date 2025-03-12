@@ -26,7 +26,8 @@ const NotesAndConfirmationStep: React.FC<NotesAndConfirmationStepProps> = ({
   services, 
   isLoading,
   onSubmit,
-  onBack
+  onBack,
+  onNext
 }) => {
   const { selectedBarber, selectedService, selectedDate, selectedTime, guestName, guestPhone } = formData;
   

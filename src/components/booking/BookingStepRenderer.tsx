@@ -119,6 +119,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           isLoading={bookingLoading}
           onSubmit={handlers.handleSubmit}
           onBack={handlers.handleBackToGuestInfo}
+          onNext={() => {}}
         />
       );
     case 'confirmation':
@@ -131,6 +132,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           formData={formState}
           barbers={barbers}
           services={services}
+          onNext={() => {}}
         />
       );
     default:
