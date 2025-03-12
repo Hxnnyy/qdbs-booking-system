@@ -31,7 +31,6 @@ export interface DragPreview {
   time: string;
   top: number;
   columnIndex?: number;
-  lastCheck?: number;  // Timestamp for debouncing API calls
 }
 
 // Add the missing ViewMode type

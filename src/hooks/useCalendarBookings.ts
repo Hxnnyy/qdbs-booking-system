@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -6,7 +5,6 @@ import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 import { bookingToCalendarEvent, formatNewBookingDate, formatNewBookingTime } from '@/utils/calendarUtils';
 import { createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
-import { isBarberAvailable } from '@/utils/bookingUpdateUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -119,29 +117,8 @@ export const useCalendarBookings = () => {
         return;
       }
       
-      // Find the event to get the barber ID
-      const event = calendarEvents.find(e => e.id === eventId);
-      if (!event) {
-        toast.error('Event not found');
-        return;
-      }
-      
       const newBookingDate = formatNewBookingDate(newStart);
       const newBookingTime = formatNewBookingTime(newStart);
-      
-      console.log(`Checking availability for booking ${eventId} at ${newBookingDate} ${newBookingTime}`);
-      
-      // Check if the barber is available at the new time
-      const availability = await isBarberAvailable(
-        event.barberId, 
-        newStart,
-        newBookingTime
-      );
-      
-      if (!availability.available) {
-        toast.error(`Cannot reschedule: ${availability.reason}`);
-        return;
-      }
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       

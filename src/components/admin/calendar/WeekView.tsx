@@ -9,7 +9,6 @@ import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { processOverlappingEvents } from '@/utils/processOverlappingEvents';
 import { TimeColumn } from './TimeColumn';
 import { DayHeader } from './DayHeader';
-import { isBarberAvailable } from '@/utils/bookingUpdateUtils';
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -22,7 +21,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
-  const [dragAvailability, setDragAvailability] = useState<{ available: boolean; reason?: string } | null>(null);
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const totalHours = endHour - startHour;
@@ -62,10 +60,9 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
-    setDragAvailability(null);
   };
 
-  const handleDragOver = async (e: React.DragEvent, dayIndex: number) => {
+  const handleDragOver = (e: React.DragEvent, dayIndex: number) => {
     e.preventDefault();
     if (!draggingEvent) return;
     
@@ -77,41 +74,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
     
     const previewTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'pm' : 'am'}`;
-    const selectedDate = weekDays[dayIndex];
-    
-    // Format time for availability check (24-hour format)
-    const checkTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    
-    // Check if barber is available (debounced to avoid too many checks)
-    if (draggingEvent.barberId) {
-      // Use a simple debounce mechanism
-      const now = new Date().getTime();
-      
-      if (!dragPreview || now - (dragPreview.lastCheck || 0) > 500) {
-        const availability = await isBarberAvailable(draggingEvent.barberId, selectedDate, checkTime);
-        setDragAvailability(availability);
-        
-        setDragPreview({ 
-          time: previewTime, 
-          top: Math.floor(totalMinutes / 15) * 15,
-          columnIndex: dayIndex,
-          lastCheck: now
-        });
-      } else {
-        setDragPreview({ 
-          ...dragPreview,
-          time: previewTime, 
-          top: Math.floor(totalMinutes / 15) * 15,
-          columnIndex: dayIndex
-        });
-      }
-    } else {
-      setDragPreview({ 
-        time: previewTime, 
-        top: Math.floor(totalMinutes / 15) * 15,
-        columnIndex: dayIndex
-      });
-    }
+    setDragPreview({ 
+      time: previewTime, 
+      top: Math.floor(totalMinutes / 15) * 15,
+      columnIndex: dayIndex
+    });
   };
 
   const handleDragEnd = (e: React.DragEvent, dayIndex: number) => {
@@ -144,7 +111,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
     setDragPreview(null);
-    setDragAvailability(null);
   };
 
   const processedEvents = processOverlappingEvents(displayEvents);
@@ -186,10 +152,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               style={{ height: `${calendarHeight}px` }}
               onDragOver={(e) => handleDragOver(e, dayIndex)}
               onDrop={(e) => handleDragEnd(e, dayIndex)}
-              onDragLeave={() => {
-                setDragPreview(null);
-                setDragAvailability(null);
-              }}
+              onDragLeave={() => setDragPreview(null)}
             >
               <div className="absolute top-0 left-0 right-0 bottom-0">
                 {Array.from({ length: totalHours + 1 }).map((_, index) => (
@@ -286,20 +249,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           }}
         >
           <div 
-            className={`border-2 text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md absolute
-              ${dragAvailability && !dragAvailability.available 
-                ? 'bg-destructive/70 border-destructive' 
-                : 'bg-primary/70 border-primary'}`
-            }
+            className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md absolute"
             style={{
               top: `${dragPreview.top}px`,
               left: '50%',
               transform: 'translateX(-50%)'
             }}
           >
-            {dragAvailability && !dragAvailability.available 
-              ? `Unavailable: ${dragAvailability.reason}` 
-              : `Drop to schedule at ${dragPreview.time}`}
+            Drop to schedule at {dragPreview.time}
           </div>
         </div>
       )}
