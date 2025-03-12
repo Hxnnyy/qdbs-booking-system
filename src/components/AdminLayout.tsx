@@ -46,7 +46,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <Sidebar>
-          <SidebarHeader>
+          <SidebarHeader className="sticky top-0 z-20 bg-sidebar">
             <div className="px-3 py-2">
               <h2 className="text-lg font-semibold">Admin Panel</h2>
             </div>
@@ -132,7 +132,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-          <SidebarFooter>
+          <SidebarFooter className="sticky bottom-0 z-10 bg-sidebar">
             <div className="p-3">
               <SidebarMenuButton asChild tooltip="Back to Home">
                 <Link to="/">
