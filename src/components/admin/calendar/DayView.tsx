@@ -233,18 +233,17 @@ export const DayView: React.FC<CalendarViewProps> = ({
       {/* Header for the day - Fixed at the top */}
       <div className="calendar-header grid grid-cols-[4rem_1fr] border-b border-border sticky top-0 z-20 bg-background">
         {/* Empty cell for time column */}
-        <div className="border-r border-border"></div>
+        <div className="border-r border-border h-12"></div>
         
         {/* Day header */}
         <div className={`flex flex-col ${isToday(date) ? 'bg-primary/10' : ''}`}>
-          {/* Holiday Indicator - Now positioned above the day/date */}
-          <HolidayIndicator holidayEvents={holidayEvents} />
-          
-          {/* Day and date information */}
           <div className="h-12 flex flex-col items-center justify-center">
             <div className="text-sm">{format(date, 'EEEE')}</div>
             <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
           </div>
+          
+          {/* Holiday Indicator */}
+          <HolidayIndicator holidayEvents={holidayEvents} />
         </div>
       </div>
       
