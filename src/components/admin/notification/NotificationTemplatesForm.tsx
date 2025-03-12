@@ -349,7 +349,7 @@ export const NotificationTemplatesForm = () => {
               <div className="text-right pt-2">
                 <Label htmlFor="content">Content</Label>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Use variables like {{"{name}"}}
+                  Use variables like {"{name}"}
                 </div>
               </div>
               <div className="col-span-3 space-y-2">
@@ -450,7 +450,7 @@ export const NotificationTemplatesForm = () => {
               <div className="text-right pt-2">
                 <Label htmlFor="content">Content</Label>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Use variables like {{"{name}"}}
+                  Use variables like {"{name}"}
                 </div>
               </div>
               <div className="col-span-3 space-y-2">
