@@ -4,3 +4,9 @@ value = "mvcqywuqkeerlmodohgw"
 
 [RESEND_API_KEY]
 value = "re_"
+
+[SUPABASE_URL]
+value = "https://mvcqywuqkeerlmodohgw.supabase.co"
+
+[SUPABASE_SERVICE_ROLE_KEY]
+value = ""

@@ -196,6 +196,39 @@ export type Database = {
           },
         ]
       }
+      notification_templates: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_default: boolean
+          subject: string | null
+          template_name: string
+          type: string
+          variables: Json
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean
+          subject?: string | null
+          template_name: string
+          type: string
+          variables?: Json
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean
+          subject?: string | null
+          template_name?: string
+          type?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
       opening_hours: {
         Row: {
           barber_id: string

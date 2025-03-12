@@ -1,4 +1,5 @@
 
+
 // Custom type definitions for Supabase tables
 export interface Barber {
   id: string;
@@ -87,3 +88,4 @@ export type UpdatableLunchBreak = Partial<InsertableLunchBreak>;
 
 export type InsertableNotificationTemplate = Omit<NotificationTemplate, 'id' | 'created_at'>;
 export type UpdatableNotificationTemplate = Partial<InsertableNotificationTemplate>;
+

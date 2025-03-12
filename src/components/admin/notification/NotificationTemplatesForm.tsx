@@ -1,184 +1,128 @@
 
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Mail, MessageSquare, Bookmark } from 'lucide-react';
+import { Mail, MessageSquare, Plus, Trash } from 'lucide-react';
+import { NotificationTemplate } from '@/supabase-types';
+import { useNotificationTemplates } from '@/hooks/useNotificationTemplates';
 
-interface NotificationTemplate {
-  id?: string;
-  type: 'email' | 'sms';
-  template_name: string;
-  subject?: string;
-  content: string;
-  variables: string[];
-  is_default: boolean;
-  created_at?: string;
-}
-
-const availableVariables = [
-  '{{name}}', 
-  '{{bookingCode}}',
-  '{{bookingDate}}',
-  '{{bookingTime}}',
-  '{{barberName}}',
-  '{{serviceName}}'
-];
-
-const NotificationTemplatesForm: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [emailTemplate, setEmailTemplate] = useState<NotificationTemplate>({
+export const NotificationTemplatesForm = () => {
+  const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate } = useNotificationTemplates();
+  
+  const [currentTemplate, setCurrentTemplate] = useState<NotificationTemplate>({
     type: 'email',
-    template_name: 'Booking Confirmation Email',
-    subject: 'Your Booking Confirmation - Queens Dock Barbershop',
+    template_name: '',
+    subject: '',
     content: '',
-    variables: availableVariables,
-    is_default: true
+    variables: [],
+    is_default: false
   });
   
-  const [smsTemplate, setSmsTemplate] = useState<NotificationTemplate>({
-    type: 'sms',
-    template_name: 'Booking Confirmation SMS',
-    content: '',
-    variables: availableVariables,
-    is_default: true
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('email');
+  const [previewEnabled, setPreviewEnabled] = useState(false);
+  const [previewValues, setPreviewValues] = useState({
+    name: 'John Doe',
+    bookingCode: 'ABC123',
+    bookingDate: 'Monday, June 15, 2025',
+    bookingTime: '14:00',
+    barberName: 'Mike',
+    serviceName: 'Haircut'
   });
 
-  // Fetch existing templates
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      setLoading(true);
-      try {
-        // Use string query to avoid type issues with table that might not be in the types yet
-        const { data: emailData, error: emailError } = await supabase
-          .from('notification_templates')
-          .select('*')
-          .eq('type', 'email')
-          .eq('is_default', true)
-          .maybeSingle();
-        
-        if (emailError) throw emailError;
-        
-        const { data: smsData, error: smsError } = await supabase
-          .from('notification_templates')
-          .select('*')
-          .eq('type', 'sms')
-          .eq('is_default', true)
-          .maybeSingle();
-          
-        if (smsError) throw smsError;
-        
-        // Set email template
-        if (emailData) {
-          setEmailTemplate({
-            ...emailData,
-            variables: typeof emailData.variables === 'string' 
-              ? JSON.parse(emailData.variables) 
-              : emailData.variables
-          } as NotificationTemplate);
-        }
-        
-        // Set SMS template
-        if (smsData) {
-          setSmsTemplate({
-            ...smsData,
-            variables: typeof smsData.variables === 'string' 
-              ? JSON.parse(smsData.variables) 
-              : smsData.variables
-          } as NotificationTemplate);
-        }
-      } catch (error) {
-        console.error('Error fetching templates:', error);
-        toast.error('Failed to load notification templates');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchTemplates();
-  }, []);
+  const emailTemplates = templates.filter(t => t.type === 'email');
+  const smsTemplates = templates.filter(t => t.type === 'sms');
 
-  const saveTemplate = async (template: NotificationTemplate) => {
-    setLoading(true);
+  const handleEditTemplate = (template: NotificationTemplate) => {
+    setCurrentTemplate({
+      ...template,
+      variables: Array.isArray(template.variables) 
+        ? template.variables 
+        : typeof template.variables === 'string'
+          ? JSON.parse(template.variables)
+          : []
+    });
+    setIsEditing(true);
+    setEditDialogOpen(true);
+  };
+
+  const handleNewTemplate = (type: 'email' | 'sms') => {
+    setCurrentTemplate({
+      type,
+      template_name: '',
+      subject: type === 'email' ? '' : undefined,
+      content: '',
+      variables: ['{{name}}', '{{bookingCode}}', '{{bookingDate}}', '{{bookingTime}}', '{{barberName}}', '{{serviceName}}'],
+      is_default: false
+    });
+    setIsEditing(false);
+    setAddDialogOpen(true);
+  };
+
+  const handleSaveTemplate = async () => {
+    // Validation
+    if (!currentTemplate.template_name.trim()) {
+      toast.error('Template name is required');
+      return;
+    }
+
+    if (!currentTemplate.content.trim()) {
+      toast.error('Template content is required');
+      return;
+    }
+
     try {
-      // Convert variables array to JSON string if needed
-      const templateToSave = {
-        ...template,
-        variables: Array.isArray(template.variables) 
-          ? JSON.stringify(template.variables) 
-          : template.variables
-      };
-      
-      // Check if template exists
-      if (template.id) {
-        // Update using raw query to avoid type issues
-        const { error } = await supabase
-          .from('notification_templates')
-          .update(templateToSave)
-          .eq('id', template.id);
-          
-        if (error) throw error;
-        toast.success(`${template.type === 'email' ? 'Email' : 'SMS'} template updated`);
+      if (isEditing && currentTemplate.id) {
+        await updateTemplate(currentTemplate.id, {
+          template_name: currentTemplate.template_name,
+          subject: currentTemplate.subject,
+          content: currentTemplate.content,
+          variables: currentTemplate.variables,
+          is_default: currentTemplate.is_default
+        });
+        setEditDialogOpen(false);
       } else {
-        // Insert using raw query to avoid type issues
-        const { error } = await supabase
-          .from('notification_templates')
-          .insert(templateToSave);
-          
-        if (error) throw error;
-        toast.success(`${template.type === 'email' ? 'Email' : 'SMS'} template created`);
+        await createTemplate({
+          type: currentTemplate.type,
+          template_name: currentTemplate.template_name,
+          subject: currentTemplate.subject,
+          content: currentTemplate.content,
+          variables: currentTemplate.variables,
+          is_default: currentTemplate.is_default
+        });
+        setAddDialogOpen(false);
       }
-      
-      // Refresh templates
-      const { data, error } = await supabase
-        .from('notification_templates')
-        .select('*')
-        .eq('type', template.type)
-        .eq('is_default', true)
-        .maybeSingle();
-        
-      if (error) throw error;
-      
-      if (data) {
-        const formattedData = {
-          ...data,
-          variables: typeof data.variables === 'string' 
-            ? JSON.parse(data.variables) 
-            : data.variables
-        } as NotificationTemplate;
-
-        if (template.type === 'email') {
-          setEmailTemplate(formattedData);
-        } else {
-          setSmsTemplate(formattedData);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving template:', error);
-      toast.error('Failed to save template');
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      toast.error(`Error saving template: ${error.message}`);
     }
   };
 
-  const handleSaveEmailTemplate = () => {
-    saveTemplate(emailTemplate);
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      await deleteTemplate(id);
+    } catch (error: any) {
+      toast.error(`Error deleting template: ${error.message}`);
+    }
   };
 
-  const handleSaveSmsTemplate = () => {
-    saveTemplate(smsTemplate);
+  const replaceTemplateVariables = (content: string, values: Record<string, string>) => {
+    let result = content;
+    Object.entries(values).forEach(([key, value]) => {
+      const placeholder = `{{${key}}}`;
+      result = result.replace(new RegExp(placeholder, 'g'), value || '');
+    });
+    return result;
   };
 
   return (
@@ -186,157 +130,385 @@ const NotificationTemplatesForm: React.FC = () => {
       <CardHeader>
         <CardTitle>Notification Templates</CardTitle>
         <CardDescription>
-          Customize the messages sent to customers when they book appointments
+          Manage email and SMS templates for booking notifications
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="email">
-          <TabsList className="mb-4">
-            <TabsTrigger value="email" className="flex items-center">
-              <Mail className="w-4 h-4 mr-2" />
-              Email Template
+        <Tabs defaultValue="email" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="email" className="flex items-center gap-1">
+              <Mail className="w-4 h-4" />
+              <span>Email Templates</span>
             </TabsTrigger>
-            <TabsTrigger value="sms" className="flex items-center">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              SMS Template
+            <TabsTrigger value="sms" className="flex items-center gap-1">
+              <MessageSquare className="w-4 h-4" />
+              <span>SMS Templates</span>
             </TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="email">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="email-subject">Subject Line</Label>
-                <Input 
-                  id="email-subject"
-                  value={emailTemplate.subject || ''}
-                  onChange={(e) => setEmailTemplate({...emailTemplate, subject: e.target.value})}
-                  placeholder="Email subject line"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="email-content">Email Content</Label>
-                <Textarea 
-                  id="email-content"
-                  value={emailTemplate.content}
-                  onChange={(e) => setEmailTemplate({...emailTemplate, content: e.target.value})}
-                  placeholder="The content of your email template"
-                  className="min-h-[200px]"
-                />
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium mb-2 flex items-center">
-                  <Bookmark className="w-4 h-4 mr-2" />
-                  Available Variables
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {availableVariables.map((variable) => (
-                    <div 
-                      key={variable}
-                      className="bg-secondary text-secondary-foreground px-2 py-1 text-xs rounded-md cursor-pointer hover:bg-secondary/80"
-                      onClick={() => {
-                        const textArea = document.getElementById('email-content') as HTMLTextAreaElement;
-                        if (textArea) {
-                          const cursorPos = textArea.selectionStart;
-                          const textBefore = emailTemplate.content.substring(0, cursorPos);
-                          const textAfter = emailTemplate.content.substring(cursorPos);
-                          setEmailTemplate({
-                            ...emailTemplate,
-                            content: textBefore + variable + textAfter
-                          });
-                          // Set focus and cursor position
-                          setTimeout(() => {
-                            textArea.focus();
-                            textArea.selectionStart = textArea.selectionEnd = cursorPos + variable.length;
-                          }, 0);
-                        }
-                      }}
-                    >
-                      {variable}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-6">
+
+          <TabsContent value="email" className="space-y-4">
+            <div className="flex justify-end">
               <Button 
-                onClick={handleSaveEmailTemplate} 
-                disabled={loading}
+                onClick={() => handleNewTemplate('email')} 
+                className="flex items-center gap-1"
               >
-                Save Email Template
+                <Plus className="w-4 h-4" /> New Email Template
               </Button>
             </div>
+            
+            {isLoading ? (
+              <div className="flex justify-center p-8">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : emailTemplates.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground">
+                No email templates found. Create one to get started.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {emailTemplates.map(template => (
+                  <Card key={template.id} className={template.is_default ? "border-primary" : ""}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-base">
+                          {template.template_name}
+                          {template.is_default && (
+                            <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                              Default
+                            </span>
+                          )}
+                        </CardTitle>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEditTemplate(template)}
+                          >
+                            Edit
+                          </Button>
+                          {!template.is_default && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                  <Trash className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the template.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => template.id && handleDeleteTemplate(template.id)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm text-muted-foreground mb-2">
+                        <strong>Subject:</strong> {template.subject}
+                      </div>
+                      <div className="text-sm border rounded p-3 whitespace-pre-wrap bg-muted/50">
+                        {template.content}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
-          
-          <TabsContent value="sms">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="sms-content">SMS Content</Label>
-                <Textarea 
-                  id="sms-content"
-                  value={smsTemplate.content}
-                  onChange={(e) => setSmsTemplate({...smsTemplate, content: e.target.value})}
-                  placeholder="The content of your SMS message"
-                  className="min-h-[150px]"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Keep SMS messages concise as carriers may split longer messages.
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium mb-2 flex items-center">
-                  <Bookmark className="w-4 h-4 mr-2" />
-                  Available Variables
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {availableVariables.map((variable) => (
-                    <div 
-                      key={variable}
-                      className="bg-secondary text-secondary-foreground px-2 py-1 text-xs rounded-md cursor-pointer hover:bg-secondary/80"
-                      onClick={() => {
-                        const textArea = document.getElementById('sms-content') as HTMLTextAreaElement;
-                        if (textArea) {
-                          const cursorPos = textArea.selectionStart;
-                          const textBefore = smsTemplate.content.substring(0, cursorPos);
-                          const textAfter = smsTemplate.content.substring(cursorPos);
-                          setSmsTemplate({
-                            ...smsTemplate,
-                            content: textBefore + variable + textAfter
-                          });
-                          // Set focus and cursor position
-                          setTimeout(() => {
-                            textArea.focus();
-                            textArea.selectionStart = textArea.selectionEnd = cursorPos + variable.length;
-                          }, 0);
-                        }
-                      }}
-                    >
-                      {variable}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-6">
+
+          <TabsContent value="sms" className="space-y-4">
+            <div className="flex justify-end">
               <Button 
-                onClick={handleSaveSmsTemplate} 
-                disabled={loading}
+                onClick={() => handleNewTemplate('sms')}
+                className="flex items-center gap-1"
               >
-                Save SMS Template
+                <Plus className="w-4 h-4" /> New SMS Template
               </Button>
             </div>
+            
+            {isLoading ? (
+              <div className="flex justify-center p-8">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : smsTemplates.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground">
+                No SMS templates found. Create one to get started.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {smsTemplates.map(template => (
+                  <Card key={template.id} className={template.is_default ? "border-primary" : ""}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-base">
+                          {template.template_name}
+                          {template.is_default && (
+                            <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                              Default
+                            </span>
+                          )}
+                        </CardTitle>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEditTemplate(template)}
+                          >
+                            Edit
+                          </Button>
+                          {!template.is_default && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                  <Trash className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the template.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => template.id && handleDeleteTemplate(template.id)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm border rounded p-3 whitespace-pre-wrap bg-muted/50">
+                        {template.content}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>
-      <CardFooter className="border-t bg-muted/50 p-4 text-sm text-muted-foreground">
-        Templates will be applied to all new bookings. Changes won't affect existing confirmations.
-      </CardFooter>
+
+      {/* Edit Template Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit {currentTemplate.type === 'email' ? 'Email' : 'SMS'} Template</DialogTitle>
+            <DialogDescription>
+              Update notification template content and settings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="template-name" className="text-right">
+                Template Name
+              </Label>
+              <Input
+                id="template-name"
+                value={currentTemplate.template_name}
+                onChange={(e) => setCurrentTemplate({ ...currentTemplate, template_name: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            
+            {currentTemplate.type === 'email' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="subject" className="text-right">
+                  Subject
+                </Label>
+                <Input
+                  id="subject"
+                  value={currentTemplate.subject || ''}
+                  onChange={(e) => setCurrentTemplate({ ...currentTemplate, subject: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+            )}
+            
+            <div className="grid grid-cols-4 items-start gap-4">
+              <div className="text-right pt-2">
+                <Label htmlFor="content">Content</Label>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Use variables like {{"{name}"}}
+                </div>
+              </div>
+              <div className="col-span-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">Available variables:</div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="preview-toggle"
+                      checked={previewEnabled}
+                      onCheckedChange={setPreviewEnabled}
+                    />
+                    <Label htmlFor="preview-toggle">Preview</Label>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {currentTemplate.variables.map((variable, index) => (
+                    <div key={index} className="bg-muted text-xs px-2 py-1 rounded">
+                      {variable}
+                    </div>
+                  ))}
+                </div>
+                
+                {previewEnabled ? (
+                  <div className="border rounded p-3 min-h-[200px] bg-muted/50 whitespace-pre-wrap">
+                    {replaceTemplateVariables(currentTemplate.content, previewValues)}
+                  </div>
+                ) : (
+                  <Textarea
+                    id="content"
+                    value={currentTemplate.content}
+                    onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
+                    rows={8}
+                  />
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="is-default" className="text-right">
+                Set as Default
+              </Label>
+              <div className="col-span-3">
+                <Switch
+                  id="is-default"
+                  checked={currentTemplate.is_default}
+                  onCheckedChange={(checked) => setCurrentTemplate({ ...currentTemplate, is_default: checked })}
+                  disabled={currentTemplate.is_default}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTemplate}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Template Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create {currentTemplate.type === 'email' ? 'Email' : 'SMS'} Template</DialogTitle>
+            <DialogDescription>
+              Create a new notification template.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="template-name" className="text-right">
+                Template Name
+              </Label>
+              <Input
+                id="template-name"
+                value={currentTemplate.template_name}
+                onChange={(e) => setCurrentTemplate({ ...currentTemplate, template_name: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            
+            {currentTemplate.type === 'email' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="subject" className="text-right">
+                  Subject
+                </Label>
+                <Input
+                  id="subject"
+                  value={currentTemplate.subject || ''}
+                  onChange={(e) => setCurrentTemplate({ ...currentTemplate, subject: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+            )}
+            
+            <div className="grid grid-cols-4 items-start gap-4">
+              <div className="text-right pt-2">
+                <Label htmlFor="content">Content</Label>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Use variables like {{"{name}"}}
+                </div>
+              </div>
+              <div className="col-span-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">Available variables:</div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="preview-toggle-add"
+                      checked={previewEnabled}
+                      onCheckedChange={setPreviewEnabled}
+                    />
+                    <Label htmlFor="preview-toggle-add">Preview</Label>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {currentTemplate.variables.map((variable, index) => (
+                    <div key={index} className="bg-muted text-xs px-2 py-1 rounded">
+                      {variable}
+                    </div>
+                  ))}
+                </div>
+                
+                {previewEnabled ? (
+                  <div className="border rounded p-3 min-h-[200px] bg-muted/50 whitespace-pre-wrap">
+                    {replaceTemplateVariables(currentTemplate.content, previewValues)}
+                  </div>
+                ) : (
+                  <Textarea
+                    id="content"
+                    value={currentTemplate.content}
+                    onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
+                    rows={8}
+                  />
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="is-default-add" className="text-right">
+                Set as Default
+              </Label>
+              <div className="col-span-3">
+                <Switch
+                  id="is-default-add"
+                  checked={currentTemplate.is_default}
+                  onCheckedChange={(checked) => setCurrentTemplate({ ...currentTemplate, is_default: checked })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTemplate}>Create Template</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
-
-export default NotificationTemplatesForm;
