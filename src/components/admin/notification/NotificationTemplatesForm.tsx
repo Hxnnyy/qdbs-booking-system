@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,6 @@ import { toast } from 'sonner';
 import { Mail, MessageSquare, Plus, Trash } from 'lucide-react';
 import { NotificationTemplate } from '@/supabase-types';
 import { useNotificationTemplates } from '@/hooks/useNotificationTemplates';
-import { RichTextEditor } from './RichTextEditor';
 
 export const NotificationTemplatesForm = () => {
   const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate } = useNotificationTemplates();
@@ -57,124 +57,12 @@ export const NotificationTemplatesForm = () => {
     setEditDialogOpen(true);
   };
 
-  const defaultEmailTemplate = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Queens Dock Barbershop</title>
-        <style>
-          body { 
-            font-family: Arial, sans-serif; 
-            line-height: 1.6; 
-            color: #333; 
-            max-width: 600px; 
-            margin: 0 auto; 
-          }
-          .container { 
-            padding: 20px; 
-            border: 1px solid #e1e1e1; 
-            border-radius: 5px; 
-          }
-          .header { 
-            text-align: center; 
-            padding-bottom: 20px; 
-            border-bottom: 2px solid #7a1921; 
-            margin-bottom: 20px; 
-          }
-          .header h1 { 
-            color: #7a1921; 
-            margin-bottom: 10px; 
-          }
-          .booking-details { 
-            background-color: #f9f9f9; 
-            padding: 15px; 
-            border-radius: 5px; 
-            margin-bottom: 20px; 
-          }
-          .booking-row { 
-            display: flex; 
-            margin-bottom: 10px; 
-          }
-          .booking-label { 
-            font-weight: bold; 
-            width: 120px; 
-          }
-          .booking-value { 
-            flex: 1; 
-          }
-          .footer { 
-            text-align: center; 
-            font-size: 14px; 
-            color: #888; 
-            margin-top: 30px; 
-            padding-top: 20px; 
-            border-top: 1px solid #e1e1e1; 
-          }
-          .verification-code { 
-            background-color: #f0f0f0; 
-            padding: 10px; 
-            font-family: monospace; 
-            text-align: center; 
-            font-weight: bold; 
-            letter-spacing: 2px; 
-            margin: 20px 0; 
-            border-radius: 5px; 
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Queens Dock Barbershop</h1>
-            <p>Thank you for booking with us!</p>
-          </div>
-          
-          <p>Hello {{name}},</p>
-          <p>Your appointment has been confirmed. Here are your booking details:</p>
-          
-          <div class="booking-details">
-            <div class="booking-row">
-              <div class="booking-label">Barber:</div>
-              <div class="booking-value">{{barberName}}</div>
-            </div>
-            <div class="booking-row">
-              <div class="booking-label">Service:</div>
-              <div class="booking-value">{{serviceName}}</div>
-            </div>
-            <div class="booking-row">
-              <div class="booking-label">Date:</div>
-              <div class="booking-value">{{bookingDate}}</div>
-            </div>
-            <div class="booking-row">
-              <div class="booking-label">Time:</div>
-              <div class="booking-value">{{bookingTime}}</div>
-            </div>
-          </div>
-
-          {{#if bookingCode}}
-          <p>Your booking verification code is:</p>
-          <div class="verification-code">{{bookingCode}}</div>
-          <p>Keep this code safe. You'll need it to manage or cancel your booking.</p>
-          {{/if}}
-          
-          <p>We look forward to seeing you at Queens Dock Barbershop!</p>
-          
-          <div class="footer">
-            <p>If you have any questions, please contact us.</p>
-            <p>© 2025 Queens Dock Barbershop. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
-
   const handleNewTemplate = (type: 'email' | 'sms') => {
     setCurrentTemplate({
       type,
       template_name: '',
       subject: type === 'email' ? '' : undefined,
-      content: type === 'email' ? defaultEmailTemplate : '',
+      content: '',
       variables: ['{{name}}', '{{bookingCode}}', '{{bookingDate}}', '{{bookingTime}}', '{{barberName}}', '{{serviceName}}'],
       is_default: false
     });
@@ -489,9 +377,11 @@ export const NotificationTemplatesForm = () => {
                     {replaceTemplateVariables(currentTemplate.content, previewValues)}
                   </div>
                 ) : (
-                  <RichTextEditor
+                  <Textarea
+                    id="content"
                     value={currentTemplate.content}
-                    onChange={(content) => setCurrentTemplate({ ...currentTemplate, content })}
+                    onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
+                    rows={8}
                   />
                 )}
               </div>
@@ -588,10 +478,11 @@ export const NotificationTemplatesForm = () => {
                     {replaceTemplateVariables(currentTemplate.content, previewValues)}
                   </div>
                 ) : (
-                  <RichTextEditor
+                  <Textarea
+                    id="content"
                     value={currentTemplate.content}
-                    onChange={(content) => setCurrentTemplate({ ...currentTemplate, content })}
-                    
+                    onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
+                    rows={8}
                   />
                 )}
               </div>
