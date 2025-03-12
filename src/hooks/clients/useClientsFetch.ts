@@ -1,10 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Client } from '@/types/client';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 
-export const useClientManagement = () => {
+export const useClientsFetch = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -252,142 +252,6 @@ export const useClientManagement = () => {
     }
   };
 
-  // Update client information
-  const updateClientProfile = async (clientId: string, data: { name?: string, phone?: string, email?: string }) => {
-    try {
-      setIsLoading(true);
-      
-      // Get the client to determine whether it's a guest or registered user
-      const client = clients.find(c => c.id === clientId);
-      if (!client) {
-        throw new Error('Client not found');
-      }
-      
-      let success = false;
-      
-      // Different update logic for guests vs registered users
-      if (client.isGuest) {
-        // For guest clients, we need to update all bookings with this information
-        // First, identify all bookings that might belong to this guest
-        const matchQuery = [];
-        if (client.phone) matchQuery.push(`notes.ilike.%${client.phone}%`);
-        if (client.email) matchQuery.push(`guest_email.eq.${client.email}`);
-        
-        if (matchQuery.length === 0) {
-          throw new Error('Cannot identify guest bookings to update');
-        }
-        
-        // Update guest bookings
-        const { error: updateError } = await supabase
-          .from('bookings')
-          .update({
-            guest_email: data.email || client.email,
-            notes: data.name || data.phone 
-              ? `Guest booking by ${data.name || client.name}${data.phone ? ` (${data.phone})` : client.phone ? ` (${client.phone})` : ''}`
-              : undefined // Changed from client.notes to undefined since Client doesn't have a notes property
-          })
-          .or(matchQuery.join(','));
-          
-        if (updateError) throw updateError;
-        success = true;
-      } else {
-        // For registered users, update the profile table
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            first_name: data.name ? data.name.split(' ')[0] : undefined,
-            last_name: data.name && data.name.split(' ').length > 1 
-              ? data.name.split(' ').slice(1).join(' ') 
-              : undefined,
-            phone: data.phone,
-            email: data.email
-          })
-          .eq('id', clientId);
-          
-        if (updateError) throw updateError;
-        success = true;
-      }
-      
-      if (success) {
-        toast.success('Client profile updated successfully');
-        await fetchClients(); // Refresh the client list
-      }
-      
-    } catch (err: any) {
-      console.error('Error updating client profile:', err);
-      toast.error(`Failed to update client: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Send email to selected clients
-  const sendEmailToClients = async (recipients: string[], subject: string, content: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('send-clients-email', {
-        body: {
-          recipients,
-          subject,
-          content
-        },
-      });
-
-      if (error) throw error;
-      
-      toast.success('Email sent successfully');
-      return true;
-    } catch (err: any) {
-      console.error('Error sending email:', err);
-      toast.error(`Failed to send email: ${err.message}`);
-      return false;
-    }
-  };
-
-  // Export clients data to Excel
-  const exportClientsData = (clientsToExport: Client[], fields: string[]) => {
-    try {
-      // Map client data to include only the selected fields
-      const data = clientsToExport.map(client => {
-        const row: Record<string, any> = {};
-        
-        fields.forEach(field => {
-          if (field === 'isGuest') {
-            // Format isGuest as a string
-            row['Client Type'] = client.isGuest ? 'Guest' : 'Registered';
-          } else if (field === 'bookingCount') {
-            row['Appointment Count'] = client[field];
-          } else {
-            // Use the field name as the column header with proper capitalization
-            const headerName = field.charAt(0).toUpperCase() + field.slice(1);
-            row[headerName] = client[field as keyof Client] || 'N/A';
-          }
-        });
-        
-        return row;
-      });
-      
-      // Create a new workbook and worksheet
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(data);
-      
-      // Add the worksheet to the workbook
-      XLSX.utils.book_append_sheet(wb, ws, 'Clients');
-      
-      // Generate the Excel file
-      const now = new Date();
-      const timestamp = now.toISOString().replace(/[:.]/g, '-').substring(0, 19);
-      const fileName = `client_data_export_${timestamp}.xlsx`;
-      
-      // Save the file
-      XLSX.writeFile(wb, fileName);
-      
-      toast.success('Client data exported successfully');
-    } catch (err: any) {
-      console.error('Error exporting client data:', err);
-      toast.error(`Failed to export client data: ${err.message}`);
-    }
-  };
-
   // Toggle showing guest bookings
   const toggleShowGuestBookings = () => {
     setShowGuestBookings(prev => !prev);
@@ -407,13 +271,11 @@ export const useClientManagement = () => {
 
   return {
     clients: getFilteredClients(),
+    allClients: clients,
     isLoading,
     error,
     fetchClients,
-    sendEmailToClients,
     showGuestBookings,
-    toggleShowGuestBookings,
-    updateClientProfile,
-    exportClientsData
+    toggleShowGuestBookings
   };
 };
