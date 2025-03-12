@@ -14,6 +14,7 @@ interface ConfirmationStepProps {
   formData: BookingFormState;
   barbers: Barber[];
   services: Service[];
+  onNext?: () => void; // Added onNext as an optional prop
 }
 
 const ConfirmationStep: React.FC<ConfirmationStepProps> = ({ 
