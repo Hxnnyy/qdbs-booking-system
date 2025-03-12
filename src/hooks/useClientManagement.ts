@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Client } from '@/types/client';
@@ -91,6 +92,7 @@ export const useClientManagement = () => {
       // Get profile data for registered users
       const userIds = Array.from(clientsMap.keys());
       if (userIds.length > 0) {
+        // First get profile data
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, email, phone')
@@ -98,18 +100,52 @@ export const useClientManagement = () => {
 
         if (profilesError) throw profilesError;
 
+        // Then get auth users data to ensure we have emails for everyone
+        const { data: authUsers, error: authUsersError } = await supabase.auth.admin
+          .listUsers({ perPage: 1000 });
+        
+        if (authUsersError) {
+          console.error('Error fetching auth users (non-critical):', authUsersError);
+          // Continue with profiles data only, this is non-blocking
+        }
+
+        // Create a map of user IDs to their auth emails for quick lookup
+        const authEmailMap = new Map();
+        if (authUsers?.users) {
+          authUsers.users.forEach(user => {
+            authEmailMap.set(user.id, user.email);
+          });
+        }
+
         // Add profile data to client records
         for (const profile of profiles) {
           const client = clientsMap.get(profile.id);
           if (client) {
+            // Use email from auth users if available, fallback to profile email
+            const email = authEmailMap.get(profile.id) || profile.email;
+            
             clientsMap.set(profile.id, {
               ...client,
               name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'No Name',
-              email: profile.email,
+              email: email, // Prioritize the auth email
               phone: profile.phone
             });
           }
         }
+
+        // Check for any clients that don't have profile data and try to use auth data
+        clientsMap.forEach((client, userId) => {
+          if (!client.name || client.name === 'No Name') {
+            const email = authEmailMap.get(userId);
+            if (email) {
+              clientsMap.set(userId, {
+                ...client,
+                email: email,
+                name: email.split('@')[0] || 'No Name' // Use part of email as name if nothing else
+              });
+            }
+          }
+        });
       }
 
       // Combine registered and guest clients
