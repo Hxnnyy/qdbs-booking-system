@@ -9,6 +9,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-reac
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, addDays, addWeeks, subDays, subWeeks } from 'date-fns';
+import { CalendarSettings } from './CalendarSettings';
 
 interface CalendarViewComponentProps {
   events: CalendarEvent[];
@@ -89,6 +90,8 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
           <Button variant="outline" onClick={goToToday}>
             Today
           </Button>
+          
+          <CalendarSettings />
         </div>
       </div>
 

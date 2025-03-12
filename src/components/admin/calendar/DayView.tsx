@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -14,7 +13,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   onEventDrop,
   onEventClick
 }) => {
-  const { startHour, endHour } = useCalendarSettings();
+  const { startHour, endHour, autoScrollToCurrentTime } = useCalendarSettings();
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const [dragPreview, setDragPreview] = useState<{ time: string, top: number } | null>(null);
@@ -59,6 +58,14 @@ export const DayView: React.FC<CalendarViewProps> = ({
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
     overlappingGroups.forEach(group => {
+      // Fix for appointment card size issue - prevent creating unnecessary separate groups
+      // Check if it's March 14th, 2025
+      const isMarch14 = group.some(event => {
+        const eventDate = event.start;
+        return eventDate.getDate() === 14 && eventDate.getMonth() === 2 && eventDate.getFullYear() === 2025;
+      });
+      
+      // Special handling for all days to ensure proper sizing
       const barberGroups: Record<string, CalendarEvent[]> = {};
       
       group.forEach(event => {
@@ -68,32 +75,36 @@ export const DayView: React.FC<CalendarViewProps> = ({
         barberGroups[event.barberId].push(event);
       });
       
-      if (Object.keys(barberGroups).length > 1) {
+      // Calculate the total slots based on actual overlaps, not just by barber
+      // This fixes the issue with appointments showing as half-width when alone
+      const actualOverlaps = calculateActualOverlaps(group);
+      const totalSlots = Math.max(1, actualOverlaps);
+      
+      if (Object.keys(barberGroups).length > 1 && actualOverlaps > 1) {
         let slotOffset = 0;
         
         Object.values(barberGroups).forEach(barberGroup => {
           const sortedBarberGroup = barberGroup.sort((a, b) => a.start.getTime() - b.start.getTime());
-          const barberTotalSlots = group.length;
           
           sortedBarberGroup.forEach((event, index) => {
             results.push({
               event,
               slotIndex: slotOffset + index,
-              totalSlots: barberTotalSlots
+              totalSlots: totalSlots
             });
           });
           
           slotOffset += barberGroup.length;
         });
       } else {
+        // If there's no actual overlap, use full width regardless of barber
         const sortedGroup = group.sort((a, b) => a.start.getTime() - b.start.getTime());
-        const totalSlots = sortedGroup.length;
         
         sortedGroup.forEach((event, index) => {
           results.push({
             event,
-            slotIndex: index,
-            totalSlots
+            slotIndex: 0, // Always use index 0 for non-overlapping events
+            totalSlots: 1  // Always use full width for non-overlapping events
           });
         });
       }
@@ -111,14 +122,42 @@ export const DayView: React.FC<CalendarViewProps> = ({
     return results;
   };
 
+  // Helper function to calculate actual overlaps
+  const calculateActualOverlaps = (events: CalendarEvent[]) => {
+    if (events.length <= 1) return 1;
+    
+    let maxConcurrent = 1;
+    
+    for (let i = 0; i < events.length; i++) {
+      let concurrent = 1;
+      const currentEvent = events[i];
+      
+      for (let j = 0; j < events.length; j++) {
+        if (i === j) continue;
+        
+        const otherEvent = events[j];
+        if (
+          (currentEvent.start < otherEvent.end && currentEvent.end > otherEvent.start) || 
+          (otherEvent.start < currentEvent.end && otherEvent.end > currentEvent.start)
+        ) {
+          concurrent++;
+        }
+      }
+      
+      maxConcurrent = Math.max(maxConcurrent, concurrent);
+    }
+    
+    return maxConcurrent;
+  };
+
   useEffect(() => {
     const filtered = filterEventsByDate(events, date);
     setDisplayEvents(filtered);
   }, [events, date]);
 
   useEffect(() => {
-    // Scroll to current time on initial load if today is displayed
-    if (isToday(date)) {
+    // Scroll to current time on initial load if today is displayed and autoScroll is enabled
+    if (isToday(date) && autoScrollToCurrentTime) {
       const now = new Date();
       const hours = now.getHours();
       const minutes = now.getMinutes();
@@ -135,7 +174,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
         }, 100);
       }
     }
-  }, [date, startHour, endHour]);
+  }, [date, startHour, endHour, autoScrollToCurrentTime]);
 
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;

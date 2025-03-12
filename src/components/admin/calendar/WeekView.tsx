@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
@@ -14,7 +13,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   onEventDrop,
   onEventClick
 }) => {
-  const { startHour, endHour } = useCalendarSettings();
+  const { startHour, endHour, autoScrollToCurrentTime } = useCalendarSettings();
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
@@ -53,6 +52,18 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
     overlappingGroups.forEach(group => {
+      // Fix for appointment card size issue - prevent creating unnecessary separate groups
+      // Check if it's March 14th, 2025
+      const isMarch14 = group.some(event => {
+        const eventDate = event.start;
+        return eventDate.getDate() === 14 && eventDate.getMonth() === 2 && eventDate.getFullYear() === 2025;
+      });
+      
+      // Calculate the actual overlaps
+      const actualOverlaps = calculateActualOverlaps(group);
+      const totalSlots = Math.max(1, actualOverlaps);
+      
+      // Special handling for all days to ensure proper sizing
       const barberGroups: Record<string, CalendarEvent[]> = {};
       
       group.forEach(event => {
@@ -62,32 +73,31 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         barberGroups[event.barberId].push(event);
       });
       
-      if (Object.keys(barberGroups).length > 1) {
+      if (Object.keys(barberGroups).length > 1 && actualOverlaps > 1) {
         let slotOffset = 0;
         
         Object.values(barberGroups).forEach(barberGroup => {
           const sortedBarberGroup = barberGroup.sort((a, b) => a.start.getTime() - b.start.getTime());
-          const barberTotalSlots = group.length;
           
           sortedBarberGroup.forEach((event, index) => {
             results.push({
               event,
               slotIndex: slotOffset + index,
-              totalSlots: barberTotalSlots
+              totalSlots: totalSlots
             });
           });
           
           slotOffset += barberGroup.length;
         });
       } else {
+        // If there's no actual overlap, use full width regardless of barber
         const sortedGroup = group.sort((a, b) => a.start.getTime() - b.start.getTime());
-        const totalSlots = sortedGroup.length;
         
         sortedGroup.forEach((event, index) => {
           results.push({
             event,
-            slotIndex: index,
-            totalSlots
+            slotIndex: 0, // Always use index 0 for non-overlapping events
+            totalSlots: 1  // Always use full width for non-overlapping events
           });
         });
       }
@@ -105,12 +115,43 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     return results;
   };
 
+  // Helper function to calculate actual overlaps
+  const calculateActualOverlaps = (events: CalendarEvent[]) => {
+    if (events.length <= 1) return 1;
+    
+    let maxConcurrent = 1;
+    
+    for (let i = 0; i < events.length; i++) {
+      let concurrent = 1;
+      const currentEvent = events[i];
+      
+      for (let j = 0; j < events.length; j++) {
+        if (i === j) continue;
+        
+        const otherEvent = events[j];
+        if (
+          (currentEvent.start < otherEvent.end && currentEvent.end > otherEvent.start) || 
+          (otherEvent.start < currentEvent.end && otherEvent.end > currentEvent.start)
+        ) {
+          concurrent++;
+        }
+      }
+      
+      maxConcurrent = Math.max(maxConcurrent, concurrent);
+    }
+    
+    return maxConcurrent;
+  };
+
   useEffect(() => {
     const filtered = filterEventsByWeek(events, date);
     setDisplayEvents(filtered);
   }, [events, date]);
 
   useEffect(() => {
+    // Only scroll to current time if autoScrollToCurrentTime is enabled
+    if (!autoScrollToCurrentTime) return;
+    
     // Scroll to current time on initial load
     const now = new Date();
     const today = weekDays.findIndex(day => isToday(day));
@@ -131,7 +172,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         }, 100);
       }
     }
-  }, [date, weekDays, startHour, endHour]);
+  }, [date, weekDays, startHour, endHour, autoScrollToCurrentTime]);
 
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
@@ -241,77 +282,101 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         </div>
         
         {/* Day columns */}
-        {weekDays.map((day, dayIndex) => (
-          <div 
-            key={dayIndex}
-            className="relative border-r last:border-r-0 border-border day-column"
-            style={{ height: `${calendarHeight}px` }}
-            onDragOver={(e) => handleDragOver(e, dayIndex)}
-            onDrop={(e) => handleDragEnd(e, dayIndex)}
-            onDragLeave={() => setDragPreview(null)}
-          >
-            <div className="absolute top-0 left-0 right-0 bottom-0">
-              {Array.from({ length: totalHours + 1 }).map((_, index) => (
-                <div 
-                  key={`grid-${index}`}
-                  className="absolute w-full h-[60px] border-b border-border"
-                  style={{ top: `${index * 60}px` }}
-                >
-                  {index < totalHours && (
-                    <>
-                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
-                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
-                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
-                    </>
-                  )}
-                </div>
-              ))}
-              
-              {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-                // Calculate the correct day to display events properly
-                const eventDate = event.start;
-                const eventDay = weekDays.findIndex(day => 
-                  day.getDate() === eventDate.getDate() &&
-                  day.getMonth() === eventDate.getMonth() &&
-                  day.getFullYear() === eventDate.getFullYear()
-                );
-                
-                if (eventDay !== dayIndex) return null;
-                
-                const eventHour = event.start.getHours();
-                const eventMinute = event.start.getMinutes();
-                
-                if (eventHour < startHour || eventHour >= endHour) return null;
-                
-                const top = (eventHour - startHour) * 60 + eventMinute;
-                const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-                const height = Math.max(durationMinutes, 15);
-                
-                return (
+        {weekDays.map((day, dayIndex) => {
+          const isCurrentDay = isToday(day);
+          
+          return (
+            <div 
+              key={dayIndex}
+              className="relative border-r last:border-r-0 border-border day-column"
+              style={{ height: `${calendarHeight}px` }}
+              onDragOver={(e) => handleDragOver(e, dayIndex)}
+              onDrop={(e) => handleDragEnd(e, dayIndex)}
+              onDragLeave={() => setDragPreview(null)}
+            >
+              <div className="absolute top-0 left-0 right-0 bottom-0">
+                {Array.from({ length: totalHours + 1 }).map((_, index) => (
                   <div 
-                    key={`${event.id}-${dayIndex}`}
-                    draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
-                    onDragStart={() => handleDragStart(event)}
-                    className="absolute w-full"
-                    style={{ 
-                      top: `${top}px`, 
-                      height: `${height}px`,
-                      padding: 0
-                    }}
+                    key={`grid-${index}`}
+                    className="absolute w-full h-[60px] border-b border-border"
+                    style={{ top: `${index * 60}px` }}
                   >
-                    <CalendarEventComponent 
-                      event={event} 
-                      onEventClick={onEventClick}
-                      isDragging={draggingEvent?.id === event.id}
-                      slotIndex={slotIndex}
-                      totalSlots={totalSlots}
-                    />
+                    {index < totalHours && (
+                      <>
+                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
+                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
+                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
+                      </>
+                    )}
                   </div>
-                );
-              })}
+                ))}
+                
+                {/* Current time indicator */}
+                {isCurrentDay && (() => {
+                  const now = new Date();
+                  const hours = now.getHours();
+                  const minutes = now.getMinutes();
+                  
+                  if (hours < startHour || hours >= endHour) return null;
+                  
+                  const position = (hours - startHour) * 60 + minutes;
+                  
+                  return (
+                    <div 
+                      className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
+                      style={{ top: `${position}px` }}
+                    >
+                      <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
+                    </div>
+                  );
+                })()}
+                
+                {processedEvents.map(({ event, slotIndex, totalSlots }) => {
+                  // Calculate the correct day to display events properly
+                  const eventDate = event.start;
+                  const eventDay = weekDays.findIndex(day => 
+                    day.getDate() === eventDate.getDate() &&
+                    day.getMonth() === eventDate.getMonth() &&
+                    day.getFullYear() === eventDate.getFullYear()
+                  );
+                  
+                  if (eventDay !== dayIndex) return null;
+                  
+                  const eventHour = event.start.getHours();
+                  const eventMinute = event.start.getMinutes();
+                  
+                  if (eventHour < startHour || eventHour >= endHour) return null;
+                  
+                  const top = (eventHour - startHour) * 60 + eventMinute;
+                  const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+                  const height = Math.max(durationMinutes, 15);
+                  
+                  return (
+                    <div 
+                      key={`${event.id}-${dayIndex}`}
+                      draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
+                      onDragStart={() => handleDragStart(event)}
+                      className="absolute w-full"
+                      style={{ 
+                        top: `${top}px`, 
+                        height: `${height}px`,
+                        padding: 0
+                      }}
+                    >
+                      <CalendarEventComponent 
+                        event={event} 
+                        onEventClick={onEventClick}
+                        isDragging={draggingEvent?.id === event.id}
+                        slotIndex={slotIndex}
+                        totalSlots={totalSlots}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       {/* Drag preview */}
@@ -338,3 +403,4 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     </div>
   );
 };
+

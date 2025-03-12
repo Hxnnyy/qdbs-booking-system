@@ -4,8 +4,10 @@ import React, { createContext, useContext, useState } from 'react';
 interface CalendarSettings {
   startHour: number;
   endHour: number;
+  autoScrollToCurrentTime: boolean;
   updateStartHour: (hour: number) => void;
   updateEndHour: (hour: number) => void;
+  toggleAutoScroll: () => void;
 }
 
 const CalendarSettingsContext = createContext<CalendarSettings | undefined>(undefined);
@@ -13,6 +15,7 @@ const CalendarSettingsContext = createContext<CalendarSettings | undefined>(unde
 export const CalendarSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [startHour, setStartHour] = useState(8); // Default: 8 AM
   const [endHour, setEndHour] = useState(22); // Default: 10 PM
+  const [autoScrollToCurrentTime, setAutoScrollToCurrentTime] = useState(false); // Default: disabled
 
   const updateStartHour = (hour: number) => {
     if (hour < endHour - 1) {
@@ -26,13 +29,19 @@ export const CalendarSettingsProvider: React.FC<{ children: React.ReactNode }> =
     }
   };
 
+  const toggleAutoScroll = () => {
+    setAutoScrollToCurrentTime(prev => !prev);
+  };
+
   return (
     <CalendarSettingsContext.Provider 
       value={{ 
         startHour, 
         endHour, 
+        autoScrollToCurrentTime,
         updateStartHour, 
-        updateEndHour 
+        updateEndHour,
+        toggleAutoScroll
       }}
     >
       {children}
