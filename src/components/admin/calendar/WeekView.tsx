@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
@@ -28,29 +29,36 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const holidays = events.filter(event => event.status === 'holiday');
     const nonHolidayEvents = events.filter(event => event.status !== 'holiday');
     
-    // Group events by time slots
-    const timeSlots: Record<string, CalendarEvent[]> = {};
+    // Group events by time slots (based on start time)
+    const timeSlotMap: Record<string, { appointments: CalendarEvent[], lunchBreaks: CalendarEvent[] }> = {};
     
     nonHolidayEvents.forEach(event => {
+      // Create a key based on 15-minute increments for better grouping
       const startTime = event.start.getTime();
-      if (!timeSlots[startTime]) {
-        timeSlots[startTime] = [];
+      const timeSlotKey = Math.floor(startTime / (15 * 60 * 1000)).toString();
+      
+      if (!timeSlotMap[timeSlotKey]) {
+        timeSlotMap[timeSlotKey] = {
+          appointments: [],
+          lunchBreaks: []
+        };
       }
-      timeSlots[startTime].push(event);
+      
+      // Separate lunch breaks from regular appointments
+      if (event.status === 'lunch-break') {
+        timeSlotMap[timeSlotKey].lunchBreaks.push(event);
+      } else {
+        timeSlotMap[timeSlotKey].appointments.push(event);
+      }
     });
     
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
     // Process each time slot
-    Object.values(timeSlots).forEach(slotEvents => {
-      // Separate regular appointments and lunch breaks
-      const appointments = slotEvents.filter(event => event.status !== 'lunch-break');
-      const lunchBreaks = slotEvents.filter(event => event.status === 'lunch-break');
-      
-      // Calculate total slots needed for overlapping events
+    Object.values(timeSlotMap).forEach(({ appointments, lunchBreaks }) => {
       const totalSlots = Math.max(1, appointments.length + lunchBreaks.length);
       
-      // Process regular appointments first (they'll appear on the left)
+      // Process appointments first (they'll be on the left)
       appointments.forEach((event, index) => {
         results.push({
           event,
@@ -59,7 +67,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         });
       });
       
-      // Then process lunch breaks (they'll appear on the right)
+      // Then process lunch breaks (they'll be on the right)
       lunchBreaks.forEach((event, index) => {
         results.push({
           event,
@@ -69,7 +77,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       });
     });
     
-    // Process holidays separately - always give them full width
+    // Process holidays separately - they should take full width
     holidays.forEach(holidayEvent => {
       results.push({
         event: holidayEvent,
