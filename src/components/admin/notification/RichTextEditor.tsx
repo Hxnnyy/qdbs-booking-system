@@ -11,7 +11,7 @@ interface RichTextEditorProps {
 export const RichTextEditor = ({ value, onChange, disabled }: RichTextEditorProps) => {
   return (
     <Editor
-      apiKey="no-api-key"
+      apiKey="jtued6zipce3ihjlle0m61teznqyufapfz6js6rjtvrcvabq"
       init={{
         height: 400,
         menubar: true,
