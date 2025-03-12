@@ -234,27 +234,3 @@
   pointer-events: none;
   clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
 }
-
-/* Calendar View Specific Styles */
-.calendar-scroll-container {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(120, 120, 120, 0.4) transparent;
-}
-
-.calendar-scroll-container::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.calendar-scroll-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.calendar-scroll-container::-webkit-scrollbar-thumb {
-  background: rgba(120, 120, 120, 0.4);
-  border-radius: 3px;
-}
-
-.calendar-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 120, 120, 0.6);
-}
