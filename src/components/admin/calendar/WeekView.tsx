@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
@@ -9,6 +8,7 @@ import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { processOverlappingEvents } from '@/utils/processOverlappingEvents';
 import { TimeColumn } from './TimeColumn';
 import { DayHeader } from './DayHeader';
+import { HolidayIndicator } from './HolidayIndicator';
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -32,10 +32,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   }, [events, date]);
 
   useEffect(() => {
-    // Only scroll to current time if autoScrollToCurrentTime is enabled
     if (!autoScrollToCurrentTime) return;
     
-    // Scroll to current time on initial load
     const now = new Date();
     const today = weekDays.findIndex(day => isToday(day));
     
@@ -49,7 +47,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         setTimeout(() => {
           const container = document.querySelector('.calendar-scrollable-container');
           if (container) {
-            // Scroll to current time minus some offset to show context
             container.scrollTop = position - 100;
           }
         }, 100);
@@ -84,7 +81,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const handleDragEnd = (e: React.DragEvent, dayIndex: number) => {
     if (!draggingEvent) return;
     
-    // Get the day for this column
     const selectedDate = weekDays[dayIndex];
     
     const container = e.currentTarget.getBoundingClientRect();
@@ -115,33 +111,43 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
   const processedEvents = processOverlappingEvents(displayEvents);
 
+  const hasHolidayEvents = weekDays.some(day => 
+    getHolidayEventsForDate(events, day).length > 0
+  );
+
   return (
     <div className="h-full calendar-view week-view">
-      {/* Header grid - Fixed at the top */}
       <div className="calendar-header grid grid-cols-[4rem_repeat(7,1fr)] border-b border-border sticky top-0 z-20 bg-background">
-        {/* Empty cell for time column */}
         <div className="border-r border-border h-12"></div>
         
-        {/* Day headers */}
-        {weekDays.map((day, index) => {
-          // Get holiday events for this day
-          const dayDate = addDays(weekStart, index);
-          const holidayEvents = getHolidayEventsForDate(events, dayDate);
-          
-          return (
-            <div key={index} className="border-r last:border-r-0 border-border">
-              <DayHeader date={day} holidayEvents={holidayEvents} />
-            </div>
-          );
-        })}
+        {weekDays.map((day, index) => (
+          <div key={index} className="border-r last:border-r-0 border-border">
+            <DayHeader date={day} holidayEvents={[]} />
+          </div>
+        ))}
       </div>
       
-      {/* Main grid - Scrollable content */}
+      {hasHolidayEvents && (
+        <div className="grid grid-cols-[4rem_repeat(7,1fr)] border-b border-border bg-background">
+          <div className="border-r border-border"></div>
+          
+          {weekDays.map((day, index) => {
+            const dayHolidayEvents = getHolidayEventsForDate(events, day);
+            
+            return (
+              <div key={`holiday-${index}`} className="border-r last:border-r-0 border-border">
+                {dayHolidayEvents.length > 0 && (
+                  <HolidayIndicator holidayEvents={dayHolidayEvents} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      
       <div className="calendar-body grid grid-cols-[4rem_repeat(7,1fr)]">
-        {/* Time column */}
         <TimeColumn startHour={startHour} totalHours={totalHours} />
         
-        {/* Day columns */}
         {weekDays.map((day, dayIndex) => {
           const isCurrentDay = isToday(day);
           
@@ -154,97 +160,92 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               onDrop={(e) => handleDragEnd(e, dayIndex)}
               onDragLeave={() => setDragPreview(null)}
             >
-              <div className="absolute top-0 left-0 right-0 bottom-0">
-                {Array.from({ length: totalHours + 1 }).map((_, index) => (
+              {Array.from({ length: totalHours + 1 }).map((_, index) => (
+                <div 
+                  key={`grid-${index}`}
+                  className="absolute w-full h-[60px] border-b border-border"
+                  style={{ top: `${index * 60}px` }}
+                >
+                  {index < totalHours && (
+                    <>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
+                    </>
+                  )}
+                </div>
+              ))}
+              
+              {isCurrentDay && (() => {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                
+                if (hours < startHour || hours >= endHour) return null;
+                
+                const position = (hours - startHour) * 60 + minutes;
+                
+                return (
                   <div 
-                    key={`grid-${index}`}
-                    className="absolute w-full h-[60px] border-b border-border"
-                    style={{ top: `${index * 60}px` }}
+                    className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
+                    style={{ top: `${position}px` }}
                   >
-                    {index < totalHours && (
-                      <>
-                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
-                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
-                        <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
-                      </>
-                    )}
+                    <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
                   </div>
-                ))}
+                );
+              })()}
+              
+              {processedEvents.map(({ event, slotIndex, totalSlots }) => {
+                const eventDate = event.start;
+                const eventDay = weekDays.findIndex(day => 
+                  day.getDate() === eventDate.getDate() &&
+                  day.getMonth() === eventDate.getMonth() &&
+                  day.getFullYear() === eventDate.getFullYear()
+                );
                 
-                {/* Current time indicator */}
-                {isCurrentDay && (() => {
-                  const now = new Date();
-                  const hours = now.getHours();
-                  const minutes = now.getMinutes();
-                  
-                  if (hours < startHour || hours >= endHour) return null;
-                  
-                  const position = (hours - startHour) * 60 + minutes;
-                  
-                  return (
-                    <div 
-                      className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
-                      style={{ top: `${position}px` }}
-                    >
-                      <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
-                    </div>
-                  );
-                })()}
+                if (eventDay !== dayIndex) return null;
                 
-                {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-                  // Calculate the correct day to display events properly
-                  const eventDate = event.start;
-                  const eventDay = weekDays.findIndex(day => 
-                    day.getDate() === eventDate.getDate() &&
-                    day.getMonth() === eventDate.getMonth() &&
-                    day.getFullYear() === eventDate.getFullYear()
-                  );
-                  
-                  if (eventDay !== dayIndex) return null;
-                  
-                  const eventHour = event.start.getHours();
-                  const eventMinute = event.start.getMinutes();
-                  
-                  if (eventHour < startHour || eventHour >= endHour) return null;
-                  
-                  const top = (eventHour - startHour) * 60 + eventMinute;
-                  const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-                  const height = Math.max(durationMinutes, 15);
-                  
-                  return (
-                    <div 
-                      key={`${event.id}-${dayIndex}`}
-                      draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
-                      onDragStart={() => handleDragStart(event)}
-                      className="absolute w-full"
-                      style={{ 
-                        top: `${top}px`, 
-                        height: `${height}px`,
-                        padding: 0
-                      }}
-                    >
-                      <CalendarEventComponent 
-                        event={event} 
-                        onEventClick={onEventClick}
-                        isDragging={draggingEvent?.id === event.id}
-                        slotIndex={slotIndex}
-                        totalSlots={totalSlots}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+                const eventHour = event.start.getHours();
+                const eventMinute = event.start.getMinutes();
+                
+                if (eventHour < startHour || eventHour >= endHour) return null;
+                
+                const top = (eventHour - startHour) * 60 + eventMinute;
+                const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+                const height = Math.max(durationMinutes, 15);
+                
+                return (
+                  <div 
+                    key={`${event.id}-${dayIndex}`}
+                    draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
+                    onDragStart={() => handleDragStart(event)}
+                    className="absolute w-full"
+                    style={{ 
+                      top: `${top}px`, 
+                      height: `${height}px`,
+                      padding: 0
+                    }}
+                  >
+                    <CalendarEventComponent 
+                      event={event} 
+                      onEventClick={onEventClick}
+                      isDragging={draggingEvent?.id === event.id}
+                      slotIndex={slotIndex}
+                      totalSlots={totalSlots}
+                    />
+                  </div>
+                );
+              })}
             </div>
           );
         })}
       </div>
       
-      {/* Drag preview */}
       {dragPreview && dragPreview.columnIndex !== undefined && (
         <div 
           className="absolute left-0 top-0 pointer-events-none z-50 w-full h-full"
           style={{
-            gridColumnStart: dragPreview.columnIndex + 2, // +2 because we now have a time column
+            gridColumnStart: dragPreview.columnIndex + 2,
             gridColumnEnd: dragPreview.columnIndex + 3,
           }}
         >

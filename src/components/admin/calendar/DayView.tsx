@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -8,6 +9,7 @@ import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { processOverlappingEvents } from '@/utils/processOverlappingEvents';
 import { TimeColumn } from './TimeColumn';
 import { DayHeader } from './DayHeader';
+import { HolidayIndicator } from './HolidayIndicator';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -101,8 +103,17 @@ export const DayView: React.FC<CalendarViewProps> = ({
     <div className="h-full calendar-view day-view">
       <div className="calendar-header grid grid-cols-[4rem_1fr] border-b border-border sticky top-0 z-20 bg-background">
         <div className="border-r border-border h-12"></div>
-        <DayHeader date={date} holidayEvents={holidayEvents} />
+        <DayHeader date={date} holidayEvents={[]} />
       </div>
+      
+      {/* Holiday indicator row - separate from the header */}
+      {holidayEvents.length > 0 && (
+        <div className="grid grid-cols-[4rem_1fr] border-b border-border bg-background">
+          <div className="border-r border-border"></div>
+          <HolidayIndicator holidayEvents={holidayEvents} />
+        </div>
+      )}
+      
       <div className="calendar-body grid grid-cols-[4rem_1fr]">
         <TimeColumn startHour={startHour} totalHours={totalHours} />
         <div 

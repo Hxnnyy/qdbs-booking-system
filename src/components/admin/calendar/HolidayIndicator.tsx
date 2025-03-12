@@ -12,7 +12,7 @@ export const HolidayIndicator: React.FC<HolidayIndicatorProps> = ({ holidayEvent
   if (holidayEvents.length === 0) return null;
   
   return (
-    <div className="bg-red-100 border-b border-red-300 py-1 px-2 text-xs text-center">
+    <div className="bg-red-100 py-1 px-2 text-xs w-full">
       <div className="flex items-center justify-center space-x-1">
         <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
         <TooltipProvider>
