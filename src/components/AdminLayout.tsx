@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarProvider
 } from '@/components/ui/sidebar';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, Settings2Icon, ShieldIcon, FileUpIcon } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -21,6 +21,19 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+  const location = useLocation();
+  const currentPath = location.pathname;
+  
+  // Helper function to determine if a route is active
+  const isActive = (path: string) => {
+    return currentPath.includes(path);
+  };
+  
+  // Icon style based on active state
+  const getIconStyle = (path: string) => {
+    return isActive(path) ? "text-red-500" : "text-white";
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -38,7 +51,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Dashboard">
                       <Link to="/admin">
-                        <ChartBarIcon />
+                        <ChartBarIcon className={getIconStyle('/admin')} />
                         <span>Dashboard</span>
                       </Link>
                     </SidebarMenuButton>
@@ -46,7 +59,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Bookings">
                       <Link to="/admin/bookings">
-                        <CalendarIcon />
+                        <CalendarIcon className={getIconStyle('/admin/bookings')} />
                         <span>Bookings</span>
                       </Link>
                     </SidebarMenuButton>
@@ -54,23 +67,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Calendar">
                       <Link to="/admin/calendar">
-                        <CalendarIcon className="text-primary" />
+                        <CalendarIcon className={getIconStyle('/admin/calendar')} />
                         <span>Calendar</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Import Bookings">
-                      <Link to="/admin/import-bookings">
-                        <FileUpIcon />
-                        <span>Import Bookings</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Barbers">
                       <Link to="/admin/barbers">
-                        <UsersIcon />
+                        <UsersIcon className={getIconStyle('/admin/barbers')} />
                         <span>Barbers</span>
                       </Link>
                     </SidebarMenuButton>
@@ -78,16 +83,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Services">
                       <Link to="/admin/services">
-                        <ScissorsIcon />
+                        <ScissorsIcon className={getIconStyle('/admin/services')} />
                         <span>Services</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Shop Setup">
-                      <Link to="/admin/setup">
-                        <Settings2Icon />
-                        <span>Shop Setup</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -100,9 +97,25 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Shop Setup">
+                      <Link to="/admin/setup">
+                        <Settings2Icon className={getIconStyle('/admin/setup')} />
+                        <span>Shop Setup</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Import Bookings">
+                      <Link to="/admin/import-bookings">
+                        <FileUpIcon className={getIconStyle('/admin/import-bookings')} />
+                        <span>Import Bookings</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Assign Admin">
                       <Link to="/admin/assign-admin">
-                        <ShieldIcon />
+                        <ShieldIcon className={getIconStyle('/admin/assign-admin')} />
                         <span>Assign Admin</span>
                       </Link>
                     </SidebarMenuButton>
