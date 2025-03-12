@@ -12,6 +12,7 @@ interface GuestBooking {
   booking_time: string;
   status: string;
   notes?: string;
+  guest_email?: string;
 }
 
 interface CreateGuestBookingParams {
@@ -21,6 +22,7 @@ interface CreateGuestBookingParams {
   booking_time: string;
   guest_name: string;
   guest_phone: string;
+  guest_email: string;
   notes?: string;
 }
 
@@ -178,7 +180,7 @@ export const useGuestBookings = () => {
         throw new Error('Cannot book on this date as the barber is on holiday');
       }
       
-      // Create the booking - now with user_id included
+      // Create the booking with guest_email field
       const { data, error } = await supabase
         .from('bookings')
         .insert({
@@ -189,7 +191,8 @@ export const useGuestBookings = () => {
           status: 'confirmed',
           notes: formattedNotes,
           guest_booking: true,
-          user_id: GUEST_USER_ID // Add the required user_id field
+          user_id: GUEST_USER_ID,
+          guest_email: params.guest_email
         })
         .select()
         .single();

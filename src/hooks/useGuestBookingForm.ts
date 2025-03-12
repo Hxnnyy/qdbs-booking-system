@@ -15,6 +15,7 @@ export const useGuestBookingForm = () => {
     selectedTime: null,
     guestName: '',
     guestPhone: '',
+    guestEmail: '',
     notes: '',
     selectedServiceDetails: null,
     isPhoneVerified: false

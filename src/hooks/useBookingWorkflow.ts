@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { BookingStep, BookingFormState } from '@/types/booking';
 import { useGuestBookings } from '@/hooks/useGuestBookings';
 import { Service } from '@/supabase-types';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useBookingWorkflow = (
   formState: BookingFormState,
@@ -126,6 +128,18 @@ export const useBookingWorkflow = (
       return;
     }
     
+    if (!formState.guestEmail.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formState.guestEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
     // Simple phone validation
     const phoneRegex = /^\+?[0-9]{10,15}$/;
     if (!phoneRegex.test(formState.guestPhone.replace(/\s+/g, ''))) {
@@ -151,9 +165,9 @@ export const useBookingWorkflow = (
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { selectedBarber, selectedService, selectedDate, selectedTime, guestName, guestPhone, notes, isPhoneVerified } = formState;
+    const { selectedBarber, selectedService, selectedDate, selectedTime, guestName, guestPhone, guestEmail, notes, isPhoneVerified } = formState;
 
-    if (!selectedBarber || !selectedService || !selectedDate || !selectedTime || !guestName || !guestPhone) {
+    if (!selectedBarber || !selectedService || !selectedDate || !selectedTime || !guestName || !guestPhone || !guestEmail) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -174,11 +188,42 @@ export const useBookingWorkflow = (
         booking_time: selectedTime,
         guest_name: guestName,
         guest_phone: guestPhone,
+        guest_email: guestEmail,
         notes: notes.trim() || undefined
       });
 
       if (result) {
         setBookingResult(result);
+        
+        // Get barber and service details for the email
+        const barber = services.find(s => s.id === selectedService);
+        const barberName = barber?.name || 'Barber';
+        
+        // Send confirmation email
+        try {
+          const { data, error } = await supabase.functions.invoke('send-booking-email', {
+            body: {
+              to: guestEmail,
+              name: guestName,
+              bookingCode: result.verificationCode,
+              bookingId: result.id,
+              bookingDate: formattedDate,
+              bookingTime: selectedTime,
+              barberName: barberName,
+              serviceName: selectedService,
+              isGuest: true
+            }
+          });
+          
+          if (error) {
+            console.error('Error sending confirmation email:', error);
+          } else {
+            console.log('Confirmation email sent successfully:', data);
+          }
+        } catch (emailError) {
+          console.error('Failed to send confirmation email:', emailError);
+        }
+        
         setShowSuccess(true);
         setStep('confirmation');
         updateFormState({ bookingComplete: true });

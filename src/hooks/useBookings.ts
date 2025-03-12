@@ -41,6 +41,49 @@ export const useBookings = () => {
       }
 
       console.log('Booking created successfully:', data);
+      
+      // Get user email from profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('email, first_name, last_name')
+        .eq('id', user.id)
+        .single();
+        
+      if (!profileError && profileData && profileData.email) {
+        // Get barber and service names for the confirmation email
+        const { data: barberData } = await supabase
+          .from('barbers')
+          .select('name')
+          .eq('id', bookingData.barber_id)
+          .single();
+          
+        const { data: serviceData } = await supabase
+          .from('services')
+          .select('name')
+          .eq('id', bookingData.service_id)
+          .single();
+          
+        // Send confirmation email
+        try {
+          await supabase.functions.invoke('send-booking-email', {
+            body: {
+              to: profileData.email,
+              name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Customer',
+              bookingId: data[0].id,
+              bookingDate: bookingData.booking_date,
+              bookingTime: bookingData.booking_time,
+              barberName: barberData?.name || 'Barber',
+              serviceName: serviceData?.name || 'Service',
+              isGuest: false
+            }
+          });
+          
+          console.log('Confirmation email sent to registered user');
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+        }
+      }
+      
       toast.success('Booking created successfully!');
       return data;
     } catch (err: any) {

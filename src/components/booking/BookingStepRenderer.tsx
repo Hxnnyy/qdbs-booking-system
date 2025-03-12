@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BookingStep, BookingFormState, BookingStepHandlers, BookingResult } from '@/types/booking';
 import BarberSelectionStep from './steps/BarberSelectionStep';
@@ -94,6 +93,8 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           setGuestName={(name) => updateFormState({ guestName: name })}
           guestPhone={formState.guestPhone}
           setGuestPhone={(phone) => updateFormState({ guestPhone: phone })}
+          guestEmail={formState.guestEmail}
+          setGuestEmail={(email) => updateFormState({ guestEmail: email })}
           onNext={handlers.handleGuestInfoComplete}
           onBack={handlers.handleBackToDateTime}
         />

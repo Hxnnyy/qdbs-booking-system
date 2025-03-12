@@ -1,4 +1,3 @@
-
 import { Service } from '@/supabase-types';
 
 export interface TimeSlotProps {
@@ -16,15 +15,15 @@ export interface BookingStepProps {
 export interface BookingFormState {
   selectedBarber: string | null;
   selectedService: string | null;
-  selectedDate: Date | undefined;
+  selectedDate?: Date;
   selectedTime: string | null;
   guestName: string;
   guestPhone: string;
+  guestEmail: string;
   notes: string;
   selectedServiceDetails: Service | null;
-  isPhoneVerified: boolean;
+  isPhoneVerified?: boolean;
   bookingComplete?: boolean;
-  verificationId?: string;
 }
 
 export type BookingStep = 'barber' | 'service' | 'datetime' | 'guest-info' | 'verify-phone' | 'notes' | 'confirmation';
@@ -54,7 +53,6 @@ export interface VerifyPhoneResult {
   mockMode?: boolean;
 }
 
-// Adding new types needed for BookingStepRenderer
 export interface BookingStepHandlers {
   handleSelectBarber: (barberId: string) => void;
   handleSelectService: (serviceId: string) => void;

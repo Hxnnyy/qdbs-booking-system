@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Phone, User, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Phone, User, ArrowLeft, ArrowRight, Mail } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 
 interface GuestInfoStepProps extends BookingStepProps {
@@ -11,6 +11,8 @@ interface GuestInfoStepProps extends BookingStepProps {
   setGuestName: (name: string) => void;
   guestPhone: string;
   setGuestPhone: (phone: string) => void;
+  guestEmail: string;
+  setGuestEmail: (email: string) => void;
 }
 
 const GuestInfoStep: React.FC<GuestInfoStepProps> = ({ 
@@ -18,6 +20,8 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
   setGuestName, 
   guestPhone, 
   setGuestPhone,
+  guestEmail,
+  setGuestEmail,
   onNext,
   onBack
 }) => {
@@ -28,6 +32,10 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setGuestPhone(e.target.value);
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGuestEmail(e.target.value);
   };
 
   // Create a specific handler for the continue button to prevent automatic navigation
@@ -58,6 +66,26 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
           </div>
           
           <div className="space-y-2">
+            <Label htmlFor="guestEmail">Email Address</Label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Mail className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input
+                id="guestEmail"
+                type="email"
+                value={guestEmail}
+                onChange={handleEmailChange}
+                placeholder="Enter your email address"
+                className="pl-10"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              We'll send your booking confirmation and details via email
+            </p>
+          </div>
+          
+          <div className="space-y-2">
             <Label htmlFor="guestPhone">Phone Number</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -73,7 +101,7 @@ const GuestInfoStep: React.FC<GuestInfoStepProps> = ({
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              We'll send your booking confirmation and code via SMS
+              We'll also send your booking code via SMS
             </p>
           </div>
         </div>

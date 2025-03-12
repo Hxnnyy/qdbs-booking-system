@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { BookingFormState, TwilioSMSResult, BookingResult } from '@/types/booking';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
-import { Clipboard, CalendarDays, MessageSquare, Check } from 'lucide-react';
+import { Clipboard, CalendarDays, MessageSquare, Check, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ConfirmationStepProps {
@@ -24,7 +24,7 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
   services 
 }) => {
   const navigate = useNavigate();
-  const { selectedBarber, selectedService, selectedDate, selectedTime, guestPhone } = formData;
+  const { selectedBarber, selectedService, selectedDate, selectedTime, guestPhone, guestEmail } = formData;
   const twilioResult = bookingResult.twilioResult as TwilioSMSResult;
   
   const handleCopyCode = () => {
@@ -49,13 +49,22 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
       <h3 className="text-2xl font-bold text-burgundy">Booking Confirmed!</h3>
       
       <div className="max-w-md mx-auto bg-gray-50 rounded-lg p-6 border border-gray-200">
-        <div className="flex items-center justify-center mb-4 text-green-600">
-          <MessageSquare className="h-5 w-5 mr-2" />
-          <p className="text-sm">
-            {twilioResult?.isTwilioConfigured 
-              ? `We've sent a confirmation SMS to ${guestPhone} with your booking details.`
-              : `Your booking is confirmed. SMS notifications will be enabled soon.`}
-          </p>
+        <div className="flex flex-col items-center justify-center space-y-2 mb-4">
+          <div className="flex items-center justify-center text-green-600">
+            <MessageSquare className="h-5 w-5 mr-2" />
+            <p className="text-sm">
+              {twilioResult?.isTwilioConfigured 
+                ? `We've sent a confirmation SMS to ${guestPhone} with your booking details.`
+                : `Your booking is confirmed. SMS notifications will be enabled soon.`}
+            </p>
+          </div>
+          
+          <div className="flex items-center justify-center text-green-600">
+            <Mail className="h-5 w-5 mr-2" />
+            <p className="text-sm">
+              We've sent a confirmation email to {guestEmail} with all your booking details.
+            </p>
+          </div>
         </div>
         
         <div className="mb-4">
