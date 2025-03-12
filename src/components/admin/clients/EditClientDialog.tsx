@@ -10,7 +10,7 @@ interface EditClientDialogProps {
   isOpen: boolean;
   onClose: () => void;
   client: Client | null;
-  onSave: (clientId: string, data: { name?: string, phone?: string, email?: string }) => Promise<void>;
+  onSave: (clientId: string, data: { name?: string, phone?: string, email?: string }, isGuest: boolean) => Promise<boolean>;
   isLoading: boolean;
 }
 
@@ -47,7 +47,7 @@ export const EditClientDialog: React.FC<EditClientDialogProps> = ({
     
     // Only save if there are changes
     if (Object.keys(updatedFields).length > 0) {
-      await onSave(client.id, updatedFields);
+      await onSave(client.id, updatedFields, client.isGuest);
       onClose();
     } else {
       onClose(); // No changes, just close
