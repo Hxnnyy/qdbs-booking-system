@@ -99,77 +99,64 @@ export const useClientsFetch = () => {
 
         if (profilesError) throw profilesError;
 
-        // Create a map to store user emails from profiles first
-        const emailMap = new Map();
+        // Create a map to store user emails and data
+        const userDataMap = new Map();
         
-        // Add profile emails as initial data
+        // Add profile data to the map
         profiles.forEach(profile => {
-          if (profile.email) {
-            emailMap.set(profile.id, profile.email);
-          }
+          userDataMap.set(profile.id, {
+            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || null,
+            email: profile.email || null,
+            phone: profile.phone || null
+          });
         });
         
-        // Get auth users emails directly with a custom function call
-        // Note: We're using the get_user_id_by_email function to help get emails
-        // We'll fetch emails one by one for each user since we can't pass arrays
-        for (const userId of userIds) {
-          try {
-            // Call the existing function to help determine email 
-            const { data: emailData, error: emailError } = await supabase
-              .from('profiles')
-              .select('email')
-              .eq('id', userId)
-              .single();
-              
-            if (!emailError && emailData && emailData.email) {
-              // If we have an email in the profile, look up the auth email
-              const { data: authUser, error: authUserError } = await supabase.auth.admin.getUserById(userId);
-              
-              if (!authUserError && authUser && authUser.user && authUser.user.email) {
-                // Store the authenticated user email which has higher priority
-                emailMap.set(userId, authUser.user.email);
+        // IMPROVED: Get auth users emails directly with a function call
+        // This fixes the email retrieval problem for registered users
+        try {
+          const { data: emailsData, error: emailsError } = await supabase.functions.invoke('get-user-emails', {
+            body: { userIds }
+          });
+          
+          if (!emailsError && emailsData) {
+            // Process the returned emails and update the user data map
+            emailsData.forEach((userData: { id: string, email: string }) => {
+              if (userData.id && userData.email) {
+                const existingData = userDataMap.get(userData.id) || {};
+                userDataMap.set(userData.id, {
+                  ...existingData,
+                  email: userData.email // Priority is given to auth emails
+                });
               }
-            }
-          } catch (err) {
-            console.error(`Error fetching email for user ${userId}:`, err);
-            // Non-blocking, continue with next user
+            });
           }
+        } catch (err) {
+          console.error('Error fetching auth emails:', err);
+          // Non-blocking, continue with existing profile emails
         }
 
         // Add profile data to client records
-        for (const profile of profiles) {
-          const client = clientsMap.get(profile.id);
+        userIds.forEach(userId => {
+          const client = clientsMap.get(userId);
+          const userData = userDataMap.get(userId) || {};
+          
           if (client) {
-            // Use email from our map, which prioritizes auth emails over profile emails
-            const email = emailMap.get(profile.id) || null;
-            
-            clientsMap.set(profile.id, {
+            clientsMap.set(userId, {
               ...client,
-              name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'No Name',
-              email: email,
-              phone: profile.phone
+              name: userData.name || 'No Name',
+              email: userData.email || null,
+              phone: userData.phone || null
             });
           }
-        }
+        });
 
-        // For any clients that don't have profile data, try to use just the email if available
+        // For any clients without a name, try to use email username part
         clientsMap.forEach((client, userId) => {
           if (!client.name || client.name === 'No Name') {
-            const email = emailMap.get(userId);
-            if (email) {
+            if (client.email) {
               clientsMap.set(userId, {
                 ...client,
-                email: email,
-                name: email.split('@')[0] || 'No Name' // Use part of email as name if nothing else
-              });
-            }
-          } else if (!client.email) {
-            // If we have a name but no email, check if we have an email in our map
-            const email = emailMap.get(userId);
-            if (email) {
-              clientsMap.set(userId, {
-                ...client,
-                email: email
+                name: client.email.split('@')[0] || 'No Name'
               });
             }
           }
