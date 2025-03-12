@@ -1,4 +1,3 @@
-
 import { isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { CalendarEvent } from '@/types/calendar';
 
@@ -64,5 +63,13 @@ export const filterEventsByWeek = (events: CalendarEvent[], date: Date): Calenda
   return allEvents.filter(event => {
     const eventDate = event.start;
     return eventDate >= weekStart && eventDate <= weekEnd;
+  });
+};
+
+// Filter events based on a date range
+export const filterEventsByDateRange = (events: CalendarEvent[], startDate: Date, endDate: Date): CalendarEvent[] => {
+  return events.filter(event => {
+    const eventDate = event.start;
+    return eventDate >= startDate && eventDate <= endDate;
   });
 };
