@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
@@ -22,6 +23,7 @@ interface EmailRequestBody {
   serviceName: string;
   isGuest: boolean;
   emailTemplate?: string;
+  subject?: string;
 }
 
 // Helper function to replace template variables
@@ -76,7 +78,8 @@ const handler = async (req: Request): Promise<Response> => {
       barberName, 
       serviceName,
       isGuest,
-      emailTemplate
+      emailTemplate,
+      subject
     } = await req.json() as EmailRequestBody;
 
     // Create a nicely formatted date
@@ -98,7 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
       serviceName
     };
 
-    let emailSubject = 'Your Booking Confirmation - Queens Dock Barbershop';
+    let emailSubject = subject || 'Your Booking Confirmation - Queens Dock Barbershop';
     let emailContent = '';
 
     // If template string is provided in the request
@@ -120,104 +123,94 @@ const handler = async (req: Request): Promise<Response> => {
       } else {
         // Fallback to hardcoded template
         emailContent = `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <title>Booking Confirmation</title>
-              <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }
-                .container { padding: 20px; border: 1px solid #e1e1e1; border-radius: 5px; }
-                .header { text-align: center; padding-bottom: 20px; border-bottom: 2px solid #7a1921; margin-bottom: 20px; }
-                .header h1 { color: #7a1921; margin-bottom: 10px; }
-                .booking-details { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-                .booking-row { display: flex; margin-bottom: 10px; }
-                .booking-label { font-weight: bold; width: 120px; }
-                .booking-value { flex: 1; }
-                .footer { text-align: center; font-size: 14px; color: #888; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e1e1e1; }
-                .button { display: inline-block; background-color: #7a1921; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-                .verification-code { background-color: #f0f0f0; padding: 10px; font-family: monospace; text-align: center; font-weight: bold; letter-spacing: 2px; margin: 20px 0; border-radius: 5px; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>Queens Dock Barbershop</h1>
-                  <p>Thank you for booking with us!</p>
-                </div>
-                
-                <p>Hello ${name},</p>
-                <p>Your appointment has been confirmed. Here are your booking details:</p>
-                
-                <div class="booking-details">
-                  <div class="booking-row">
-                    <div class="booking-label">Barber:</div>
-                    <div class="booking-value">${barberName}</div>
-                  </div>
-                  <div class="booking-row">
-                    <div class="booking-label">Service:</div>
-                    <div class="booking-value">${serviceName}</div>
-                  </div>
-                  <div class="booking-row">
-                    <div class="booking-label">Date:</div>
-                    <div class="booking-value">${formattedDate}</div>
-                  </div>
-                  <div class="booking-row">
-                    <div class="booking-label">Time:</div>
-                    <div class="booking-value">${bookingTime}</div>
-                  </div>
-                  ${bookingCode ? `
-                  <div class="booking-row">
-                    <div class="booking-label">Booking Code:</div>
-                    <div class="booking-value">${bookingCode}</div>
-                  </div>` : ''}
-                </div>
-                
-                ${bookingCode ? `
-                <p>Your booking verification code is:</p>
-                <div class="verification-code">${bookingCode}</div>
-                <p>Keep this code safe. You'll need it to manage or cancel your booking.</p>` : ''}
-                
-                <p>We look forward to seeing you at Queens Dock Barbershop!</p>
-                
-                <div class="footer">
-                  <p>If you have any questions, please contact us.</p>
-                  <p>© 2025 Queens Dock Barbershop. All rights reserved.</p>
-                </div>
-              </div>
-            </body>
-          </html>
+          <p>Hello ${name},</p>
+          <p>Your appointment has been confirmed. Here are your booking details:</p>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <div style="margin-bottom: 10px;">
+              <strong>Barber:</strong> ${barberName}
+            </div>
+            <div style="margin-bottom: 10px;">
+              <strong>Service:</strong> ${serviceName}
+            </div>
+            <div style="margin-bottom: 10px;">
+              <strong>Date:</strong> ${formattedDate}
+            </div>
+            <div style="margin-bottom: 10px;">
+              <strong>Time:</strong> ${bookingTime}
+            </div>
+            ${bookingCode ? `
+            <div style="margin-bottom: 10px;">
+              <strong>Booking Code:</strong> ${bookingCode}
+            </div>` : ''}
+          </div>
+          
+          ${bookingCode ? `
+          <p>Your booking verification code is:</p>
+          <div style="background-color: #f0f0f0; padding: 10px; font-family: monospace; text-align: center; font-weight: bold; letter-spacing: 2px; margin: 20px 0; border-radius: 5px;">${bookingCode}</div>
+          <p>Keep this code safe. You'll need it to manage or cancel your booking.</p>` : ''}
+          
+          <p>We look forward to seeing you at Queens Dock Barbershop!</p>
         `;
       }
     }
 
-    // Wrap the content in our branded template
-    const brandedEmailHtml = `
+    // Wrap the content in our standard email template
+    const emailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <title>${emailSubject}</title>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-            .container { max-width: 600px; margin: 0 auto; }
-            .header { background-color: #7a1921; padding: 20px; text-align: center; }
-            .header img { max-width: 200px; }
-            .content { padding: 20px; background-color: #ffffff; }
-            .footer { background-color: #f9f9f9; padding: 20px; text-align: center; font-size: 14px; color: #666; }
+            body { 
+              font-family: Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              margin: 0; 
+              padding: 0; 
+            }
+            .email-template { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              background-color: #ffffff; 
+            }
+            .header { 
+              background-color: #ffffff; 
+              padding: 20px; 
+              text-align: center; 
+              border-bottom: 1px solid #eaeaea; 
+            }
+            .header h1 { 
+              color: #800020; 
+              font-size: 24px; 
+              margin: 0; 
+            }
+            .content { 
+              padding: 20px; 
+            }
+            .footer { 
+              text-align: center; 
+              font-size: 14px; 
+              color: #666; 
+              border-top: 1px solid #eaeaea; 
+              padding: 20px; 
+              background-color: #f9f9f9; 
+            }
           </style>
         </head>
         <body>
-          <div class="container">
+          <div class="email-template">
             <div class="header">
-              <img src="https://queensdockbarbershop.com/logo.png" alt="Queens Dock Barbershop" />
+              <h1>Queens Dock Barbershop</h1>
             </div>
             <div class="content">
               ${emailContent}
             </div>
             <div class="footer">
               <p>Queens Dock Barbershop</p>
-              <p>123 Queens Dock, Liverpool, L3 4DG</p>
+              <p>52 Bank Street, Rossendale, BB4 8DY</p>
+              <p>Phone: 01706 831878</p>
               <p>© ${new Date().getFullYear()} Queens Dock Barbershop. All rights reserved.</p>
             </div>
           </div>
@@ -227,12 +220,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending booking confirmation email to ${to} for booking ${bookingId}`);
     
-    // Send the email using Resend with the branded template
+    // Send the email using Resend
     const { data, error } = await resend.emails.send({
       from: 'Queens Dock Barbershop <onboarding@resend.dev>',
       to: [to],
       subject: emailSubject,
-      html: brandedEmailHtml
+      html: emailHtml
     });
 
     if (error) {
