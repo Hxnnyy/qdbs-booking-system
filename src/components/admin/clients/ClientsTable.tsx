@@ -2,6 +2,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Client } from '@/types/client';
 import { useClients } from '@/context/ClientsContext';
 
@@ -61,6 +62,7 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading }
             <TableHead>Name</TableHead>
             <TableHead>Phone</TableHead>
             <TableHead>Email</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead className="text-right">Appointments</TableHead>
           </TableRow>
         </TableHeader>
@@ -77,6 +79,17 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading }
               <TableCell className="font-medium">{client.name}</TableCell>
               <TableCell>{client.phone || 'N/A'}</TableCell>
               <TableCell>{client.email || 'N/A'}</TableCell>
+              <TableCell>
+                {client.isGuest ? (
+                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                    Guest
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    Registered
+                  </Badge>
+                )}
+              </TableCell>
               <TableCell className="text-right">{client.bookingCount}</TableCell>
             </TableRow>
           ))}

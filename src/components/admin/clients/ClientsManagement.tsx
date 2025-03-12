@@ -4,12 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientsTable } from './ClientsTable';
 import { ClientsEmailDialog } from './ClientsEmailDialog';
 import { Button } from '@/components/ui/button';
-import { Mail, RefreshCw } from 'lucide-react';
+import { Mail, RefreshCw, Users } from 'lucide-react';
 import { useClientManagement } from '@/hooks/useClientManagement';
 import { useClients } from '@/context/ClientsContext';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export const ClientsManagement = () => {
-  const { clients, isLoading, fetchClients, sendEmailToClients } = useClientManagement();
+  const { 
+    clients, 
+    isLoading, 
+    fetchClients, 
+    sendEmailToClients, 
+    showGuestBookings, 
+    toggleShowGuestBookings 
+  } = useClientManagement();
   const { selectedClients, deselectAllClients } = useClients();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
@@ -48,7 +57,15 @@ export const ClientsManagement = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Client List</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center space-x-2 mr-4">
+              <Switch 
+                id="show-guests" 
+                checked={showGuestBookings}
+                onCheckedChange={toggleShowGuestBookings}
+              />
+              <Label htmlFor="show-guests">Show Guest Bookings</Label>
+            </div>
             <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh

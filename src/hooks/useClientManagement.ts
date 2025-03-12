@@ -7,6 +7,7 @@ export const useClientManagement = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showGuestBookings, setShowGuestBookings] = useState(true);
 
   const fetchClients = async () => {
     try {
@@ -71,7 +72,8 @@ export const useClientManagement = () => {
             name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'No Name',
             email: profile.email,
             phone: profile.phone,
-            bookingCount: bookingInfo.bookingCount
+            bookingCount: bookingInfo.bookingCount,
+            isGuest: false
           });
         }
       });
@@ -103,13 +105,14 @@ export const useClientManagement = () => {
             name: name,
             email: bookingInfo.email,
             phone: phone,
-            bookingCount: bookingInfo.bookingCount
+            bookingCount: bookingInfo.bookingCount,
+            isGuest: true
           });
         }
       }
 
-      // Remove duplicates by phone number and sort by name
-      const uniqueClients = removeDuplicatesByPhone(clientList);
+      // Remove duplicates by phone number and email
+      const uniqueClients = removeDuplicatesByPhoneAndEmail(clientList);
       const sortedClients = uniqueClients.sort((a, b) => a.name.localeCompare(b.name));
       
       setClients(sortedClients);
@@ -123,26 +126,44 @@ export const useClientManagement = () => {
     }
   };
 
-  // Helper function to remove duplicates by phone
-  const removeDuplicatesByPhone = (clientList: Client[]): Client[] => {
+  // Helper function to remove duplicates by phone and email
+  const removeDuplicatesByPhoneAndEmail = (clientList: Client[]): Client[] => {
     const uniquePhones = new Map<string, Client>();
+    const uniqueEmails = new Map<string, Client>();
+    const result: Client[] = [];
     
-    // First, handle clients with phone numbers
+    // First process clients with phone numbers
     clientList.forEach(client => {
       if (client.phone) {
-        // If we already have a client with this phone, keep the one with more bookings
+        // If we already have a client with this phone, keep the registered one or the one with more bookings
         const existingClient = uniquePhones.get(client.phone);
-        if (!existingClient || client.bookingCount > existingClient.bookingCount) {
+        if (!existingClient || (!client.isGuest && existingClient.isGuest) || 
+            (client.isGuest === existingClient.isGuest && client.bookingCount > existingClient.bookingCount)) {
           uniquePhones.set(client.phone, client);
         }
+      } 
+      else if (client.email) {
+        // For clients without phone but with email
+        const existingClient = uniqueEmails.get(client.email);
+        if (!existingClient || (!client.isGuest && existingClient.isGuest) || 
+            (client.isGuest === existingClient.isGuest && client.bookingCount > existingClient.bookingCount)) {
+          uniqueEmails.set(client.email, client);
+        }
+      }
+      else {
+        // Clients with neither phone nor email are always included
+        result.push(client);
       }
     });
     
-    // Then add clients without phone numbers
-    const result = [...uniquePhones.values()];
-    clientList.forEach(client => {
-      if (!client.phone) {
-        result.push(client);
+    // Add all unique phone clients
+    result.push(...uniquePhones.values());
+    
+    // Add email clients that don't already have a phone match
+    uniqueEmails.forEach(emailClient => {
+      // Only add if this email client's phone isn't already in the results
+      if (!emailClient.phone || !uniquePhones.has(emailClient.phone)) {
+        result.push(emailClient);
       }
     });
     
@@ -171,15 +192,30 @@ export const useClientManagement = () => {
     }
   };
 
+  // Toggle showing guest bookings
+  const toggleShowGuestBookings = () => {
+    setShowGuestBookings(prev => !prev);
+  };
+
+  // Get filtered clients based on guest booking filter
+  const getFilteredClients = () => {
+    if (showGuestBookings) {
+      return clients;
+    }
+    return clients.filter(client => !client.isGuest);
+  };
+
   useEffect(() => {
     fetchClients();
   }, []);
 
   return {
-    clients,
+    clients: getFilteredClients(),
     isLoading,
     error,
     fetchClients,
-    sendEmailToClients
+    sendEmailToClients,
+    showGuestBookings,
+    toggleShowGuestBookings
   };
 };
