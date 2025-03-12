@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
-import { filterEventsByDate, getHolidayEventsForDate } from '@/utils/calendarUtils';
+import { filterEventsByDate } from '@/utils/calendarUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { HolidayIndicator } from './HolidayIndicator';
+import { useCalendarScroll } from '@/hooks/useCalendarScroll';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -15,6 +15,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   onEventClick
 }) => {
   const { startHour, endHour } = useCalendarSettings();
+  const { scrollContainerRef } = useCalendarScroll();
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const [dragPreview, setDragPreview] = useState<{ time: string, top: number } | null>(null);
@@ -22,8 +23,13 @@ export const DayView: React.FC<CalendarViewProps> = ({
   
   const calendarHeight = totalHours * 60;
 
-  // Check if there are any holiday events for this day
-  const holidayEvents = getHolidayEventsForDate(events, date);
+  // Filter events with status 'holiday' and allDay=true
+  const holidayEvents = events.filter(event => 
+    event.allDay === true && 
+    (event.start.getDate() === date.getDate() &&
+     event.start.getMonth() === date.getMonth() &&
+     event.start.getFullYear() === date.getFullYear())
+  );
 
   // For debugging
   console.log("DayView - Date:", format(date, 'yyyy-MM-dd'));
@@ -184,10 +190,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
       
-      {/* Main grid with time column and day column */}
-      <div className="grid grid-cols-[4rem_1fr] flex-1">
+      {/* Main grid with time column and day column - Now with scrolling container */}
+      <div className="grid grid-cols-[4rem_1fr] flex-1 overflow-hidden">
         {/* Time column */}
-        <div className="relative border-r border-border">
+        <div className="relative border-r border-border overflow-hidden">
           <div className="absolute top-0 left-0 bottom-0 w-full z-10 bg-background">
             {Array.from({ length: totalHours + 1 }).map((_, index) => {
               const hour = startHour + index;
@@ -203,82 +209,85 @@ export const DayView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
         
-        {/* Day column */}
-        <div 
-          className="relative"
-          style={{ height: `${calendarHeight}px` }}
-          onDragOver={handleDragOver}
-          onDrop={handleDragEnd}
-          onDragLeave={() => setDragPreview(null)}
-        >
-          <div className="absolute top-0 left-0 right-0 bottom-0">
-            {Array.from({ length: totalHours + 1 }).map((_, index) => (
-              <div 
-                key={`grid-${index}`}
-                className="absolute w-full h-[60px] border-b border-border"
-                style={{ top: `${index * 60}px` }}
-              >
-                {index < totalHours && (
-                  <>
-                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
-                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
-                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
-                  </>
-                )}
-              </div>
-            ))}
-            
-            {isToday(date) && (() => {
-              const now = new Date();
-              const hours = now.getHours();
-              const minutes = now.getMinutes();
-              
-              if (hours < startHour || hours >= endHour) return null;
-              
-              const position = (hours - startHour) * 60 + minutes;
-              
-              return (
+        {/* Day column with scrollable container */}
+        <div className="relative overflow-auto" ref={scrollContainerRef}>
+          <div 
+            className="relative"
+            style={{ height: `${calendarHeight}px` }}
+            onDragOver={handleDragOver}
+            onDrop={handleDragEnd}
+            onDragLeave={() => setDragPreview(null)}
+          >
+            <div className="absolute top-0 left-0 right-0 bottom-0">
+              {Array.from({ length: totalHours + 1 }).map((_, index) => (
                 <div 
-                  className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
-                  style={{ top: `${position}px` }}
+                  key={`grid-${index}`}
+                  className="absolute w-full h-[60px] border-b border-border"
+                  style={{ top: `${index * 60}px` }}
                 >
-                  <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
+                  {index < totalHours && (
+                    <>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
+                      <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
+                    </>
+                  )}
                 </div>
-              );
-            })()}
+              ))}
+              
+              {isToday(date) && (() => {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                
+                if (hours < startHour || hours >= endHour) return null;
+                
+                const position = (hours - startHour) * 60 + minutes;
+                
+                return (
+                  <div 
+                    className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
+                    style={{ top: `${position}px` }}
+                  >
+                    <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
+                  </div>
+                );
+              })()}
 
-            {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-              const eventHour = event.start.getHours();
-              const eventMinute = event.start.getMinutes();
-              
-              if (eventHour < startHour || eventHour >= endHour) return null;
-              
-              const top = (eventHour - startHour) * 60 + eventMinute;
-              const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-              const height = Math.max(durationMinutes, 15);
-              
-              return (
-                <div 
-                  key={event.id}
-                  draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
-                  onDragStart={() => handleDragStart(event)}
-                  className="absolute w-full"
-                  style={{ 
-                    top: `${top}px`, 
-                    height: `${height}px`,
-                    padding: 0
-                  }}
-                >
-                  <CalendarEventComponent 
-                    event={event} 
-                    onEventClick={onEventClick}
-                    isDragging={draggingEvent?.id === event.id}
-                    slotIndex={slotIndex}
-                    totalSlots={totalSlots}
-                  />
-                </div>
-              );
-            })}
+              {/* Event rendering */}
+              {processedEvents.map(({ event, slotIndex, totalSlots }) => {
+                const eventHour = event.start.getHours();
+                const eventMinute = event.start.getMinutes();
+                
+                if (eventHour < startHour || eventHour >= endHour) return null;
+                
+                const top = (eventHour - startHour) * 60 + eventMinute;
+                const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+                const height = Math.max(durationMinutes, 15);
+                
+                return (
+                  <div 
+                    key={event.id}
+                    draggable={event.status !== 'lunch-break'}
+                    onDragStart={() => handleDragStart(event)}
+                    className="absolute w-full"
+                    style={{ 
+                      top: `${top}px`, 
+                      height: `${height}px`,
+                      padding: 0
+                    }}
+                  >
+                    <CalendarEventComponent 
+                      event={event} 
+                      onEventClick={onEventClick}
+                      isDragging={draggingEvent?.id === event.id}
+                      slotIndex={slotIndex}
+                      totalSlots={totalSlots}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
