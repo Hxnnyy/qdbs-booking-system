@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,22 +17,17 @@ export const useCalendarBookings = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
 
-  // Filter events by selected barber
   const filteredEvents = selectedBarberId 
     ? calendarEvents.filter(event => event.barberId === selectedBarberId)
     : calendarEvents;
 
-  // Fetch all bookings, lunch breaks, and holidays
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      // Clear the barber color cache to ensure we fetch fresh colors
       clearBarberColorCache();
       
-      // Fetch bookings
-      // @ts-ignore - Supabase types issue
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
@@ -41,6 +35,7 @@ export const useCalendarBookings = () => {
           barber:barber_id(name, color),
           service:service_id(name, price, duration)
         `)
+        .neq('status', 'cancelled')
         .order('booking_date', { ascending: true })
         .order('booking_time', { ascending: true });
       
@@ -48,8 +43,6 @@ export const useCalendarBookings = () => {
       
       setBookings(bookingsData || []);
       
-      // Fetch lunch breaks
-      // @ts-ignore - Supabase types issue
       const { data: lunchData, error: lunchError } = await supabase
         .from('barber_lunch_breaks')
         .select(`
@@ -62,8 +55,6 @@ export const useCalendarBookings = () => {
       
       setLunchBreaks(lunchData || []);
       
-      // Fetch holidays
-      // @ts-ignore - Supabase types issue
       const { data: holidaysData, error: holidaysError } = await supabase
         .from('barber_holidays')
         .select(`
@@ -76,7 +67,6 @@ export const useCalendarBookings = () => {
       
       setHolidays(holidaysData || []);
       
-      // Convert bookings to calendar events
       const bookingEvents = (bookingsData || []).map(booking => {
         try {
           return bookingToCalendarEvent(booking);
@@ -86,7 +76,6 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      // Convert lunch breaks to calendar events
       const lunchEvents = (lunchData || []).map(lunchBreak => {
         try {
           return createLunchBreakEvent(lunchBreak);
@@ -96,7 +85,6 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      // Convert holidays to calendar events
       const holidayEvents = (holidaysData || []).map(holiday => {
         try {
           return createHolidayEvent(holiday, holiday.barber);
@@ -106,8 +94,6 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      // Combine all event types
-      // Ensure lunch breaks come after holidays in the array so they're rendered on top
       setCalendarEvents([...bookingEvents, ...holidayEvents, ...lunchEvents]);
     } catch (err: any) {
       console.error('Error fetching calendar data:', err);
@@ -118,17 +104,14 @@ export const useCalendarBookings = () => {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Update booking time/date (for drag and drop)
   const updateBookingTime = async (eventId: string, newStart: Date, newEnd: Date) => {
     try {
       setIsLoading(true);
       
-      // Check if this is a lunch break event (starts with 'lunch-')
       if (eventId.startsWith('lunch-')) {
         toast.error('Lunch breaks cannot be moved via drag and drop. Please edit them in the barber settings.');
         return;
@@ -139,7 +122,6 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('bookings')
         .update({
@@ -150,7 +132,6 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      // Update local state
       setCalendarEvents(prev => 
         prev.map(event => 
           event.id === eventId 
@@ -159,7 +140,6 @@ export const useCalendarBookings = () => {
         )
       );
       
-      // Also update the bookings array
       setBookings(prev => 
         prev.map(booking => 
           booking.id === eventId 
@@ -182,7 +162,6 @@ export const useCalendarBookings = () => {
     }
   };
 
-  // Update booking details
   const updateBooking = async (
     bookingId: string, 
     updates: { 
@@ -199,7 +178,6 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${bookingId} with:`, updates);
       
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('bookings')
         .update(updates)
@@ -207,7 +185,6 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      // Refresh bookings to get updated data with joins
       await fetchData();
       
       return true;
@@ -221,9 +198,7 @@ export const useCalendarBookings = () => {
     }
   };
 
-  // Handle event drop (from drag and drop)
   const handleEventDrop = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
-    // Don't allow moving lunch breaks
     if (event.status === 'lunch-break' || event.id.startsWith('lunch-')) {
       toast.error('Lunch breaks cannot be moved via drag and drop. Please edit them in the barber settings.');
       return;
@@ -232,9 +207,7 @@ export const useCalendarBookings = () => {
     updateBookingTime(event.id, newStart, newEnd);
   };
 
-  // Handle event click
   const handleEventClick = (event: CalendarEvent) => {
-    // Just show a toast for lunch breaks instead of opening dialog
     if (event.status === 'lunch-break' || event.id.startsWith('lunch-')) {
       toast.info(`${event.barber}'s lunch break: ${event.title}`);
       return;
@@ -244,16 +217,12 @@ export const useCalendarBookings = () => {
     setIsDialogOpen(true);
   };
 
-  // Subscribe to realtime updates
   useEffect(() => {
-    // Function to handle booking changes
     const handleChange = (payload: any) => {
       console.log('Realtime change detected:', payload);
-      // Refresh the whole list for simplicity
       fetchData();
     };
 
-    // Set up the subscription for bookings
     const bookingsChannel = supabase
       .channel('bookings-changes')
       .on(
@@ -263,7 +232,6 @@ export const useCalendarBookings = () => {
       )
       .subscribe();
       
-    // Set up the subscription for lunch breaks
     const lunchChannel = supabase
       .channel('lunch-changes')
       .on(
@@ -273,7 +241,6 @@ export const useCalendarBookings = () => {
       )
       .subscribe();
       
-    // Set up the subscription for holidays
     const holidaysChannel = supabase
       .channel('holidays-changes')
       .on(
@@ -285,7 +252,6 @@ export const useCalendarBookings = () => {
 
     console.log('Subscribed to calendar data changes');
 
-    // Cleanup
     return () => {
       supabase.removeChannel(bookingsChannel);
       supabase.removeChannel(lunchChannel);
@@ -309,6 +275,6 @@ export const useCalendarBookings = () => {
     setIsDialogOpen,
     selectedBarberId,
     setSelectedBarberId,
-    allEvents: calendarEvents // Provide access to all events (unfiltered)
+    allEvents: calendarEvents
   };
 };

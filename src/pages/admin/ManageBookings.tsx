@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -21,7 +20,7 @@ const ManageBookings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [currentTab, setCurrentTab] = useState('today'); // Changed default to 'today'
+  const [currentTab, setCurrentTab] = useState('today');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   
   // For the EventDetailsDialog (same as CalendarView)
@@ -67,20 +66,22 @@ const ManageBookings = () => {
     // Filter by tab
     if (tab === 'today') {
       filtered = filtered.filter(booking => 
-        isToday(parseISO(booking.booking_date))
+        isToday(parseISO(booking.booking_date)) &&
+        booking.status !== 'cancelled'
       );
     } else if (tab === 'upcoming') {
       filtered = filtered.filter(booking => 
-        !isPast(parseISO(booking.booking_date)) || 
-        (isToday(parseISO(booking.booking_date)) && booking.status === 'confirmed')
+        (!isPast(parseISO(booking.booking_date)) || 
+        (isToday(parseISO(booking.booking_date)) && booking.status === 'confirmed')) &&
+        booking.status !== 'cancelled'
       );
     } else if (tab === 'past') {
       filtered = filtered.filter(booking => 
         isPast(parseISO(booking.booking_date)) && 
-        !isToday(parseISO(booking.booking_date))
+        !isToday(parseISO(booking.booking_date)) &&
+        booking.status !== 'cancelled'
       );
     } else if (tab === 'cancelled') {
-      // Add cancelled tab filter
       filtered = filtered.filter(booking => booking.status === 'cancelled');
     }
     
@@ -105,7 +106,6 @@ const ManageBookings = () => {
     filterBookings(bookings, currentTab, statusFilter, typeFilter);
   }, [currentTab, statusFilter, typeFilter, bookings]);
   
-  // Update booking status and details using EventDetailsDialog
   const updateBooking = async (
     bookingId: string, 
     updates: { 
@@ -137,7 +137,6 @@ const ManageBookings = () => {
     }
   };
   
-  // Open edit dialog (similar to calendar view)
   const openEditDialog = (booking: Booking) => {
     setSelectedBooking(booking);
     
@@ -221,7 +220,6 @@ const ManageBookings = () => {
           </div>
         </div>
         
-        {/* Use EventDetailsDialog for editing bookings, same as in CalendarView */}
         <EventDetailsDialog
           event={selectedEvent}
           isOpen={isDialogOpen}
