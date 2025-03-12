@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 
 interface BookingStatusCardProps {
   booking: any;
-  onModify: (booking: any) => void;
+  onModify: () => void;
   onCancel: (bookingId: string) => void;
   isCancelling: boolean;
 }
@@ -18,6 +18,10 @@ const BookingStatusCard: React.FC<BookingStatusCardProps> = ({
   onCancel,
   isCancelling
 }) => {
+  if (!booking) {
+    return null;
+  }
+  
   return (
     <Card key={booking.id} className="overflow-hidden">
       <div 
@@ -67,7 +71,7 @@ const BookingStatusCard: React.FC<BookingStatusCardProps> = ({
             <Button
               variant="default"
               className="bg-burgundy hover:bg-burgundy-light w-full"
-              onClick={() => onModify(booking)}
+              onClick={onModify}
             >
               Modify Booking
             </Button>

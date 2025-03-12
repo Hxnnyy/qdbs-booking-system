@@ -60,17 +60,17 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
       return (
         <BarberSelectionStep
           barbers={barbers}
-          selectedBarber={formState.selectedBarber}
           onSelectBarber={handlers.handleSelectBarber}
+          onNext={() => {}}
         />
       );
     case 'service':
       return (
         <ServiceSelectionStep
           services={barberServices}
-          selectedService={formState.selectedService}
           onSelectService={handlers.handleSelectService}
           onBack={handlers.handleBackToBarbers}
+          onNext={() => {}}
         />
       );
     case 'datetime':
@@ -94,8 +94,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           setGuestName={(name) => updateFormState({ guestName: name })}
           guestPhone={formState.guestPhone}
           setGuestPhone={(phone) => updateFormState({ guestPhone: phone })}
-          guestEmail={formState.guestEmail}
-          setGuestEmail={(email) => updateFormState({ guestEmail: email })}
           onNext={handlers.handleGuestInfoComplete}
           onBack={handlers.handleBackToDateTime}
         />
@@ -103,9 +101,11 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
     case 'verify-phone':
       return (
         <VerifyPhoneStep
-          phoneNumber={formState.guestPhone}
-          verificationId={formState.verificationId}
+          phone={formState.guestPhone}
+          isVerified={formState.isPhoneVerified}
+          setIsVerified={(verified) => updateFormState({ isPhoneVerified: verified })}
           onComplete={handlers.handleVerificationComplete}
+          onNext={handlers.handleVerificationComplete}
           onBack={handlers.handleBackToGuestInfo}
         />
       );
@@ -114,19 +114,25 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
         <NotesAndConfirmationStep
           notes={formState.notes}
           setNotes={(notes) => updateFormState({ notes: notes })}
-          selectedBarber={barbers.find(b => b.id === formState.selectedBarber)}
-          selectedService={services.find(s => s.id === formState.selectedService)}
-          selectedDate={formState.selectedDate}
-          selectedTime={formState.selectedTime}
+          formData={formState}
+          barbers={barbers}
+          services={services}
+          isLoading={bookingLoading}
           onSubmit={handlers.handleSubmit}
           onBack={handlers.handleBackToGuestInfo}
-          isLoading={bookingLoading}
+          onNext={() => {}}
         />
       );
     case 'confirmation':
+      if (!bookingResult) {
+        return <div>Loading confirmation...</div>;
+      }
       return (
         <ConfirmationStep
           bookingResult={bookingResult}
+          formData={formState}
+          barbers={barbers}
+          services={services}
         />
       );
     default:

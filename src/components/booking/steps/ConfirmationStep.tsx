@@ -3,14 +3,14 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { BookingFormState, TwilioSMSResult } from '@/types/booking';
+import { BookingFormState, TwilioSMSResult, BookingResult } from '@/types/booking';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
 import { Clipboard, CalendarDays, MessageSquare, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ConfirmationStepProps {
-  bookingResult: any;
+  bookingResult: BookingResult;
   formData: BookingFormState;
   barbers: Barber[];
   services: Service[];

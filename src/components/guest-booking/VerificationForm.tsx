@@ -14,6 +14,7 @@ interface VerificationFormProps {
   onPhoneChange: (value: string) => void;
   onCodeChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
+  error?: string;
 }
 
 const VerificationForm: React.FC<VerificationFormProps> = ({
@@ -22,7 +23,8 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
   isLoading,
   onPhoneChange,
   onCodeChange,
-  onSubmit
+  onSubmit,
+  error
 }) => {
   return (
     <Card className="max-w-md mx-auto">
@@ -64,6 +66,12 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
               />
             </div>
           </div>
+          
+          {error && (
+            <div className="text-sm text-red-500 mt-2">
+              {error}
+            </div>
+          )}
           
           <Button 
             type="submit" 

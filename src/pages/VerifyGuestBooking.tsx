@@ -2,8 +2,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { VerificationForm } from '@/components/guest-booking/VerificationForm';
-import { BookingStatusCard } from '@/components/guest-booking/BookingStatusCard';
+import VerificationForm from '@/components/guest-booking/VerificationForm';
+import BookingStatusCard from '@/components/guest-booking/BookingStatusCard';
 import { useManageGuestBooking } from '@/hooks/useManageGuestBooking';
 import ModifyBookingDialog from '@/components/guest-booking/ModifyBookingDialog';
 import { Spinner } from '@/components/ui/spinner';
@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 const VerifyGuestBooking = () => {
   const { bookingId = '' } = useParams<{ bookingId: string }>();
   const [verificationCode, setVerificationCode] = React.useState('');
+  const [phone, setPhone] = React.useState('');
   
   const {
     booking,
@@ -32,6 +33,11 @@ const VerifyGuestBooking = () => {
     allCalendarEvents,
   } = useManageGuestBooking(bookingId, verificationCode);
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Verification logic is handled in the hook
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -42,11 +48,12 @@ const VerifyGuestBooking = () => {
         
         {!isVerified ? (
           <VerificationForm
-            bookingId={bookingId}
-            verificationCode={verificationCode}
-            setVerificationCode={setVerificationCode}
+            phone={phone}
+            code={verificationCode}
             isLoading={isLoading}
-            error={error}
+            onPhoneChange={setPhone}
+            onCodeChange={setVerificationCode}
+            onSubmit={handleSubmit}
           />
         ) : isLoading ? (
           <div className="flex justify-center py-12">
@@ -56,8 +63,7 @@ const VerifyGuestBooking = () => {
           <>
             <BookingStatusCard
               booking={booking}
-              formattedDateTime={formattedBookingDateTime}
-              onReschedule={() => setIsDialogOpen(true)}
+              onModify={() => setIsDialogOpen(true)}
               onCancel={cancelBooking}
               isCancelling={isCancelling}
             />
