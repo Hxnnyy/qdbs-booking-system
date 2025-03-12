@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Client } from '@/types/client';
@@ -110,23 +109,31 @@ export const useClientManagement = () => {
           }
         });
         
-        // Then get auth users data directly from the auth schema with RPC
-        // This is a workaround since auth.admin.listUsers requires service role that can't be used client-side
-        const { data: authEmails, error: authEmailsError } = await supabase
-          .rpc('get_user_emails_by_ids', { 
-            user_ids: userIds 
-          });
-        
-        if (authEmailsError) {
-          console.error('Error fetching auth emails:', authEmailsError);
-          // Continue with profiles data only, this is non-blocking
-        } else if (authEmails && Array.isArray(authEmails)) {
-          // Update the email map with auth emails (which take priority)
-          authEmails.forEach((item: { id: string, email: string }) => {
-            if (item && item.id && item.email) {
-              emailMap.set(item.id, item.email);
+        // Get auth users emails directly with a custom function call
+        // Note: We're using the get_user_id_by_email function to help get emails
+        // We'll fetch emails one by one for each user since we can't pass arrays
+        for (const userId of userIds) {
+          try {
+            // Call the existing function to help determine email 
+            const { data: emailData, error: emailError } = await supabase
+              .from('profiles')
+              .select('email')
+              .eq('id', userId)
+              .single();
+              
+            if (!emailError && emailData && emailData.email) {
+              // If we have an email in the profile, look up the auth email
+              const { data: authUser, error: authUserError } = await supabase.auth.admin.getUserById(userId);
+              
+              if (!authUserError && authUser && authUser.user && authUser.user.email) {
+                // Store the authenticated user email which has higher priority
+                emailMap.set(userId, authUser.user.email);
+              }
             }
-          });
+          } catch (err) {
+            console.error(`Error fetching email for user ${userId}:`, err);
+            // Non-blocking, continue with next user
+          }
         }
 
         // Add profile data to client records

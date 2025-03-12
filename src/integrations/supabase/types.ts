@@ -331,6 +331,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_user_emails_by_ids: {
+        Args: {
+          user_ids: string[]
+        }
+        Returns: {
+          id: string
+          email: string
+        }[]
+      }
       get_user_id_by_email: {
         Args: {
           user_email: string
