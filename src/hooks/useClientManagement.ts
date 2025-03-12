@@ -100,22 +100,31 @@ export const useClientManagement = () => {
 
         if (profilesError) throw profilesError;
 
-        // Then get auth users data to ensure we have emails for everyone
-        const { data: authUsers, error: authUsersError } = await supabase.auth.admin
-          .listUsers({ perPage: 1000 });
+        // Create a map to store user emails from profiles first
+        const emailMap = new Map();
         
-        if (authUsersError) {
-          console.error('Error fetching auth users (non-critical):', authUsersError);
+        // Add profile emails as initial data
+        profiles.forEach(profile => {
+          if (profile.email) {
+            emailMap.set(profile.id, profile.email);
+          }
+        });
+        
+        // Then get auth users data directly from the auth schema with RPC
+        // This is a workaround since auth.admin.listUsers requires service role that can't be used client-side
+        const { data: authEmails, error: authEmailsError } = await supabase
+          .rpc('get_user_emails_by_ids', { 
+            user_ids: userIds 
+          });
+        
+        if (authEmailsError) {
+          console.error('Error fetching auth emails:', authEmailsError);
           // Continue with profiles data only, this is non-blocking
-        }
-
-        // Create a map of user IDs to their auth emails for quick lookup
-        const authEmailMap = new Map();
-        // Fix the TypeScript error by properly typing the users array or checking if it exists
-        if (authUsers?.users && Array.isArray(authUsers.users)) {
-          authUsers.users.forEach((user: any) => {
-            if (user && typeof user === 'object' && 'id' in user && 'email' in user) {
-              authEmailMap.set(user.id, user.email);
+        } else if (authEmails && Array.isArray(authEmails)) {
+          // Update the email map with auth emails (which take priority)
+          authEmails.forEach((item: { id: string, email: string }) => {
+            if (item && item.id && item.email) {
+              emailMap.set(item.id, item.email);
             }
           });
         }
@@ -124,27 +133,36 @@ export const useClientManagement = () => {
         for (const profile of profiles) {
           const client = clientsMap.get(profile.id);
           if (client) {
-            // Use email from auth users if available, fallback to profile email
-            const email = authEmailMap.get(profile.id) || profile.email;
+            // Use email from our map, which prioritizes auth emails over profile emails
+            const email = emailMap.get(profile.id) || null;
             
             clientsMap.set(profile.id, {
               ...client,
               name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'No Name',
-              email: email, // Prioritize the auth email
+              email: email,
               phone: profile.phone
             });
           }
         }
 
-        // Check for any clients that don't have profile data and try to use auth data
+        // For any clients that don't have profile data, try to use just the email if available
         clientsMap.forEach((client, userId) => {
           if (!client.name || client.name === 'No Name') {
-            const email = authEmailMap.get(userId);
+            const email = emailMap.get(userId);
             if (email) {
               clientsMap.set(userId, {
                 ...client,
                 email: email,
                 name: email.split('@')[0] || 'No Name' // Use part of email as name if nothing else
+              });
+            }
+          } else if (!client.email) {
+            // If we have a name but no email, check if we have an email in our map
+            const email = emailMap.get(userId);
+            if (email) {
+              clientsMap.set(userId, {
+                ...client,
+                email: email
               });
             }
           }
