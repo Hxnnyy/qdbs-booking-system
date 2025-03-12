@@ -398,4 +398,8 @@ export const NotificationTemplatesForm = () => {
         </Tabs>
       </CardContent>
 
-      {
+      {renderTemplateDialog(false)}
+      {renderTemplateDialog(true)}
+    </Card>
+  );
+};
