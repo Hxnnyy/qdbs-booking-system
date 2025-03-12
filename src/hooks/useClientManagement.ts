@@ -111,9 +111,12 @@ export const useClientManagement = () => {
 
         // Create a map of user IDs to their auth emails for quick lookup
         const authEmailMap = new Map();
-        if (authUsers?.users) {
-          authUsers.users.forEach(user => {
-            authEmailMap.set(user.id, user.email);
+        // Fix the TypeScript error by properly typing the users array or checking if it exists
+        if (authUsers?.users && Array.isArray(authUsers.users)) {
+          authUsers.users.forEach((user: any) => {
+            if (user && typeof user === 'object' && 'id' in user && 'email' in user) {
+              authEmailMap.set(user.id, user.email);
+            }
           });
         }
 
