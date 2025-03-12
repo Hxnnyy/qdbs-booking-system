@@ -6,7 +6,7 @@ import BookingStatusCard from './BookingStatusCard';
 interface BookingsListProps {
   bookings: any[];
   onResetVerification: () => void;
-  onModify: (booking: any) => void;
+  onModify: (booking: any) => void; // This matches the expected signature
   onCancel: (bookingId: string) => void;
   isCancelling: boolean;
 }
@@ -40,7 +40,7 @@ const BookingsList: React.FC<BookingsListProps> = ({
             <BookingStatusCard
               key={booking.id}
               booking={booking}
-              onModify={onModify}
+              onModify={() => onModify(booking)}
               onCancel={onCancel}
               isCancelling={isCancelling}
             />

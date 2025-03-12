@@ -104,7 +104,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           phone={formState.guestPhone}
           isVerified={formState.isPhoneVerified}
           setIsVerified={(verified) => updateFormState({ isPhoneVerified: verified })}
-          onComplete={handlers.handleVerificationComplete}
           onNext={handlers.handleVerificationComplete}
           onBack={handlers.handleBackToGuestInfo}
         />
@@ -120,7 +119,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           isLoading={bookingLoading}
           onSubmit={handlers.handleSubmit}
           onBack={handlers.handleBackToGuestInfo}
-          onNext={() => {}}
         />
       );
     case 'confirmation':

@@ -15,7 +15,7 @@ interface NotesAndConfirmationStepProps extends BookingStepProps {
   barbers: Barber[];
   services: Service[];
   isLoading: boolean;
-  onSubmit: (e: React.FormEvent) => Promise<void>;
+  onSubmit: (e: React.FormEvent) => void; // Changed from Promise<void> to void
 }
 
 const NotesAndConfirmationStep: React.FC<NotesAndConfirmationStepProps> = ({ 
