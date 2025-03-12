@@ -14,7 +14,7 @@ import {
   SidebarProvider
 } from '@/components/ui/sidebar';
 import { Link, useLocation } from 'react-router-dom';
-import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, Settings2Icon, ShieldIcon, FileUpIcon } from 'lucide-react';
+import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, Settings2Icon, ShieldIcon, FileUpIcon, ClipboardListIcon } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -26,7 +26,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   
   // Helper function to determine if a route is active
   const isActive = (path: string) => {
-    return currentPath.includes(path);
+    if (path === '/admin' && currentPath === '/admin') {
+      return true;
+    }
+    
+    if (path !== '/admin' && currentPath.includes(path)) {
+      return true;
+    }
+    
+    return false;
   };
   
   // Icon style based on active state
@@ -59,7 +67,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Bookings">
                       <Link to="/admin/bookings">
-                        <CalendarIcon className={getIconStyle('/admin/bookings')} />
+                        <ClipboardListIcon className={getIconStyle('/admin/bookings')} />
                         <span>Bookings</span>
                       </Link>
                     </SidebarMenuButton>
