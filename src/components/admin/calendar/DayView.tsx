@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -23,134 +22,59 @@ export const DayView: React.FC<CalendarViewProps> = ({
   
   const calendarHeight = totalHours * 60;
 
-  // Check if there are any holiday events for this day
   const holidayEvents = getHolidayEventsForDate(events, date);
 
-  // For debugging
   console.log("DayView - Date:", format(date, 'yyyy-MM-dd'));
   console.log("DayView - Holiday events:", holidayEvents);
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
-    // First, separate lunch breaks and holidays from other events
-    const lunchBreaks = events.filter(event => event.status === 'lunch-break');
     const holidays = events.filter(event => event.status === 'holiday');
-    const otherEvents = events.filter(event => event.status !== 'lunch-break' && event.status !== 'holiday');
+    const nonHolidayEvents = events.filter(event => event.status !== 'holiday');
     
-    // Process regular events (non-lunch-breaks, non-holidays)
-    const sortedEvents = [...otherEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
+    const timeSlots: Record<string, CalendarEvent[]> = {};
     
-    const overlappingGroups: CalendarEvent[][] = [];
-    
-    sortedEvents.forEach(event => {
-      const overlappingGroupIndex = overlappingGroups.findIndex(group => 
-        group.some(existingEvent => {
-          return (
-            (event.start < existingEvent.end && event.end > existingEvent.start) || 
-            (existingEvent.start < event.end && existingEvent.end > event.start)
-          );
-        })
-      );
-      
-      if (overlappingGroupIndex >= 0) {
-        overlappingGroups[overlappingGroupIndex].push(event);
-      } else {
-        overlappingGroups.push([event]);
+    nonHolidayEvents.forEach(event => {
+      const startTime = event.start.getTime();
+      if (!timeSlots[startTime]) {
+        timeSlots[startTime] = [];
       }
+      timeSlots[startTime].push(event);
     });
     
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
-    overlappingGroups.forEach(group => {
-      // Calculate the actual overlaps
-      const actualOverlaps = calculateActualOverlaps(group);
-      const totalSlots = Math.max(1, actualOverlaps);
+    Object.values(timeSlots).forEach(slotEvents => {
+      const appointments = slotEvents.filter(event => event.status !== 'lunch-break');
+      const lunchBreaks = slotEvents.filter(event => event.status === 'lunch-break');
       
-      // Only apply slot divisions if there are actual overlapping events
-      if (group.length > 1 && actualOverlaps > 1) {
-        // Use barberGroups to group events by barber
-        const barberGroups: Record<string, CalendarEvent[]> = {};
-        
-        group.forEach(event => {
-          if (!barberGroups[event.barberId]) {
-            barberGroups[event.barberId] = [];
-          }
-          barberGroups[event.barberId].push(event);
+      const totalSlots = Math.max(1, appointments.length + lunchBreaks.length);
+      
+      appointments.forEach((event, index) => {
+        results.push({
+          event,
+          slotIndex: index,
+          totalSlots
         });
-        
-        let slotOffset = 0;
-        
-        Object.values(barberGroups).forEach(barberGroup => {
-          const sortedBarberGroup = barberGroup.sort((a, b) => a.start.getTime() - b.start.getTime());
-          
-          sortedBarberGroup.forEach((event, index) => {
-            results.push({
-              event,
-              slotIndex: slotOffset + index,
-              totalSlots: totalSlots
-            });
-          });
-          
-          slotOffset += barberGroup.length;
+      });
+      
+      lunchBreaks.forEach((event, index) => {
+        results.push({
+          event,
+          slotIndex: appointments.length + index,
+          totalSlots
         });
-      } else {
-        // If there's only one event or no overlap, use full width
-        group.forEach(event => {
-          results.push({
-            event,
-            slotIndex: 0, // Always use index 0 for non-overlapping events
-            totalSlots: 1  // Always use full width for non-overlapping events
-          });
-        });
-      }
-    });
-    
-    // Process lunch breaks separately - always give them full width
-    lunchBreaks.forEach(lunchEvent => {
-      results.push({
-        event: lunchEvent,
-        slotIndex: 0, 
-        totalSlots: 1  // Always use full width for lunch breaks
       });
     });
     
-    // Process holidays separately - always give them full width
     holidays.forEach(holidayEvent => {
       results.push({
         event: holidayEvent,
-        slotIndex: 0, 
-        totalSlots: 1  // Always use full width for holidays
+        slotIndex: 0,
+        totalSlots: 1
       });
     });
     
     return results;
-  };
-
-  // Helper function to calculate actual overlaps
-  const calculateActualOverlaps = (events: CalendarEvent[]) => {
-    if (events.length <= 1) return 1;
-    
-    let maxConcurrent = 1;
-    
-    for (let i = 0; i < events.length; i++) {
-      let concurrent = 1;
-      const currentEvent = events[i];
-      
-      for (let j = 0; j < events.length; j++) {
-        if (i === j) continue;
-        
-        const otherEvent = events[j];
-        if (
-          (currentEvent.start < otherEvent.end && currentEvent.end > otherEvent.start) || 
-          (otherEvent.start < currentEvent.end && otherEvent.end > currentEvent.start)
-        ) {
-          concurrent++;
-        }
-      }
-      
-      maxConcurrent = Math.max(maxConcurrent, concurrent);
-    }
-    
-    return maxConcurrent;
   };
 
   useEffect(() => {
@@ -159,7 +83,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
   }, [events, date]);
 
   useEffect(() => {
-    // Scroll to current time on initial load if today is displayed and autoScroll is enabled
     if (isToday(date) && autoScrollToCurrentTime) {
       const now = new Date();
       const hours = now.getHours();
@@ -171,7 +94,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
         setTimeout(() => {
           const container = document.querySelector('.calendar-scrollable-container');
           if (container) {
-            // Scroll to current time minus some offset to show context
             container.scrollTop = position - 100;
           }
         }, 100);
@@ -230,26 +152,17 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="h-full calendar-view day-view">
-      {/* Header for the day - Fixed at the top */}
       <div className="calendar-header grid grid-cols-[4rem_1fr] border-b border-border sticky top-0 z-20 bg-background">
-        {/* Empty cell for time column */}
         <div className="border-r border-border h-12"></div>
-        
-        {/* Day header */}
         <div className={`flex flex-col ${isToday(date) ? 'bg-primary/10' : ''}`}>
           <div className="h-12 flex flex-col items-center justify-center">
             <div className="text-sm">{format(date, 'EEEE')}</div>
             <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
           </div>
-          
-          {/* Holiday Indicator */}
           <HolidayIndicator holidayEvents={holidayEvents} />
         </div>
       </div>
-      
-      {/* Main grid with time column and day column - Scrollable content */}
       <div className="calendar-body grid grid-cols-[4rem_1fr]">
-        {/* Time column */}
         <div className="time-column border-r border-border">
           {Array.from({ length: totalHours + 1 }).map((_, index) => {
             const hour = startHour + index;
@@ -263,8 +176,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
             );
           })}
         </div>
-        
-        {/* Day column */}
         <div 
           className="relative day-column"
           style={{ height: `${calendarHeight}px` }}
@@ -343,14 +254,12 @@ export const DayView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
       </div>
-      
-      {/* Drag preview */}
       {dragPreview && (
         <div 
           className="absolute pointer-events-none z-50 grid grid-cols-[4rem_1fr]"
           style={{ top: `${dragPreview.top}px` }}
         >
-          <div></div> {/* Empty cell for time column */}
+          <div></div>
           <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
             Drop to schedule at {dragPreview.time}
           </div>
