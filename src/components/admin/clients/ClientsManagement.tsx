@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientsTable } from './ClientsTable';
 import { ClientsEmailDialog } from './ClientsEmailDialog';
 import { EditClientDialog } from './EditClientDialog';
+import { ExportClientsDialog } from './ExportClientsDialog';
 import { Button } from '@/components/ui/button';
-import { Mail, RefreshCw, Users } from 'lucide-react';
+import { Mail, RefreshCw, Users, FileSpreadsheet } from 'lucide-react';
 import { useClientManagement } from '@/hooks/useClientManagement';
 import { useClients } from '@/context/ClientsContext';
 import { Switch } from '@/components/ui/switch';
@@ -20,11 +21,13 @@ export const ClientsManagement = () => {
     sendEmailToClients, 
     showGuestBookings, 
     toggleShowGuestBookings,
-    updateClientProfile
+    updateClientProfile,
+    exportClientsData
   } = useClientManagement();
   const { selectedClients, deselectAllClients } = useClients();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
 
   const handleRefresh = () => {
@@ -33,6 +36,10 @@ export const ClientsManagement = () => {
 
   const handleSendEmail = () => {
     setEmailDialogOpen(true);
+  };
+
+  const handleExport = () => {
+    setExportDialogOpen(true);
   };
 
   const handleCloseEmailDialog = () => {
@@ -67,6 +74,17 @@ export const ClientsManagement = () => {
     return success;
   };
 
+  const handleExportSubmit = (fields: string[]) => {
+    // Get selected clients to export
+    const clientsToExport = clients.filter(client => selectedClients.includes(client.id));
+    
+    if (clientsToExport.length > 0) {
+      exportClientsData(clientsToExport, fields);
+      setExportDialogOpen(false);
+      deselectAllClients();
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -84,6 +102,14 @@ export const ClientsManagement = () => {
             <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleExport} 
+              disabled={selectedClients.length === 0}
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Export
             </Button>
             <Button 
               onClick={handleSendEmail} 
@@ -115,6 +141,13 @@ export const ClientsManagement = () => {
           client={clientToEdit}
           onSave={updateClientProfile}
           isLoading={isLoading}
+        />
+
+        <ExportClientsDialog
+          isOpen={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          onExport={handleExportSubmit}
+          selectedClientsCount={selectedClients.length}
         />
       </CardContent>
     </Card>
