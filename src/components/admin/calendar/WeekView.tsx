@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
-import { filterEventsByWeek, getHolidayEventsForDate } from '@/utils/calendarUtils';
+import { filterEventsByWeek } from '@/utils/eventFilterUtils';
+import { getHolidayEventsForDate } from '@/utils/holidayIndicatorUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
 import { HolidayIndicator } from './HolidayIndicator';
 
@@ -23,11 +25,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const calendarHeight = totalHours * 60;
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
-    // First, separate lunch breaks from other events
+    // First, separate lunch breaks and holidays from other events
     const lunchBreaks = events.filter(event => event.status === 'lunch-break');
-    const otherEvents = events.filter(event => event.status !== 'lunch-break');
+    const holidays = events.filter(event => event.status === 'holiday');
+    const otherEvents = events.filter(event => event.status !== 'lunch-break' && event.status !== 'holiday');
     
-    // Process regular events (non-lunch-breaks)
+    // Process regular events (non-lunch-breaks, non-holidays)
     const sortedEvents = [...otherEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
     
     const overlappingGroups: CalendarEvent[][] = [];
@@ -52,28 +55,22 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
     overlappingGroups.forEach(group => {
-      // Fix for appointment card size issue - prevent creating unnecessary separate groups
-      // Check if it's March 14th, 2025
-      const isMarch14 = group.some(event => {
-        const eventDate = event.start;
-        return eventDate.getDate() === 14 && eventDate.getMonth() === 2 && eventDate.getFullYear() === 2025;
-      });
-      
       // Calculate the actual overlaps
       const actualOverlaps = calculateActualOverlaps(group);
       const totalSlots = Math.max(1, actualOverlaps);
       
-      // Special handling for all days to ensure proper sizing
-      const barberGroups: Record<string, CalendarEvent[]> = {};
-      
-      group.forEach(event => {
-        if (!barberGroups[event.barberId]) {
-          barberGroups[event.barberId] = [];
-        }
-        barberGroups[event.barberId].push(event);
-      });
-      
-      if (Object.keys(barberGroups).length > 1 && actualOverlaps > 1) {
+      // Only apply slot divisions if there are actual overlapping events
+      if (group.length > 1 && actualOverlaps > 1) {
+        // Use barberGroups to group events by barber
+        const barberGroups: Record<string, CalendarEvent[]> = {};
+        
+        group.forEach(event => {
+          if (!barberGroups[event.barberId]) {
+            barberGroups[event.barberId] = [];
+          }
+          barberGroups[event.barberId].push(event);
+        });
+        
         let slotOffset = 0;
         
         Object.values(barberGroups).forEach(barberGroup => {
@@ -90,10 +87,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           slotOffset += barberGroup.length;
         });
       } else {
-        // If there's no actual overlap, use full width regardless of barber
-        const sortedGroup = group.sort((a, b) => a.start.getTime() - b.start.getTime());
-        
-        sortedGroup.forEach((event, index) => {
+        // If there's only one event or no overlap, use full width
+        group.forEach(event => {
           results.push({
             event,
             slotIndex: 0, // Always use index 0 for non-overlapping events
@@ -103,12 +98,21 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       }
     });
     
-    // Process lunch breaks separately - always give them full width regardless of any holiday
+    // Process lunch breaks separately - always give them full width
     lunchBreaks.forEach(lunchEvent => {
       results.push({
         event: lunchEvent,
         slotIndex: 0, 
         totalSlots: 1  // Always use full width for lunch breaks
+      });
+    });
+    
+    // Process holidays separately - always give them full width
+    holidays.forEach(holidayEvent => {
+      results.push({
+        event: holidayEvent,
+        slotIndex: 0, 
+        totalSlots: 1  // Always use full width for holidays
       });
     });
     
@@ -403,4 +407,3 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     </div>
   );
 };
-
