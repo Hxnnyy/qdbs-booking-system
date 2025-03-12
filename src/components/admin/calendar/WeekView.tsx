@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
@@ -59,15 +58,17 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         if (hasOverlap) {
           // Add to existing group based on event type
           if (event.status === 'lunch-break') {
-            // Sort lunch breaks by start time before adding
-            const insertIndex = group.lunchBreaks.findIndex(lb => 
-              event.start.getTime() < lb.start.getTime()
-            );
-            
-            if (insertIndex === -1) {
+            // Find the correct position to insert the lunch break based on overlap
+            let inserted = false;
+            for (let i = 0; i < group.lunchBreaks.length; i++) {
+              if (event.start < group.lunchBreaks[i].start) {
+                group.lunchBreaks.splice(i, 0, event);
+                inserted = true;
+                break;
+              }
+            }
+            if (!inserted) {
               group.lunchBreaks.push(event);
-            } else {
-              group.lunchBreaks.splice(insertIndex, 0, event);
             }
           } else {
             group.appointments.push(event);
@@ -102,11 +103,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         });
       });
       
-      // Add lunch breaks consecutively after appointments
+      // Add lunch breaks consecutively
+      const appointmentCount = group.appointments.length;
       group.lunchBreaks.forEach((event, index) => {
         results.push({
           event,
-          slotIndex: group.appointments.length + index,
+          slotIndex: appointmentCount + index,
           totalSlots
         });
       });
