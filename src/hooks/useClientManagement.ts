@@ -220,7 +220,7 @@ export const useClientManagement = () => {
             guest_email: data.email || client.email,
             notes: data.name || data.phone 
               ? `Guest booking by ${data.name || client.name}${data.phone ? ` (${data.phone})` : client.phone ? ` (${client.phone})` : ''}`
-              : client.notes
+              : undefined // Changed from client.notes to undefined since Client doesn't have a notes property
           })
           .or(matchQuery.join(','));
           
@@ -307,3 +307,4 @@ export const useClientManagement = () => {
     updateClientProfile
   };
 };
+
