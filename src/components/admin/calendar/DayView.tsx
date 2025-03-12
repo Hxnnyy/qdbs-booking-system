@@ -5,7 +5,9 @@ import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
 import { filterEventsByDate } from '@/utils/calendarUtils';
 import { getHolidayEventsForDate } from '@/utils/holidayIndicatorUtils';
 import { useCalendarSettings } from '@/context/CalendarSettingsContext';
-import { HolidayIndicator } from './HolidayIndicator';
+import { processOverlappingEvents } from '@/utils/processOverlappingEvents';
+import { TimeColumn } from './TimeColumn';
+import { DayHeader } from './DayHeader';
 
 export const DayView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -19,108 +21,8 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const [dragPreview, setDragPreview] = useState<{ time: string, top: number } | null>(null);
   const totalHours = endHour - startHour;
-  
   const calendarHeight = totalHours * 60;
-
   const holidayEvents = getHolidayEventsForDate(events, date);
-
-  console.log("DayView - Date:", format(date, 'yyyy-MM-dd'));
-  console.log("DayView - Holiday events:", holidayEvents);
-
-  const processOverlappingEvents = (events: CalendarEvent[]) => {
-    // Separate holidays from other events
-    const holidays = events.filter(event => event.status === 'holiday');
-    const nonHolidayEvents = events.filter(event => event.status !== 'holiday');
-    
-    // Sort events by start time to ensure consistent processing
-    nonHolidayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
-    
-    // Create a map to track overlapping events
-    const overlappingGroups: Map<string, { appointments: CalendarEvent[], lunchBreaks: CalendarEvent[] }> = new Map();
-    
-    // Helper function to check if two time ranges overlap
-    const doEventsOverlap = (event1: CalendarEvent, event2: CalendarEvent) => {
-      return event1.start < event2.end && event2.start < event1.end;
-    };
-    
-    // Function to generate a unique key for each time slot
-    const generateGroupKey = (event: CalendarEvent) => {
-      return `${event.start.getTime()}-${event.end.getTime()}`;
-    };
-    
-    // Group overlapping events
-    nonHolidayEvents.forEach(event => {
-      let foundGroup = false;
-      
-      // Check existing groups for overlap
-      for (const [groupKey, group] of overlappingGroups.entries()) {
-        // Check if this event overlaps with any event in the existing group
-        const hasOverlap = [...group.appointments, ...group.lunchBreaks].some(
-          existingEvent => doEventsOverlap(event, existingEvent)
-        );
-        
-        if (hasOverlap) {
-          // Add to existing group based on event type
-          if (event.status === 'lunch-break') {
-            group.lunchBreaks.push(event);
-          } else {
-            group.appointments.push(event);
-          }
-          foundGroup = true;
-          break;
-        }
-      }
-      
-      // If no overlap found, create new group
-      if (!foundGroup) {
-        const groupKey = generateGroupKey(event);
-        overlappingGroups.set(groupKey, {
-          appointments: event.status === 'lunch-break' ? [] : [event],
-          lunchBreaks: event.status === 'lunch-break' ? [event] : []
-        });
-      }
-    });
-    
-    const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
-    
-    // Process each group
-    overlappingGroups.forEach(group => {
-      // Sort lunch breaks by start time for consistent display
-      group.lunchBreaks.sort((a, b) => a.start.getTime() - b.start.getTime());
-      
-      const totalSlots = Math.max(1, group.appointments.length + group.lunchBreaks.length);
-      
-      // Add appointments first (they'll be on the left)
-      group.appointments.forEach((event, index) => {
-        results.push({
-          event,
-          slotIndex: index,
-          totalSlots
-        });
-      });
-      
-      // Add lunch breaks right after appointments with contiguous slot indices
-      const appointmentCount = group.appointments.length;
-      group.lunchBreaks.forEach((event, index) => {
-        results.push({
-          event,
-          slotIndex: appointmentCount + index,
-          totalSlots
-        });
-      });
-    });
-    
-    // Add holidays (full width)
-    holidays.forEach(holidayEvent => {
-      results.push({
-        event: holidayEvent,
-        slotIndex: 0,
-        totalSlots: 1
-      });
-    });
-    
-    return results;
-  };
 
   useEffect(() => {
     const filtered = filterEventsByDate(events, date);
@@ -199,28 +101,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
     <div className="h-full calendar-view day-view">
       <div className="calendar-header grid grid-cols-[4rem_1fr] border-b border-border sticky top-0 z-20 bg-background">
         <div className="border-r border-border h-12"></div>
-        <div className={`flex flex-col ${isToday(date) ? 'bg-primary/10' : ''}`}>
-          <div className="h-12 flex flex-col items-center justify-center">
-            <div className="text-sm">{format(date, 'EEEE')}</div>
-            <div className="text-xs text-muted-foreground">{format(date, 'MMMM d')}</div>
-          </div>
-          <HolidayIndicator holidayEvents={holidayEvents} />
-        </div>
+        <DayHeader date={date} holidayEvents={holidayEvents} />
       </div>
       <div className="calendar-body grid grid-cols-[4rem_1fr]">
-        <div className="time-column border-r border-border">
-          {Array.from({ length: totalHours + 1 }).map((_, index) => {
-            const hour = startHour + index;
-            return (
-              <div 
-                key={`time-${hour}`}
-                className="h-[60px] flex items-center justify-end pr-2 text-xs text-muted-foreground"
-              >
-                {hour % 12 === 0 ? '12' : hour % 12}{hour < 12 ? 'am' : 'pm'}
-              </div>
-            );
-          })}
-        </div>
+        <TimeColumn startHour={startHour} totalHours={totalHours} />
         <div 
           className="relative day-column"
           style={{ height: `${calendarHeight}px` }}
