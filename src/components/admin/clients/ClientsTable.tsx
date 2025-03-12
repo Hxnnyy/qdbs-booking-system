@@ -52,10 +52,10 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading }
           <TableRow>
             <TableHead className="w-12">
               <Checkbox 
-                checked={areAllSelected} 
-                indeterminate={areSomeSelected}
+                checked={areAllSelected}
                 onCheckedChange={handleSelectAll}
                 aria-label="Select all clients"
+                className={areSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
               />
             </TableHead>
             <TableHead>Name</TableHead>

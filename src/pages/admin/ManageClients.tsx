@@ -14,7 +14,7 @@ export default function ManageClients() {
             <BreadcrumbItem>
               <BreadcrumbLink href="/admin">Dashboard</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbItem isCurrentPage>
+            <BreadcrumbItem>
               <BreadcrumbLink>Clients</BreadcrumbLink>
             </BreadcrumbItem>
           </Breadcrumb>
