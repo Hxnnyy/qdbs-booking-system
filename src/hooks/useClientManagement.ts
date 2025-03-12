@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Client } from '@/types/client';
@@ -14,109 +15,149 @@ export const useClientManagement = () => {
       setIsLoading(true);
       setError(null);
 
-      // First, get all unique user IDs from bookings
-      const { data: bookingUsers, error: bookingError } = await supabase
+      // Get all bookings to extract client information
+      const { data: bookings, error: bookingsError } = await supabase
         .from('bookings')
-        .select('user_id, guest_email, guest_booking, notes')
-        .order('user_id');
+        .select('id, user_id, guest_booking, guest_email, notes, barber_id, service_id')
+        .order('created_at', { ascending: false });
 
-      if (bookingError) throw bookingError;
+      if (bookingsError) throw bookingsError;
 
-      // Process booking data to extract client information
-      const clientMap = new Map<string, { 
-        id: string, 
-        email: string | null, 
-        bookingCount: number, 
-        guest: boolean, 
-        notes: string | null 
-      }>();
+      // Map to track unique clients by user_id, phone, and email
+      const clientsMap = new Map();
+      const guestClientsMap = new Map();
 
-      // Process regular user bookings
-      bookingUsers.forEach(booking => {
-        const userId = booking.user_id;
-        const existingClient = clientMap.get(userId);
-        
-        if (existingClient) {
-          clientMap.set(userId, {
-            ...existingClient,
-            bookingCount: existingClient.bookingCount + 1
-          });
-        } else {
-          clientMap.set(userId, {
-            id: userId,
-            email: booking.guest_email || null,
-            bookingCount: 1,
-            guest: booking.guest_booking || false,
-            notes: booking.notes
-          });
-        }
-      });
-
-      // Get profile data for registered users
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email, phone')
-        .in('id', Array.from(clientMap.keys()));
-
-      if (profilesError) throw profilesError;
-
-      // Combine data to create final client list
-      const clientList: Client[] = [];
-      
-      // Process registered users
-      profiles.forEach(profile => {
-        const bookingInfo = clientMap.get(profile.id);
-        if (bookingInfo) {
-          clientList.push({
-            id: profile.id,
-            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'No Name',
-            email: profile.email,
-            phone: profile.phone,
-            bookingCount: bookingInfo.bookingCount,
-            isGuest: false
-          });
-        }
-      });
-
-      // Process guest bookings
-      for (const [id, bookingInfo] of clientMap.entries()) {
-        // Skip if already processed as a registered user
-        if (profiles.some(p => p.id === id)) continue;
-        
-        if (bookingInfo.guest) {
-          // Extract name and phone from notes for guest bookings
-          let name = 'Guest User';
-          let phone = null;
+      // Process all bookings
+      for (const booking of bookings) {
+        if (booking.user_id === '00000000-0000-0000-0000-000000000000' || booking.guest_booking === true) {
+          // This is a guest booking
+          let guestName = 'Guest User';
+          let guestPhone = null;
           
-          if (bookingInfo.notes) {
-            const nameMatch = bookingInfo.notes.match(/Guest booking by ([^(]+)/);
+          // Try to extract name and phone from notes
+          if (booking.notes) {
+            const nameMatch = booking.notes.match(/Guest booking by ([^(]+)/);
             if (nameMatch && nameMatch[1]) {
-              name = nameMatch[1].trim();
+              guestName = nameMatch[1].trim();
             }
             
-            const phoneMatch = bookingInfo.notes.match(/\(([^)]+)\)/);
+            const phoneMatch = booking.notes.match(/\(([^)]+)\)/);
             if (phoneMatch && phoneMatch[1]) {
-              phone = phoneMatch[1].trim();
+              guestPhone = phoneMatch[1].trim();
             }
           }
           
-          clientList.push({
-            id: id,
-            name: name,
-            email: bookingInfo.email,
-            phone: phone,
-            bookingCount: bookingInfo.bookingCount,
-            isGuest: true
-          });
+          // Use phone as the key if available, otherwise use email or a random ID
+          const guestKey = guestPhone || booking.guest_email || `guest-${booking.id}`;
+          
+          if (guestKey) {
+            const existingGuest = guestClientsMap.get(guestKey);
+            if (existingGuest) {
+              guestClientsMap.set(guestKey, {
+                ...existingGuest,
+                bookingCount: existingGuest.bookingCount + 1
+              });
+            } else {
+              guestClientsMap.set(guestKey, {
+                id: booking.id, // Use booking ID as temporary client ID
+                name: guestName,
+                email: booking.guest_email || null,
+                phone: guestPhone,
+                bookingCount: 1,
+                isGuest: true
+              });
+            }
+          }
+        } else {
+          // This is a registered user booking
+          const userId = booking.user_id;
+          const existingClient = clientsMap.get(userId);
+          
+          if (existingClient) {
+            clientsMap.set(userId, {
+              ...existingClient,
+              bookingCount: existingClient.bookingCount + 1
+            });
+          } else {
+            clientsMap.set(userId, {
+              id: userId,
+              bookingCount: 1,
+              isGuest: false
+            });
+          }
         }
       }
 
-      // Remove duplicates by phone number and email
-      const uniqueClients = removeDuplicatesByPhoneAndEmail(clientList);
-      const sortedClients = uniqueClients.sort((a, b) => a.name.localeCompare(b.name));
-      
+      // Get profile data for registered users
+      const userIds = Array.from(clientsMap.keys());
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email, phone')
+          .in('id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Add profile data to client records
+        for (const profile of profiles) {
+          const client = clientsMap.get(profile.id);
+          if (client) {
+            clientsMap.set(profile.id, {
+              ...client,
+              name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'No Name',
+              email: profile.email,
+              phone: profile.phone
+            });
+          }
+        }
+      }
+
+      // Combine registered and guest clients
+      const allClients: Client[] = [
+        ...Array.from(clientsMap.values()),
+        ...Array.from(guestClientsMap.values())
+      ];
+
+      // Remove duplicates by phone and email
+      const clientsByPhone = new Map();
+      const clientsByEmail = new Map();
+      const uniqueClients: Client[] = [];
+
+      // First, process registered users (prioritize them over guests)
+      allClients
+        .filter(client => !client.isGuest)
+        .forEach(client => {
+          if (client.phone) {
+            clientsByPhone.set(client.phone, client);
+          } else if (client.email) {
+            clientsByEmail.set(client.email, client);
+          } else {
+            uniqueClients.push(client);
+          }
+        });
+
+      // Then process guests, only add if we don't already have a registered user with same phone/email
+      allClients
+        .filter(client => client.isGuest)
+        .forEach(client => {
+          if (client.phone && !clientsByPhone.has(client.phone)) {
+            clientsByPhone.set(client.phone, client);
+          } else if (client.email && !clientsByEmail.has(client.email)) {
+            clientsByEmail.set(client.email, client);
+          } else if (!client.phone && !client.email) {
+            uniqueClients.push(client);
+          }
+        });
+
+      // Combine all unique clients
+      uniqueClients.push(...clientsByPhone.values(), ...clientsByEmail.values());
+
+      // Sort by name
+      const sortedClients = uniqueClients.sort((a, b) => {
+        return a.name.localeCompare(b.name);
+      });
+
       setClients(sortedClients);
-      
     } catch (err: any) {
       console.error('Error fetching clients:', err);
       setError(err.message);
@@ -124,50 +165,6 @@ export const useClientManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Helper function to remove duplicates by phone and email
-  const removeDuplicatesByPhoneAndEmail = (clientList: Client[]): Client[] => {
-    const uniquePhones = new Map<string, Client>();
-    const uniqueEmails = new Map<string, Client>();
-    const result: Client[] = [];
-    
-    // First process clients with phone numbers
-    clientList.forEach(client => {
-      if (client.phone) {
-        // If we already have a client with this phone, keep the registered one or the one with more bookings
-        const existingClient = uniquePhones.get(client.phone);
-        if (!existingClient || (!client.isGuest && existingClient.isGuest) || 
-            (client.isGuest === existingClient.isGuest && client.bookingCount > existingClient.bookingCount)) {
-          uniquePhones.set(client.phone, client);
-        }
-      } 
-      else if (client.email) {
-        // For clients without phone but with email
-        const existingClient = uniqueEmails.get(client.email);
-        if (!existingClient || (!client.isGuest && existingClient.isGuest) || 
-            (client.isGuest === existingClient.isGuest && client.bookingCount > existingClient.bookingCount)) {
-          uniqueEmails.set(client.email, client);
-        }
-      }
-      else {
-        // Clients with neither phone nor email are always included
-        result.push(client);
-      }
-    });
-    
-    // Add all unique phone clients
-    result.push(...uniquePhones.values());
-    
-    // Add email clients that don't already have a phone match
-    uniqueEmails.forEach(emailClient => {
-      // Only add if this email client's phone isn't already in the results
-      if (!emailClient.phone || !uniquePhones.has(emailClient.phone)) {
-        result.push(emailClient);
-      }
-    });
-    
-    return result;
   };
 
   // Send email to selected clients
