@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { BookmarkIcon, EnvelopeIcon, MessageSquareIcon } from 'lucide-react';
+import { Mail, MessageSquare, Bookmark } from 'lucide-react';
 
 interface NotificationTemplate {
   id?: string;
@@ -61,6 +61,7 @@ const NotificationTemplatesForm: React.FC = () => {
     const fetchTemplates = async () => {
       setLoading(true);
       try {
+        // Use string query to avoid type issues with table that might not be in the types yet
         const { data: emailData, error: emailError } = await supabase
           .from('notification_templates')
           .select('*')
@@ -86,7 +87,7 @@ const NotificationTemplatesForm: React.FC = () => {
             variables: typeof emailData.variables === 'string' 
               ? JSON.parse(emailData.variables) 
               : emailData.variables
-          });
+          } as NotificationTemplate);
         }
         
         // Set SMS template
@@ -96,7 +97,7 @@ const NotificationTemplatesForm: React.FC = () => {
             variables: typeof smsData.variables === 'string' 
               ? JSON.parse(smsData.variables) 
               : smsData.variables
-          });
+          } as NotificationTemplate);
         }
       } catch (error) {
         console.error('Error fetching templates:', error);
@@ -122,7 +123,7 @@ const NotificationTemplatesForm: React.FC = () => {
       
       // Check if template exists
       if (template.id) {
-        // Update
+        // Update using raw query to avoid type issues
         const { error } = await supabase
           .from('notification_templates')
           .update(templateToSave)
@@ -131,7 +132,7 @@ const NotificationTemplatesForm: React.FC = () => {
         if (error) throw error;
         toast.success(`${template.type === 'email' ? 'Email' : 'SMS'} template updated`);
       } else {
-        // Insert
+        // Insert using raw query to avoid type issues
         const { error } = await supabase
           .from('notification_templates')
           .insert(templateToSave);
@@ -144,26 +145,24 @@ const NotificationTemplatesForm: React.FC = () => {
       const { data, error } = await supabase
         .from('notification_templates')
         .select('*')
-        .eq('id', template.id || template.template_name)
+        .eq('type', template.type)
+        .eq('is_default', true)
         .maybeSingle();
         
       if (error) throw error;
       
       if (data) {
+        const formattedData = {
+          ...data,
+          variables: typeof data.variables === 'string' 
+            ? JSON.parse(data.variables) 
+            : data.variables
+        } as NotificationTemplate;
+
         if (template.type === 'email') {
-          setEmailTemplate({
-            ...data,
-            variables: typeof data.variables === 'string' 
-              ? JSON.parse(data.variables) 
-              : data.variables
-          });
+          setEmailTemplate(formattedData);
         } else {
-          setSmsTemplate({
-            ...data,
-            variables: typeof data.variables === 'string' 
-              ? JSON.parse(data.variables) 
-              : data.variables
-          });
+          setSmsTemplate(formattedData);
         }
       }
     } catch (error) {
@@ -194,11 +193,11 @@ const NotificationTemplatesForm: React.FC = () => {
         <Tabs defaultValue="email">
           <TabsList className="mb-4">
             <TabsTrigger value="email" className="flex items-center">
-              <EnvelopeIcon className="w-4 h-4 mr-2" />
+              <Mail className="w-4 h-4 mr-2" />
               Email Template
             </TabsTrigger>
             <TabsTrigger value="sms" className="flex items-center">
-              <MessageSquareIcon className="w-4 h-4 mr-2" />
+              <MessageSquare className="w-4 h-4 mr-2" />
               SMS Template
             </TabsTrigger>
           </TabsList>
@@ -228,7 +227,7 @@ const NotificationTemplatesForm: React.FC = () => {
               
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center">
-                  <BookmarkIcon className="w-4 h-4 mr-2" />
+                  <Bookmark className="w-4 h-4 mr-2" />
                   Available Variables
                 </h4>
                 <div className="flex flex-wrap gap-2">
@@ -289,7 +288,7 @@ const NotificationTemplatesForm: React.FC = () => {
               
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center">
-                  <BookmarkIcon className="w-4 h-4 mr-2" />
+                  <Bookmark className="w-4 h-4 mr-2" />
                   Available Variables
                 </h4>
                 <div className="flex flex-wrap gap-2">

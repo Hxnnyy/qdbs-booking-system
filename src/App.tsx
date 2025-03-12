@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,42 +38,42 @@ function App() {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Route element={<AdminRoute />}>
-              <Route path="/admin" element={<Dashboard />} />
-              <Route path="/admin/bookings" element={<ManageBookings />} />
-              <Route path="/admin/calendar" element={<CalendarView />} />
-              <Route path="/admin/barbers" element={<ManageBarbers />} />
-              <Route path="/admin/services" element={<ManageServices />} />
-              <Route path="/admin/setup" element={<SetupShop />} />
-              <Route path="/admin/import-bookings" element={<ImportBookings />} />
-              <Route path="/admin/assign-admin" element={<AssignAdmin />} />
-              <Route path="/admin/notifications" element={<NotificationSettings />} />
-            </Route>
-            <Route path="/" element={<Index />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/barbers" element={<Barbers />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/login" element={<Login />} />
-            <Route 
-              path="/book" 
-              element={
-                <ProtectedRoute>
-                  <Book />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="/book-guest" element={<GuestBooking />} />
-            <Route path="/verify-booking" element={<VerifyGuestBooking />} />
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="*" element={<NotFound />} />
+            <Routes>
+              <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
+              <Route path="/admin/bookings" element={<AdminRoute><ManageBookings /></AdminRoute>} />
+              <Route path="/admin/calendar" element={<AdminRoute><CalendarView /></AdminRoute>} />
+              <Route path="/admin/barbers" element={<AdminRoute><ManageBarbers /></AdminRoute>} />
+              <Route path="/admin/services" element={<AdminRoute><ManageServices /></AdminRoute>} />
+              <Route path="/admin/setup" element={<AdminRoute><SetupShop /></AdminRoute>} />
+              <Route path="/admin/import-bookings" element={<AdminRoute><ImportBookings /></AdminRoute>} />
+              <Route path="/admin/assign-admin" element={<AdminRoute><AssignAdmin /></AdminRoute>} />
+              <Route path="/admin/notifications" element={<AdminRoute><NotificationSettings /></AdminRoute>} />
+              <Route path="/" element={<Index />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/barbers" element={<Barbers />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<Login />} />
+              <Route 
+                path="/book" 
+                element={
+                  <ProtectedRoute>
+                    <Book />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="/book-guest" element={<GuestBooking />} />
+              <Route path="/verify-booking" element={<VerifyGuestBooking />} />
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>

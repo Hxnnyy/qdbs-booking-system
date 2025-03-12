@@ -58,6 +58,17 @@ export interface LunchBreak {
   is_active: boolean;
 }
 
+export interface NotificationTemplate {
+  id?: string;
+  type: 'email' | 'sms';
+  template_name: string;
+  subject?: string;
+  content: string;
+  variables: string[];
+  is_default: boolean;
+  created_at?: string;
+}
+
 // Utility types for Supabase operations
 export type InsertableBarber = Omit<Barber, 'id'>;
 export type UpdatableBarber = Partial<InsertableBarber>;
@@ -73,3 +84,6 @@ export type UpdatableProfile = Partial<InsertableProfile>;
 
 export type InsertableLunchBreak = Omit<LunchBreak, 'id'>;
 export type UpdatableLunchBreak = Partial<InsertableLunchBreak>;
+
+export type InsertableNotificationTemplate = Omit<NotificationTemplate, 'id' | 'created_at'>;
+export type UpdatableNotificationTemplate = Partial<InsertableNotificationTemplate>;
