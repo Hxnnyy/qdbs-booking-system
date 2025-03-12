@@ -32,12 +32,12 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <AuthProvider>
+    <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
             <Routes>
               <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
               <Route path="/admin/bookings" element={<AdminRoute><ManageBookings /></AdminRoute>} />
@@ -74,10 +74,10 @@ function App() {
               />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+          </TooltipProvider>
+        </AuthProvider>
       </QueryClientProvider>
-    </AuthProvider>
+    </BrowserRouter>
   );
 }
 
