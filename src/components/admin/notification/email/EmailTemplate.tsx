@@ -1,6 +1,5 @@
 
 import React from 'react';
-import Logo from '@/components/navigation/Logo';
 
 interface EmailTemplateProps {
   children: React.ReactNode;
@@ -10,9 +9,7 @@ export const EmailTemplate = ({ children }: EmailTemplateProps) => {
   return (
     <div className="email-template bg-white">
       <div className="header bg-white border-b p-6 text-center">
-        <div className="max-w-[200px] mx-auto text-black">
-          <Logo />
-        </div>
+        <h1 className="text-2xl font-bold text-[#800020]">Queens Dock Barbershop</h1>
       </div>
       
       <div className="content p-6">
