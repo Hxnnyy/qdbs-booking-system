@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepTitle } from '@/utils/bookingUtils';
@@ -6,6 +7,7 @@ import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
 import BookingStepRenderer from './BookingStepRenderer';
 import { useBookingWorkflow } from '@/hooks/useBookingWorkflow';
+import { CalendarEvent } from '@/types/calendar';
 
 interface GuestBookingWorkflowProps {
   barbers: Barber[];
@@ -16,6 +18,7 @@ interface GuestBookingWorkflowProps {
   existingBookings: any[];
   isLoading: boolean;
   fetchBarberServices: (barberId: string) => Promise<void>;
+  calendarEvents?: CalendarEvent[];
 }
 
 const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
@@ -26,7 +29,8 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   barberServices,
   existingBookings,
   isLoading,
-  fetchBarberServices
+  fetchBarberServices,
+  calendarEvents = []
 }) => {
   // Import the workflow logic from our custom hook
   const {
@@ -85,6 +89,8 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         bookingLoading={bookingLoading}
         bookingResult={bookingResult}
         handlers={handlers}
+        allEvents={calendarEvents}
+        selectedBarberId={formState.selectedBarber}
       />
     </div>
   );

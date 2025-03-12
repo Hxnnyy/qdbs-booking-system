@@ -1,18 +1,16 @@
 
 import React from 'react';
-import { BookingStep, BookingFormState } from '@/types/booking';
+import { BookingStep, BookingFormState, BookingStepHandlers, BookingResult } from '@/types/booking';
+import BarberSelectionStep from './steps/BarberSelectionStep';
+import ServiceSelectionStep from './steps/ServiceSelectionStep';
+import DateTimeSelectionStep from './steps/DateTimeSelectionStep';
+import GuestInfoStep from './steps/GuestInfoStep';
+import VerifyPhoneStep from './steps/VerifyPhoneStep';
+import NotesAndConfirmationStep from './steps/NotesAndConfirmationStep';
+import ConfirmationStep from './steps/ConfirmationStep';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
-import { isTimeSlotBooked } from '@/utils/bookingUtils';
-
-// Import step components
-import BarberSelectionStep from '@/components/booking/steps/BarberSelectionStep';
-import ServiceSelectionStep from '@/components/booking/steps/ServiceSelectionStep';
-import DateTimeSelectionStep from '@/components/booking/steps/DateTimeSelectionStep';
-import GuestInfoStep from '@/components/booking/steps/GuestInfoStep';
-import VerifyPhoneStep from '@/components/booking/steps/VerifyPhoneStep';
-import NotesAndConfirmationStep from '@/components/booking/steps/NotesAndConfirmationStep';
-import ConfirmationStep from '@/components/booking/steps/ConfirmationStep';
+import { CalendarEvent } from '@/types/calendar';
 
 interface BookingStepRendererProps {
   step: BookingStep;
@@ -23,20 +21,10 @@ interface BookingStepRendererProps {
   barberServices: Service[];
   existingBookings: any[];
   bookingLoading: boolean;
-  bookingResult: any;
-  handlers: {
-    handleSelectBarber: (barberId: string) => void;
-    handleSelectService: (serviceId: string) => void;
-    handleBackToBarbers: () => void;
-    handleBackToServices: () => void;
-    handleDateTimeComplete: () => void;
-    handleBackToDateTime: () => void;
-    handleGuestInfoComplete: () => void;
-    handleBackToGuestInfo: () => void;
-    handleVerificationComplete: () => void;
-    handleBackToVerification: () => void;
-    handleSubmit: (e: React.FormEvent) => Promise<void>;
-  };
+  bookingResult: BookingResult | null;
+  handlers: BookingStepHandlers;
+  allEvents?: CalendarEvent[];
+  selectedBarberId?: string;
 }
 
 const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
@@ -49,95 +37,100 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   existingBookings,
   bookingLoading,
   bookingResult,
-  handlers
+  handlers,
+  allEvents = [],
+  selectedBarberId
 }) => {
-  const checkTimeSlotBooked = (time: string) => {
-    return isTimeSlotBooked(time, formState.selectedServiceDetails, existingBookings);
+  const isTimeSlotBooked = (time: string) => {
+    if (!formState.selectedDate) return false;
+    
+    const formattedDate = formState.selectedDate.toISOString().split('T')[0];
+    
+    return existingBookings.some(booking => {
+      return (
+        booking.booking_date === formattedDate &&
+        booking.booking_time === time &&
+        booking.barber_id === formState.selectedBarber
+      );
+    });
   };
 
   switch (step) {
     case 'barber':
       return (
-        <BarberSelectionStep 
-          barbers={barbers} 
-          onSelectBarber={handlers.handleSelectBarber} 
-          onNext={() => {}} 
+        <BarberSelectionStep
+          barbers={barbers}
+          selectedBarber={formState.selectedBarber}
+          onSelectBarber={handlers.handleSelectBarber}
         />
       );
-      
     case 'service':
       return (
-        <ServiceSelectionStep 
-          services={barberServices} 
-          onSelectService={handlers.handleSelectService} 
-          onBack={handlers.handleBackToBarbers} 
-          onNext={() => {}} 
+        <ServiceSelectionStep
+          services={barberServices}
+          selectedService={formState.selectedService}
+          onSelectService={handlers.handleSelectService}
+          onBack={handlers.handleBackToBarbers}
         />
       );
-      
     case 'datetime':
       return (
-        <DateTimeSelectionStep 
+        <DateTimeSelectionStep
           selectedDate={formState.selectedDate}
           setSelectedDate={(date) => updateFormState({ selectedDate: date })}
           selectedTime={formState.selectedTime}
           setSelectedTime={(time) => updateFormState({ selectedTime: time })}
-          isTimeSlotBooked={checkTimeSlotBooked}
+          isTimeSlotBooked={isTimeSlotBooked}
           onNext={handlers.handleDateTimeComplete}
           onBack={handlers.handleBackToServices}
+          allEvents={allEvents}
+          selectedBarberId={selectedBarberId}
         />
       );
-      
     case 'guest-info':
       return (
-        <GuestInfoStep 
+        <GuestInfoStep
           guestName={formState.guestName}
           setGuestName={(name) => updateFormState({ guestName: name })}
           guestPhone={formState.guestPhone}
           setGuestPhone={(phone) => updateFormState({ guestPhone: phone })}
+          guestEmail={formState.guestEmail}
+          setGuestEmail={(email) => updateFormState({ guestEmail: email })}
           onNext={handlers.handleGuestInfoComplete}
           onBack={handlers.handleBackToDateTime}
         />
       );
-
     case 'verify-phone':
       return (
-        <VerifyPhoneStep 
-          phone={formState.guestPhone}
-          isVerified={formState.isPhoneVerified}
-          setIsVerified={(verified) => updateFormState({ isPhoneVerified: verified })}
-          onNext={handlers.handleVerificationComplete}
+        <VerifyPhoneStep
+          phoneNumber={formState.guestPhone}
+          verificationId={formState.verificationId}
+          onComplete={handlers.handleVerificationComplete}
           onBack={handlers.handleBackToGuestInfo}
         />
       );
-      
     case 'notes':
       return (
-        <NotesAndConfirmationStep 
+        <NotesAndConfirmationStep
           notes={formState.notes}
           setNotes={(notes) => updateFormState({ notes: notes })}
-          formData={formState}
-          barbers={barbers}
-          services={services}
-          isLoading={bookingLoading}
+          selectedBarber={barbers.find(b => b.id === formState.selectedBarber)}
+          selectedService={services.find(s => s.id === formState.selectedService)}
+          selectedDate={formState.selectedDate}
+          selectedTime={formState.selectedTime}
           onSubmit={handlers.handleSubmit}
-          onBack={handlers.handleBackToVerification}
-          onNext={() => {}}
+          onBack={handlers.handleBackToGuestInfo}
+          isLoading={bookingLoading}
         />
       );
-      
     case 'confirmation':
-      return bookingResult ? (
-        <ConfirmationStep 
+      return (
+        <ConfirmationStep
           bookingResult={bookingResult}
-          formData={formState}
-          barbers={barbers}
-          services={services}
         />
-      ) : null;
-      
+      );
     default:
-      return null;
+      return <div>Unknown step</div>;
   }
 };
 

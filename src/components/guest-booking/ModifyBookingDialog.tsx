@@ -10,6 +10,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import TimeSlot from '@/components/booking/TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
+import { CalendarEvent } from '@/types/calendar';
+import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 
 interface ModifyBookingDialogProps {
   isOpen: boolean;
@@ -22,6 +24,8 @@ interface ModifyBookingDialogProps {
   onDateChange: (date: Date | undefined) => void;
   onTimeSelection: (time: string) => void;
   onModifyBooking: () => void;
+  allEvents?: CalendarEvent[];
+  barberId?: string;
 }
 
 const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
@@ -34,8 +38,21 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   isModifying,
   onDateChange,
   onTimeSelection,
-  onModifyBooking
+  onModifyBooking,
+  allEvents = [],
+  barberId
 }) => {
+  // Function to check if a date should be disabled
+  const shouldDisableDate = (date: Date) => {
+    // Check if date is before today or after max booking window
+    if (isBefore(date, addDays(new Date(), 0)) || isAfter(date, addDays(new Date(), 30))) {
+      return true;
+    }
+    
+    // Check if the barber is on holiday for this date
+    return isBarberHolidayDate(allEvents, date, barberId);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -63,10 +80,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                     selected={newBookingDate}
                     onSelect={onDateChange}
                     initialFocus
-                    disabled={(date) => 
-                      isBefore(date, addDays(new Date(), 0)) || 
-                      isAfter(date, addDays(new Date(), 30))
-                    }
+                    disabled={shouldDisableDate}
                   />
                 </PopoverContent>
               </Popover>

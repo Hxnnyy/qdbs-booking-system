@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { format, addDays, isBefore, startOfToday } from 'date-fns';
 import { BookingStepProps } from '@/types/booking';
 import TimeSlot from '../TimeSlot';
+import { CalendarEvent } from '@/types/calendar';
+import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -13,6 +15,8 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedTime: string | null;
   setSelectedTime: (time: string) => void;
   isTimeSlotBooked: (time: string) => boolean;
+  allEvents?: CalendarEvent[];
+  selectedBarberId?: string;
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -22,7 +26,9 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   setSelectedTime, 
   isTimeSlotBooked,
   onNext,
-  onBack
+  onBack,
+  allEvents = [],
+  selectedBarberId
 }) => {
   const today = startOfToday();
   const maxDate = addDays(today, 30);
@@ -33,6 +39,17 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
     '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
   ];
 
+  // Function to check if a date should be disabled
+  const shouldDisableDate = (date: Date) => {
+    // Check if date is before today or after max booking window
+    if (isBefore(date, today) || isBefore(maxDate, date)) {
+      return true;
+    }
+    
+    // Check if the barber is on holiday for this date
+    return isBarberHolidayDate(allEvents, date, selectedBarberId);
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -42,7 +59,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
             mode="single"
             selected={selectedDate}
             onSelect={setSelectedDate}
-            disabled={(date) => isBefore(date, today) || isBefore(maxDate, date)}
+            disabled={shouldDisableDate}
             className="rounded-md border"
           />
         </div>

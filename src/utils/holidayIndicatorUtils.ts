@@ -12,23 +12,55 @@ export const getHolidayEventsForDate = (events: CalendarEvent[], date: Date): Ca
   const holidayEvents = events.filter(event => {
     const isHoliday = event.status === 'holiday';
     const isAllDay = event.allDay === true;
-    const isSameDate = 
-      event.start.getDate() === date.getDate() &&
-      event.start.getMonth() === date.getMonth() &&
-      event.start.getFullYear() === date.getFullYear();
+    
+    // Check if the date falls within the holiday period
+    // For holiday events, we need to check if the target date is between start and end
+    const isDateInHolidayPeriod = isHoliday && (() => {
+      const eventStartDate = new Date(event.start);
+      eventStartDate.setHours(0, 0, 0, 0);
+      
+      const eventEndDate = new Date(event.end);
+      eventEndDate.setHours(23, 59, 59, 999);
+      
+      const targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0);
+      
+      return targetDate >= eventStartDate && targetDate <= eventEndDate;
+    })();
     
     // For debugging
     if (isHoliday) {
       console.log("Found holiday event:", event.title, 
-        "Date match:", isSameDate, 
+        "Date in holiday period:", isDateInHolidayPeriod,
         "AllDay:", isAllDay,
-        "Event date:", event.start.toISOString(),
+        "Event start:", event.start.toISOString(),
+        "Event end:", event.end.toISOString(),
         "Target date:", date.toISOString());
     }
     
-    return isHoliday && isAllDay && isSameDate;
+    return isHoliday && isAllDay && isDateInHolidayPeriod;
   });
   
   console.log("getHolidayEventsForDate - Filtered holiday events:", holidayEvents.length);
   return holidayEvents;
+};
+
+// New function to check if a date is a barber holiday
+export const isBarberHolidayDate = (
+  allEvents: CalendarEvent[],
+  date: Date,
+  barberId?: string
+): boolean => {
+  // If we don't have a barberId, we can't determine holidays
+  if (!barberId) return false;
+  
+  // Filter events to only get holidays for this barber
+  const barberEvents = barberId 
+    ? allEvents.filter(event => event.barberId === barberId)
+    : allEvents;
+    
+  // Check if there are any holiday events for this date
+  const holidayEvents = getHolidayEventsForDate(barberEvents, date);
+  
+  return holidayEvents.length > 0;
 };

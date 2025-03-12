@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Layout from '@/components/Layout';
 import { useBarbers } from '@/hooks/useBarbers';
@@ -6,10 +7,12 @@ import { useGuestBookingForm } from '@/hooks/useGuestBookingForm';
 import StepIndicator from '@/components/booking/StepIndicator';
 import GuestBookingWorkflow from '@/components/booking/GuestBookingWorkflow';
 import { BookingStep } from '@/types/booking';
+import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 
 const GuestBooking = () => {
   const { barbers, isLoading: barbersLoading } = useBarbers();
   const { services, isLoading: servicesLoading } = useServices();
+  const { allEvents, isLoading: calendarLoading } = useCalendarBookings();
   
   const {
     formState,
@@ -21,7 +24,7 @@ const GuestBooking = () => {
     fetchBarberServices
   } = useGuestBookingForm();
 
-  const isLoading = barbersLoading || servicesLoading || isLoadingBarberServices || isLoadingBookings;
+  const isLoading = barbersLoading || servicesLoading || isLoadingBarberServices || isLoadingBookings || calendarLoading;
   
   const getCurrentStep = (): BookingStep => {
     if (formState.selectedBarber === null) return 'barber';
@@ -50,6 +53,7 @@ const GuestBooking = () => {
           existingBookings={existingBookings}
           isLoading={isLoading}
           fetchBarberServices={fetchBarberServices}
+          calendarEvents={allEvents}
         />
       </div>
     </Layout>
