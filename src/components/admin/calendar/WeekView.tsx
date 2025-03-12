@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
@@ -25,13 +24,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const calendarHeight = totalHours * 60;
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
-    // First, separate lunch breaks and holidays from other events
-    const lunchBreaks = events.filter(event => event.status === 'lunch-break');
+    // Separate holidays from other events (including lunch breaks now)
     const holidays = events.filter(event => event.status === 'holiday');
-    const otherEvents = events.filter(event => event.status !== 'lunch-break' && event.status !== 'holiday');
+    const regularEvents = events.filter(event => event.status !== 'holiday');
     
-    // Process regular events (non-lunch-breaks, non-holidays)
-    const sortedEvents = [...otherEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
+    // Process regular events and lunch breaks together
+    const sortedEvents = [...regularEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
     
     const overlappingGroups: CalendarEvent[][] = [];
     
@@ -96,15 +94,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           });
         });
       }
-    });
-    
-    // Process lunch breaks separately - always give them full width
-    lunchBreaks.forEach(lunchEvent => {
-      results.push({
-        event: lunchEvent,
-        slotIndex: 0, 
-        totalSlots: 1  // Always use full width for lunch breaks
-      });
     });
     
     // Process holidays separately - always give them full width
@@ -256,13 +245,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 isToday(day) ? 'bg-primary/10' : ''
               }`}
             >
+              {/* Holiday Indicator */}
+              <HolidayIndicator holidayEvents={holidayEvents} />
+              
               <div className="h-12 flex flex-col items-center justify-center">
                 <div className="text-sm">{format(day, 'EEE')}</div>
                 <div className="text-xs text-muted-foreground">{format(day, 'd')}</div>
               </div>
-              
-              {/* Holiday Indicator */}
-              <HolidayIndicator holidayEvents={holidayEvents} />
             </div>
           );
         })}
