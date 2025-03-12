@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { format, addDays, isBefore, startOfToday } from 'date-fns';
+import { format, addDays, isBefore, startOfToday, addMonths } from 'date-fns';
 import { BookingStepProps } from '@/types/booking';
 import TimeSlot from '../TimeSlot';
 import { CalendarEvent } from '@/types/calendar';
@@ -31,7 +31,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   selectedBarberId
 }) => {
   const today = startOfToday();
-  const maxDate = addDays(today, 30);
+  const maxDate = addMonths(today, 6); // Changed from 30 days to 6 months
   
   const timeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',

@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
-import { format, addDays, isBefore, startOfToday } from 'date-fns';
+import { format, addDays, isBefore, startOfToday, addMonths } from 'date-fns';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
 import { Scissors, Clock, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -59,7 +59,7 @@ const Book = () => {
   const [selectedServiceDetails, setSelectedServiceDetails] = useState<Service | null>(null);
 
   const today = startOfToday();
-  const maxDate = addDays(today, 30);
+  const maxDate = addMonths(today, 6);
 
   const timeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',

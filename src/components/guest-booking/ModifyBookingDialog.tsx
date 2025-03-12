@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { addDays, isAfter, isBefore } from 'date-fns';
+import { addDays, isAfter, isBefore, addMonths } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -44,8 +44,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
 }) => {
   // Function to check if a date should be disabled
   const shouldDisableDate = (date: Date) => {
-    // Check if date is before today or after max booking window
-    if (isBefore(date, addDays(new Date(), 0)) || isAfter(date, addDays(new Date(), 30))) {
+    // Check if date is before today or after max booking window (changed from 30 days to 6 months)
+    if (isBefore(date, addDays(new Date(), 0)) || isAfter(date, addMonths(new Date(), 6))) {
       return true;
     }
     
