@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +13,8 @@ import { toast } from 'sonner';
 import { Mail, MessageSquare, Plus, Trash } from 'lucide-react';
 import { NotificationTemplate } from '@/supabase-types';
 import { useNotificationTemplates } from '@/hooks/useNotificationTemplates';
+import { EmailEditor } from './email/EmailEditor';
+import { EmailPreview } from './email/EmailPreview';
 
 export const NotificationTemplatesForm = () => {
   const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate } = useNotificationTemplates();
@@ -124,6 +125,94 @@ export const NotificationTemplatesForm = () => {
     });
     return result;
   };
+
+  const renderTemplateDialog = (isAdd: boolean) => (
+    <Dialog open={isAdd ? addDialogOpen : editDialogOpen} onOpenChange={isAdd ? setAddDialogOpen : setEditDialogOpen}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>{isAdd ? 'Create' : 'Edit'} {currentTemplate.type === 'email' ? 'Email' : 'SMS'} Template</DialogTitle>
+          <DialogDescription>
+            {isAdd ? 'Create a new' : 'Update'} notification template.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="template-name" className="text-right">
+              Template Name
+            </Label>
+            <Input
+              id="template-name"
+              value={currentTemplate.template_name}
+              onChange={(e) => setCurrentTemplate({ ...currentTemplate, template_name: e.target.value })}
+              className="col-span-3"
+            />
+          </div>
+          
+          {currentTemplate.type === 'email' && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="subject" className="text-right">
+                Subject
+              </Label>
+              <Input
+                id="subject"
+                value={currentTemplate.subject || ''}
+                onChange={(e) => setCurrentTemplate({ ...currentTemplate, subject: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+          )}
+          
+          <div className="grid grid-cols-4 items-start gap-4">
+            <div className="text-right pt-2">
+              <Label htmlFor="content">Content</Label>
+            </div>
+            <div className="col-span-3 space-y-4">
+              {currentTemplate.type === 'email' ? (
+                <>
+                  <EmailEditor
+                    value={currentTemplate.content}
+                    onChange={(value) => setCurrentTemplate({ ...currentTemplate, content: value })}
+                  />
+                  <EmailPreview
+                    subject={currentTemplate.subject || ''}
+                    content={currentTemplate.content}
+                    previewValues={previewValues}
+                  />
+                </>
+              ) : (
+                <Textarea
+                  id="content"
+                  value={currentTemplate.content}
+                  onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
+                  rows={8}
+                />
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="is-default" className="text-right">
+              Set as Default
+            </Label>
+            <div className="col-span-3">
+              <Switch
+                id="is-default"
+                checked={currentTemplate.is_default}
+                onCheckedChange={(checked) => setCurrentTemplate({ ...currentTemplate, is_default: checked })}
+                disabled={currentTemplate.is_default}
+              />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => isAdd ? setAddDialogOpen(false) : setEditDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveTemplate}>{isAdd ? 'Create' : 'Save Changes'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <Card className="w-full">
@@ -309,206 +398,4 @@ export const NotificationTemplatesForm = () => {
         </Tabs>
       </CardContent>
 
-      {/* Edit Template Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit {currentTemplate.type === 'email' ? 'Email' : 'SMS'} Template</DialogTitle>
-            <DialogDescription>
-              Update notification template content and settings.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-name" className="text-right">
-                Template Name
-              </Label>
-              <Input
-                id="template-name"
-                value={currentTemplate.template_name}
-                onChange={(e) => setCurrentTemplate({ ...currentTemplate, template_name: e.target.value })}
-                className="col-span-3"
-              />
-            </div>
-            
-            {currentTemplate.type === 'email' && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="subject" className="text-right">
-                  Subject
-                </Label>
-                <Input
-                  id="subject"
-                  value={currentTemplate.subject || ''}
-                  onChange={(e) => setCurrentTemplate({ ...currentTemplate, subject: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-            )}
-            
-            <div className="grid grid-cols-4 items-start gap-4">
-              <div className="text-right pt-2">
-                <Label htmlFor="content">Content</Label>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Use variables like {"{name}"}
-                </div>
-              </div>
-              <div className="col-span-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">Available variables:</div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="preview-toggle"
-                      checked={previewEnabled}
-                      onCheckedChange={setPreviewEnabled}
-                    />
-                    <Label htmlFor="preview-toggle">Preview</Label>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {currentTemplate.variables.map((variable, index) => (
-                    <div key={index} className="bg-muted text-xs px-2 py-1 rounded">
-                      {variable}
-                    </div>
-                  ))}
-                </div>
-                
-                {previewEnabled ? (
-                  <div className="border rounded p-3 min-h-[200px] bg-muted/50 whitespace-pre-wrap">
-                    {replaceTemplateVariables(currentTemplate.content, previewValues)}
-                  </div>
-                ) : (
-                  <Textarea
-                    id="content"
-                    value={currentTemplate.content}
-                    onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
-                    rows={8}
-                  />
-                )}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="is-default" className="text-right">
-                Set as Default
-              </Label>
-              <div className="col-span-3">
-                <Switch
-                  id="is-default"
-                  checked={currentTemplate.is_default}
-                  onCheckedChange={(checked) => setCurrentTemplate({ ...currentTemplate, is_default: checked })}
-                  disabled={currentTemplate.is_default}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveTemplate}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Template Dialog */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create {currentTemplate.type === 'email' ? 'Email' : 'SMS'} Template</DialogTitle>
-            <DialogDescription>
-              Create a new notification template.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-name" className="text-right">
-                Template Name
-              </Label>
-              <Input
-                id="template-name"
-                value={currentTemplate.template_name}
-                onChange={(e) => setCurrentTemplate({ ...currentTemplate, template_name: e.target.value })}
-                className="col-span-3"
-              />
-            </div>
-            
-            {currentTemplate.type === 'email' && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="subject" className="text-right">
-                  Subject
-                </Label>
-                <Input
-                  id="subject"
-                  value={currentTemplate.subject || ''}
-                  onChange={(e) => setCurrentTemplate({ ...currentTemplate, subject: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-            )}
-            
-            <div className="grid grid-cols-4 items-start gap-4">
-              <div className="text-right pt-2">
-                <Label htmlFor="content">Content</Label>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Use variables like {"{name}"}
-                </div>
-              </div>
-              <div className="col-span-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">Available variables:</div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="preview-toggle-add"
-                      checked={previewEnabled}
-                      onCheckedChange={setPreviewEnabled}
-                    />
-                    <Label htmlFor="preview-toggle-add">Preview</Label>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {currentTemplate.variables.map((variable, index) => (
-                    <div key={index} className="bg-muted text-xs px-2 py-1 rounded">
-                      {variable}
-                    </div>
-                  ))}
-                </div>
-                
-                {previewEnabled ? (
-                  <div className="border rounded p-3 min-h-[200px] bg-muted/50 whitespace-pre-wrap">
-                    {replaceTemplateVariables(currentTemplate.content, previewValues)}
-                  </div>
-                ) : (
-                  <Textarea
-                    id="content"
-                    value={currentTemplate.content}
-                    onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
-                    rows={8}
-                  />
-                )}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="is-default-add" className="text-right">
-                Set as Default
-              </Label>
-              <div className="col-span-3">
-                <Switch
-                  id="is-default-add"
-                  checked={currentTemplate.is_default}
-                  onCheckedChange={(checked) => setCurrentTemplate({ ...currentTemplate, is_default: checked })}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveTemplate}>Create Template</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-};
+      {

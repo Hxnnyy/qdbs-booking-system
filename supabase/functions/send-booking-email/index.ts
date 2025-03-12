@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
@@ -100,11 +99,11 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     let emailSubject = 'Your Booking Confirmation - Queens Dock Barbershop';
-    let emailBody = '';
+    let emailContent = '';
 
     // If template string is provided in the request
     if (emailTemplate) {
-      emailBody = replaceTemplateVariables(emailTemplate, templateVariables);
+      emailContent = replaceTemplateVariables(emailTemplate, templateVariables);
     } else {
       // Try to get template from database
       // Connect to Supabase with service role key from environment
@@ -117,10 +116,10 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (defaultTemplate) {
         emailSubject = replaceTemplateVariables(defaultTemplate.subject, templateVariables);
-        emailBody = replaceTemplateVariables(defaultTemplate.content, templateVariables);
+        emailContent = replaceTemplateVariables(defaultTemplate.content, templateVariables);
       } else {
         // Fallback to hardcoded template
-        emailBody = `
+        emailContent = `
           <!DOCTYPE html>
           <html>
             <head>
@@ -192,14 +191,48 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Wrap the content in our branded template
+    const brandedEmailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>${emailSubject}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background-color: #7a1921; padding: 20px; text-align: center; }
+            .header img { max-width: 200px; }
+            .content { padding: 20px; background-color: #ffffff; }
+            .footer { background-color: #f9f9f9; padding: 20px; text-align: center; font-size: 14px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <img src="https://queensdockbarbershop.com/logo.png" alt="Queens Dock Barbershop" />
+            </div>
+            <div class="content">
+              ${emailContent}
+            </div>
+            <div class="footer">
+              <p>Queens Dock Barbershop</p>
+              <p>123 Queens Dock, Liverpool, L3 4DG</p>
+              <p>© ${new Date().getFullYear()} Queens Dock Barbershop. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
     console.log(`Sending booking confirmation email to ${to} for booking ${bookingId}`);
     
-    // Send the email using Resend
+    // Send the email using Resend with the branded template
     const { data, error } = await resend.emails.send({
       from: 'Queens Dock Barbershop <onboarding@resend.dev>',
       to: [to],
       subject: emailSubject,
-      html: emailBody
+      html: brandedEmailHtml
     });
 
     if (error) {
