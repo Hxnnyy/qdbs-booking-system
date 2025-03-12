@@ -106,6 +106,8 @@ const handler = async (req: Request): Promise<Response> => {
           let phone = "";
           let name = "";
           let bookingCode = "";
+          let barberName = booking.barber?.name || "";
+          let serviceName = booking.service?.name || "";
           
           if (booking.guest_booking) {
             // For guest bookings, extract phone and name from notes
@@ -150,15 +152,6 @@ const handler = async (req: Request): Promise<Response> => {
           const formattedPhone = formatPhoneNumber(phone);
           console.log(`Formatting phone number from ${phone} to ${formattedPhone}`);
           
-          // Format the date for human-readable display
-          const dateObj = new Date(booking.booking_date);
-          const formattedDate = dateObj.toLocaleDateString('en-GB', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          
           // Prepare and send the SMS via the send-booking-sms function
           const { error: smsError } = await supabase.functions.invoke('send-booking-sms', {
             body: {
@@ -168,6 +161,8 @@ const handler = async (req: Request): Promise<Response> => {
               bookingId: booking.id,
               bookingDate: booking.booking_date,
               bookingTime: booking.booking_time,
+              barberName: barberName,
+              serviceName: serviceName,
               isReminder: true
             }
           });

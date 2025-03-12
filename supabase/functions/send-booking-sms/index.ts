@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from '../verify-phone/corsHeaders.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.3";
 
 // Define type for the request body
 interface SMSRequestBody {
@@ -19,6 +20,44 @@ interface TwilioSMSResult {
   message: string;
   isTwilioConfigured?: boolean;
   sid?: string;
+}
+
+// Helper function to replace template variables
+function replaceTemplateVariables(template: string, variables: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(variables)) {
+    const placeholder = `{{${key}}}`;
+    result = result.replace(new RegExp(placeholder, 'g'), value || '');
+  }
+  return result;
+}
+
+// Initialize Supabase client
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") || "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+);
+
+// Helper function to get default SMS template from database
+async function getDefaultSmsTemplate(templateType: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('notification_templates')
+      .select('content')
+      .eq('type', 'sms')
+      .eq('is_default', true)
+      .single();
+
+    if (error || !data) {
+      console.error("Error fetching default SMS template:", error);
+      return null;
+    }
+
+    return data.content;
+  } catch (err) {
+    console.error("Error in getDefaultSmsTemplate:", err);
+    return null;
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -82,15 +121,38 @@ const handler = async (req: Request): Promise<Response> => {
     // Set the correct verification URL
     const verifyUrl = "https://your-website.com/verify-booking";
 
+    // Variables to replace in templates
+    const templateVariables = {
+      name,
+      bookingCode,
+      bookingDate: formattedDate,
+      bookingTime,
+      barberName: '',
+      serviceName: ''
+    };
+
     // Prepare the message
     let messageBody;
     
-    if (isReminder) {
-      messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
-    } else if (isUpdate) {
-      messageBody = `Hi ${name}, your booking has been rescheduled for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
+    // Try to get template from database based on message type
+    let templateType = 'confirmation';
+    if (isReminder) templateType = 'reminder';
+    if (isUpdate) templateType = 'update';
+    
+    const templateContent = await getDefaultSmsTemplate(templateType);
+    
+    if (templateContent) {
+      // Use the template from the database
+      messageBody = replaceTemplateVariables(templateContent, templateVariables);
     } else {
-      messageBody = `Hi ${name}, your booking is confirmed for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
+      // Fallback to hardcoded templates
+      if (isReminder) {
+        messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
+      } else if (isUpdate) {
+        messageBody = `Hi ${name}, your booking has been rescheduled for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
+      } else {
+        messageBody = `Hi ${name}, your booking is confirmed for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
+      }
     }
 
     // Send the SMS using Twilio
