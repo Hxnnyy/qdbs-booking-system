@@ -25,16 +25,24 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const calendarHeight = totalHours * 60;
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
-    // First, separate holidays from other events
+    // Separate holidays from other events
     const holidays = events.filter(event => event.status === 'holiday');
     const nonHolidayEvents = events.filter(event => event.status !== 'holiday');
     
+    // Sort events by start time to ensure consistent processing
+    nonHolidayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+    
     // Create a map to track overlapping events
-    const overlappingGroups: Map<number, { appointments: CalendarEvent[], lunchBreaks: CalendarEvent[] }> = new Map();
+    const overlappingGroups: Map<string, { appointments: CalendarEvent[], lunchBreaks: CalendarEvent[] }> = new Map();
     
     // Helper function to check if two time ranges overlap
     const doEventsOverlap = (event1: CalendarEvent, event2: CalendarEvent) => {
       return event1.start < event2.end && event2.start < event1.end;
+    };
+    
+    // Function to generate a unique key for each time slot
+    const generateGroupKey = (event: CalendarEvent) => {
+      return `${event.start.getTime()}-${event.end.getTime()}`;
     };
     
     // Group overlapping events
@@ -42,12 +50,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       let foundGroup = false;
       
       // Check existing groups for overlap
-      for (const [groupId, group] of overlappingGroups.entries()) {
+      for (const [groupKey, group] of overlappingGroups.entries()) {
+        // Check if this event overlaps with any event in the existing group
         const hasOverlap = [...group.appointments, ...group.lunchBreaks].some(
           existingEvent => doEventsOverlap(event, existingEvent)
         );
         
         if (hasOverlap) {
+          // Add to existing group based on event type
           if (event.status === 'lunch-break') {
             group.lunchBreaks.push(event);
           } else {
@@ -60,8 +70,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       
       // If no overlap found, create new group
       if (!foundGroup) {
-        const newGroupId = overlappingGroups.size;
-        overlappingGroups.set(newGroupId, {
+        const groupKey = generateGroupKey(event);
+        overlappingGroups.set(groupKey, {
           appointments: event.status === 'lunch-break' ? [] : [event],
           lunchBreaks: event.status === 'lunch-break' ? [event] : []
         });
@@ -72,6 +82,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     
     // Process each group
     overlappingGroups.forEach(group => {
+      // Make sure all lunch breaks display consecutively without gaps
       const totalSlots = Math.max(1, group.appointments.length + group.lunchBreaks.length);
       
       // Add appointments first (they'll be on the left)
@@ -83,7 +94,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         });
       });
       
-      // Then add lunch breaks (they'll be on the right)
+      // Then add lunch breaks consecutively (they'll be on the right)
       group.lunchBreaks.forEach((event, index) => {
         results.push({
           event,
