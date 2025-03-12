@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,17 +25,29 @@ import AssignAdmin from "./pages/admin/AssignAdmin";
 import SetupShop from './pages/admin/SetupShop';
 import ImportBookings from './pages/admin/ImportBookings';
 import CalendarView from './pages/admin/CalendarView';
+import NotificationSettings from './pages/admin/NotificationSettings';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
+function App() {
+  return (
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<Dashboard />} />
+              <Route path="/admin/bookings" element={<ManageBookings />} />
+              <Route path="/admin/calendar" element={<CalendarView />} />
+              <Route path="/admin/barbers" element={<ManageBarbers />} />
+              <Route path="/admin/services" element={<ManageServices />} />
+              <Route path="/admin/setup" element={<SetupShop />} />
+              <Route path="/admin/import-bookings" element={<ImportBookings />} />
+              <Route path="/admin/assign-admin" element={<AssignAdmin />} />
+              <Route path="/admin/notifications" element={<NotificationSettings />} />
+            </Route>
             <Route path="/" element={<Index />} />
             <Route path="/about" element={<About />} />
             <Route path="/barbers" element={<Barbers />} />
@@ -51,7 +62,6 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            {/* Guest booking routes - not protected */}
             <Route path="/book-guest" element={<GuestBooking />} />
             <Route path="/verify-booking" element={<VerifyGuestBooking />} />
             <Route 
@@ -62,76 +72,12 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/admin" 
-              element={
-                <AdminRoute>
-                  <Dashboard />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="/admin/barbers" 
-              element={
-                <AdminRoute>
-                  <ManageBarbers />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="/admin/services" 
-              element={
-                <AdminRoute>
-                  <ManageServices />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="/admin/bookings" 
-              element={
-                <AdminRoute>
-                  <ManageBookings />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="/admin/calendar" 
-              element={
-                <AdminRoute>
-                  <CalendarView />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="/admin/import-bookings" 
-              element={
-                <AdminRoute>
-                  <ImportBookings />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="/admin/assign-admin" 
-              element={
-                <AdminRoute>
-                  <AssignAdmin />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="/admin/setup" 
-              element={
-                <AdminRoute>
-                  <SetupShop />
-                </AdminRoute>
-              } 
-            />
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AuthProvider>
+  );
+}
 
 export default App;

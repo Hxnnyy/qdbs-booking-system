@@ -205,35 +205,13 @@ export const useGuestBookings = () => {
       
       toast.success('Booking created successfully!');
       
-      // Send SMS notification with booking details
-      try {
-        const { data: twilioResult, error: twilioError } = await supabase.functions.invoke('send-booking-sms', {
-          body: {
-            phone: params.guest_phone,
-            name: params.guest_name,
-            bookingCode: verificationCode,
-            bookingId: data.id,
-            bookingDate: params.booking_date,
-            bookingTime: params.booking_time
-          }
-        });
-
-        console.log('SMS notification result:', twilioResult);
-
-        return {
-          ...data,
-          verificationCode,
-          twilioResult
-        };
-      } catch (smsError) {
-        console.error('Error sending SMS notification:', smsError);
-        // Still return the booking data even if SMS fails
-        return {
-          ...data,
-          verificationCode,
-          twilioResult: { success: false, message: 'Failed to send SMS notification' }
-        };
-      }
+      // Create the booking result to return
+      // Note: We're not sending SMS here anymore to avoid duplication
+      // The SMS will be sent from the useBookingWorkflow hook
+      return {
+        ...data,
+        bookingCode: verificationCode
+      };
     } catch (err: any) {
       console.error('Error creating guest booking:', err);
       toast.error(err.message || 'Failed to create booking');

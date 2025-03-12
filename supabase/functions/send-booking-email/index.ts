@@ -81,7 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>Booking Confirmation</h1>
+              <h1>Queens Dock Barbershop</h1>
               <p>Thank you for booking with us!</p>
             </div>
             
@@ -117,14 +117,11 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="verification-code">${bookingCode}</div>
             <p>Keep this code safe. You'll need it to manage or cancel your booking.</p>` : ''}
             
-            <p>You can manage your booking by visiting our website:</p>
-            <a href="${verifyUrl}" class="button">Manage Booking</a>
-            
-            <p>We look forward to seeing you!</p>
+            <p>We look forward to seeing you at Queens Dock Barbershop!</p>
             
             <div class="footer">
               <p>If you have any questions, please contact us.</p>
-              <p>© 2023 Barber Shop. All rights reserved.</p>
+              <p>© 2025 Queens Dock Barbershop. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -135,9 +132,9 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Send the email using Resend
     const { data, error } = await resend.emails.send({
-      from: 'Barber Shop <onboarding@resend.dev>',
+      from: 'Queens Dock Barbershop <onboarding@resend.dev>',
       to: [to],
-      subject: 'Your Booking Confirmation',
+      subject: 'Your Booking Confirmation - Queens Dock Barbershop',
       html: emailHtml
     });
 

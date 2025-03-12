@@ -14,7 +14,7 @@ import {
   SidebarProvider
 } from '@/components/ui/sidebar';
 import { Link, useLocation } from 'react-router-dom';
-import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, Settings2Icon, ShieldIcon, FileUpIcon, ClipboardListIcon } from 'lucide-react';
+import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, Settings2Icon, ShieldIcon, FileUpIcon, ClipboardListIcon, BellIcon } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -109,6 +109,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                         <Link to="/admin/setup">
                           <Settings2Icon className={getIconStyle('/admin/setup')} />
                           <span>Shop Setup</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="Notification Settings">
+                        <Link to="/admin/notifications">
+                          <BellIcon className={getIconStyle('/admin/notifications')} />
+                          <span>Notification Settings</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

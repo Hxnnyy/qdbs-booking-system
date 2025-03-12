@@ -193,14 +193,7 @@ export const useBookingWorkflow = (
       });
 
       if (result) {
-        // Store the booking result to pass to the confirmation screen
-        const bookingDetails = {
-          id: result.id,
-          bookingCode: result.verificationCode,
-          twilioResult: result.twilioResult
-        };
-        setBookingResult(bookingDetails);
-        console.log('Booking created successfully:', bookingDetails);
+        console.log('Booking created successfully:', result);
         
         // Get barber and service details for the email
         const { data: barberData } = await supabase
@@ -217,11 +210,11 @@ export const useBookingWorkflow = (
           
         // Send confirmation email
         try {
-          const { data, error } = await supabase.functions.invoke('send-booking-email', {
+          const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-booking-email', {
             body: {
               to: guestEmail,
               name: guestName,
-              bookingCode: result.verificationCode,
+              bookingCode: result.bookingCode,
               bookingId: result.id,
               bookingDate: formattedDate,
               bookingTime: selectedTime,
@@ -231,10 +224,10 @@ export const useBookingWorkflow = (
             }
           });
           
-          if (error) {
-            console.error('Error sending confirmation email:', error);
+          if (emailError) {
+            console.error('Error sending confirmation email:', emailError);
           } else {
-            console.log('Confirmation email sent successfully:', data);
+            console.log('Confirmation email sent successfully:', emailResult);
           }
         } catch (emailError) {
           console.error('Failed to send confirmation email:', emailError);
@@ -246,7 +239,7 @@ export const useBookingWorkflow = (
             body: {
               phone: guestPhone,
               name: guestName,
-              bookingCode: result.verificationCode,
+              bookingCode: result.bookingCode,
               bookingId: result.id,
               bookingDate: formattedDate,
               bookingTime: selectedTime
@@ -255,14 +248,23 @@ export const useBookingWorkflow = (
           
           console.log('SMS notification result:', smsData);
           
-          // Add the SMS result to the booking result
-          if (bookingDetails) {
-            bookingDetails.twilioResult = smsData;
-            setBookingResult(bookingDetails);
-          }
+          // Create the complete booking result with SMS status
+          const bookingDetails = {
+            id: result.id,
+            bookingCode: result.bookingCode,
+            twilioResult: smsData
+          };
           
+          // Set the booking result for display on confirmation page
+          setBookingResult(bookingDetails);
         } catch (smsError) {
           console.error('Failed to send confirmation SMS:', smsError);
+          // Still set booking result even if SMS fails
+          setBookingResult({
+            id: result.id,
+            bookingCode: result.bookingCode,
+            twilioResult: { success: false, message: 'Failed to send SMS notification' }
+          });
         }
         
         setShowSuccess(true);
