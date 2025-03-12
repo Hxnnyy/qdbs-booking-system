@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -199,12 +200,40 @@ export const useGuestBookings = () => {
       
       if (error) throw error;
       
-      toast.success('Booking created successfully! Your verification code is: ' + verificationCode);
+      console.log('Guest booking created:', data);
+      console.log('Verification code:', verificationCode);
       
-      return {
-        ...data,
-        verificationCode
-      };
+      toast.success('Booking created successfully!');
+      
+      // Send SMS notification with booking details
+      try {
+        const { data: twilioResult, error: twilioError } = await supabase.functions.invoke('send-booking-sms', {
+          body: {
+            phone: params.guest_phone,
+            name: params.guest_name,
+            bookingCode: verificationCode,
+            bookingId: data.id,
+            bookingDate: params.booking_date,
+            bookingTime: params.booking_time
+          }
+        });
+
+        console.log('SMS notification result:', twilioResult);
+
+        return {
+          ...data,
+          verificationCode,
+          twilioResult
+        };
+      } catch (smsError) {
+        console.error('Error sending SMS notification:', smsError);
+        // Still return the booking data even if SMS fails
+        return {
+          ...data,
+          verificationCode,
+          twilioResult: { success: false, message: 'Failed to send SMS notification' }
+        };
+      }
     } catch (err: any) {
       console.error('Error creating guest booking:', err);
       toast.error(err.message || 'Failed to create booking');

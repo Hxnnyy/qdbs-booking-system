@@ -193,12 +193,28 @@ export const useBookingWorkflow = (
       });
 
       if (result) {
-        setBookingResult(result);
+        // Store the booking result to pass to the confirmation screen
+        const bookingDetails = {
+          id: result.id,
+          bookingCode: result.verificationCode,
+          twilioResult: result.twilioResult
+        };
+        setBookingResult(bookingDetails);
+        console.log('Booking created successfully:', bookingDetails);
         
         // Get barber and service details for the email
-        const barber = services.find(s => s.id === selectedService);
-        const barberName = barber?.name || 'Barber';
-        
+        const { data: barberData } = await supabase
+          .from('barbers')
+          .select('name')
+          .eq('id', selectedBarber)
+          .single();
+          
+        const { data: serviceData } = await supabase
+          .from('services')
+          .select('name')
+          .eq('id', selectedService)
+          .single();
+          
         // Send confirmation email
         try {
           const { data, error } = await supabase.functions.invoke('send-booking-email', {
@@ -209,8 +225,8 @@ export const useBookingWorkflow = (
               bookingId: result.id,
               bookingDate: formattedDate,
               bookingTime: selectedTime,
-              barberName: barberName,
-              serviceName: selectedService,
+              barberName: barberData?.name || 'Your Barber',
+              serviceName: serviceData?.name || 'Your Service',
               isGuest: true
             }
           });
@@ -222,6 +238,31 @@ export const useBookingWorkflow = (
           }
         } catch (emailError) {
           console.error('Failed to send confirmation email:', emailError);
+        }
+        
+        // Send SMS confirmation
+        try {
+          const { data: smsData, error: smsError } = await supabase.functions.invoke('send-booking-sms', {
+            body: {
+              phone: guestPhone,
+              name: guestName,
+              bookingCode: result.verificationCode,
+              bookingId: result.id,
+              bookingDate: formattedDate,
+              bookingTime: selectedTime
+            }
+          });
+          
+          console.log('SMS notification result:', smsData);
+          
+          // Add the SMS result to the booking result
+          if (bookingDetails) {
+            bookingDetails.twilioResult = smsData;
+            setBookingResult(bookingDetails);
+          }
+          
+        } catch (smsError) {
+          console.error('Failed to send confirmation SMS:', smsError);
         }
         
         setShowSuccess(true);
