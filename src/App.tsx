@@ -27,6 +27,7 @@ import SetupShop from './pages/admin/SetupShop';
 import ImportBookings from './pages/admin/ImportBookings';
 import CalendarView from './pages/admin/CalendarView';
 import NotificationSettings from './pages/admin/NotificationSettings';
+import ManageClients from './pages/admin/ManageClients';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ function App() {
               <Route path="/admin/calendar" element={<AdminRoute><CalendarView /></AdminRoute>} />
               <Route path="/admin/barbers" element={<AdminRoute><ManageBarbers /></AdminRoute>} />
               <Route path="/admin/services" element={<AdminRoute><ManageServices /></AdminRoute>} />
+              <Route path="/admin/clients" element={<AdminRoute><ManageClients /></AdminRoute>} />
               <Route path="/admin/setup" element={<AdminRoute><SetupShop /></AdminRoute>} />
               <Route path="/admin/import-bookings" element={<AdminRoute><ImportBookings /></AdminRoute>} />
               <Route path="/admin/assign-admin" element={<AdminRoute><AssignAdmin /></AdminRoute>} />
