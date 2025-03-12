@@ -34,8 +34,15 @@ export const DayView: React.FC<CalendarViewProps> = ({
     const holidays = events.filter(event => event.status === 'holiday');
     const regularEvents = events.filter(event => event.status !== 'holiday');
     
-    // Process regular events and lunch breaks together
-    const sortedEvents = [...regularEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
+    // Sort events: regular appointments first, lunch breaks second
+    const sortedEvents = [...regularEvents].sort((a, b) => {
+      // If one is a lunch break and the other is not, sort lunch breaks to the right
+      if (a.status === 'lunch-break' && b.status !== 'lunch-break') return 1;
+      if (a.status !== 'lunch-break' && b.status === 'lunch-break') return -1;
+      
+      // Otherwise sort by start time
+      return a.start.getTime() - b.start.getTime();
+    });
     
     const overlappingGroups: CalendarEvent[][] = [];
     
@@ -65,30 +72,20 @@ export const DayView: React.FC<CalendarViewProps> = ({
       
       // Only apply slot divisions if there are actual overlapping events
       if (group.length > 1 && actualOverlaps > 1) {
-        // Use barberGroups to group events by barber
-        const barberGroups: Record<string, CalendarEvent[]> = {};
-        
-        group.forEach(event => {
-          if (!barberGroups[event.barberId]) {
-            barberGroups[event.barberId] = [];
-          }
-          barberGroups[event.barberId].push(event);
+        // Sort events within the group by status (regular appointments first, lunch breaks second)
+        const sortedGroup = [...group].sort((a, b) => {
+          if (a.status === 'lunch-break' && b.status !== 'lunch-break') return 1; // lunch breaks to the right
+          if (a.status !== 'lunch-break' && b.status === 'lunch-break') return -1; // appointments to the left
+          return a.start.getTime() - b.start.getTime(); // chronological order for same type
         });
         
-        let slotOffset = 0;
-        
-        Object.values(barberGroups).forEach(barberGroup => {
-          const sortedBarberGroup = barberGroup.sort((a, b) => a.start.getTime() - b.start.getTime());
-          
-          sortedBarberGroup.forEach((event, index) => {
-            results.push({
-              event,
-              slotIndex: slotOffset + index,
-              totalSlots: totalSlots
-            });
+        // Assign slot indices based on sorted position
+        sortedGroup.forEach((event, index) => {
+          results.push({
+            event,
+            slotIndex: index,
+            totalSlots: totalSlots
           });
-          
-          slotOffset += barberGroup.length;
         });
       } else {
         // If there's only one event or no overlap, use full width
