@@ -30,22 +30,23 @@ export const DayView: React.FC<CalendarViewProps> = ({
   console.log("DayView - Holiday events:", holidayEvents);
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
-    // Separate holidays from other events
+    // Separate holidays from other events (including lunch breaks now)
     const holidays = events.filter(event => event.status === 'holiday');
+    const regularEvents = events.filter(event => event.status !== 'holiday');
     
-    // Split regular events and lunch breaks
-    const regularEvents = events.filter(event => event.status !== 'holiday' && event.status !== 'lunch-break');
-    const lunchBreaks = events.filter(event => event.status === 'lunch-break');
+    // Sort events: regular appointments first, lunch breaks second
+    const sortedEvents = [...regularEvents].sort((a, b) => {
+      // If one is a lunch break and the other is not, sort lunch breaks to the right
+      if (a.status === 'lunch-break' && b.status !== 'lunch-break') return 1;
+      if (a.status !== 'lunch-break' && b.status === 'lunch-break') return -1;
+      
+      // Otherwise sort by start time
+      return a.start.getTime() - b.start.getTime();
+    });
     
-    // Sort regular events by start time
-    const sortedRegularEvents = [...regularEvents].sort((a, b) => 
-      a.start.getTime() - b.start.getTime()
-    );
-    
-    // Process regular appointments first
     const overlappingGroups: CalendarEvent[][] = [];
     
-    sortedRegularEvents.forEach(event => {
+    sortedEvents.forEach(event => {
       const overlappingGroupIndex = overlappingGroups.findIndex(group => 
         group.some(existingEvent => {
           return (
@@ -62,65 +63,48 @@ export const DayView: React.FC<CalendarViewProps> = ({
       }
     });
     
-    // Now, for each group of regular appointments, find overlapping lunch breaks
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
     overlappingGroups.forEach(group => {
-      // For each regular appointment group, find overlapping lunch breaks
-      const overlappingLunchBreaks = lunchBreaks.filter(lunchBreak => 
-        group.some(appointment => (
-          (lunchBreak.start < appointment.end && lunchBreak.end > appointment.start) || 
-          (appointment.start < lunchBreak.end && appointment.end > lunchBreak.start)
-        ))
-      );
+      // Calculate the actual overlaps
+      const actualOverlaps = calculateActualOverlaps(group);
+      const totalSlots = Math.max(1, actualOverlaps);
       
-      // Combine regular appointments with their overlapping lunch breaks
-      const combinedGroup = [...group, ...overlappingLunchBreaks];
-      
-      // Calculate total slots needed (appointments always on left, lunch breaks on right)
-      const totalAppointments = group.length;
-      const totalLunchBreaks = overlappingLunchBreaks.length;
-      const totalSlots = Math.max(totalAppointments, 1) + Math.max(totalLunchBreaks, 0);
-      
-      // Add regular appointments with slot indices starting from 0
-      group.forEach((appointment, index) => {
-        results.push({
-          event: appointment,
-          slotIndex: index,
-          totalSlots: totalSlots
+      // Only apply slot divisions if there are actual overlapping events
+      if (group.length > 1 && actualOverlaps > 1) {
+        // Sort events within the group by status (regular appointments first, lunch breaks second)
+        const sortedGroup = [...group].sort((a, b) => {
+          if (a.status === 'lunch-break' && b.status !== 'lunch-break') return 1; // lunch breaks to the right
+          if (a.status !== 'lunch-break' && b.status === 'lunch-break') return -1; // appointments to the left
+          return a.start.getTime() - b.start.getTime(); // chronological order for same type
         });
-      });
-      
-      // Add lunch breaks with slot indices starting after all appointments
-      overlappingLunchBreaks.forEach((lunchBreak, index) => {
-        results.push({
-          event: lunchBreak,
-          slotIndex: totalAppointments + index,
-          totalSlots: totalSlots
+        
+        // Assign slot indices based on sorted position
+        sortedGroup.forEach((event, index) => {
+          results.push({
+            event,
+            slotIndex: index,
+            totalSlots: totalSlots
+          });
         });
-      });
-      
-      // Remove these lunch breaks from the main list to avoid processing them again
-      lunchBreaks.splice(0, overlappingLunchBreaks.length, ...lunchBreaks.filter(
-        lb => !overlappingLunchBreaks.includes(lb)
-      ));
+      } else {
+        // If there's only one event or no overlap, use full width
+        group.forEach(event => {
+          results.push({
+            event,
+            slotIndex: 0, // Always use index 0 for non-overlapping events
+            totalSlots: 1  // Always use full width for non-overlapping events
+          });
+        });
+      }
     });
     
-    // Process any remaining lunch breaks that don't overlap with appointments
-    lunchBreaks.forEach(lunchBreak => {
-      results.push({
-        event: lunchBreak,
-        slotIndex: 0,
-        totalSlots: 1
-      });
-    });
-    
-    // Process holidays - always give them full width
+    // Process holidays separately - always give them full width
     holidays.forEach(holidayEvent => {
       results.push({
         event: holidayEvent,
         slotIndex: 0, 
-        totalSlots: 1
+        totalSlots: 1  // Always use full width for holidays
       });
     });
     

@@ -24,18 +24,23 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const calendarHeight = totalHours * 60;
 
   const processOverlappingEvents = (events: CalendarEvent[]) => {
+    // Separate holidays from other events (including lunch breaks now)
     const holidays = events.filter(event => event.status === 'holiday');
+    const regularEvents = events.filter(event => event.status !== 'holiday');
     
-    const regularEvents = events.filter(event => event.status !== 'holiday' && event.status !== 'lunch-break');
-    const lunchBreaks = events.filter(event => event.status === 'lunch-break');
-    
-    const sortedRegularEvents = [...regularEvents].sort((a, b) => 
-      a.start.getTime() - b.start.getTime()
-    );
+    // Sort events: regular appointments first, lunch breaks second
+    const sortedEvents = [...regularEvents].sort((a, b) => {
+      // If one is a lunch break and the other is not, sort lunch breaks to the right
+      if (a.status === 'lunch-break' && b.status !== 'lunch-break') return 1;
+      if (a.status !== 'lunch-break' && b.status === 'lunch-break') return -1;
+      
+      // Otherwise sort by start time
+      return a.start.getTime() - b.start.getTime();
+    });
     
     const overlappingGroups: CalendarEvent[][] = [];
     
-    sortedRegularEvents.forEach(event => {
+    sortedEvents.forEach(event => {
       const overlappingGroupIndex = overlappingGroups.findIndex(group => 
         group.some(existingEvent => {
           return (
@@ -55,59 +60,52 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
     overlappingGroups.forEach(group => {
-      const overlappingLunchBreaks = lunchBreaks.filter(lunchBreak => 
-        group.some(appointment => (
-          (lunchBreak.start < appointment.end && lunchBreak.end > appointment.start) || 
-          (appointment.start < lunchBreak.end && appointment.end > lunchBreak.start)
-        ))
-      );
+      // Calculate the actual overlaps
+      const actualOverlaps = calculateActualOverlaps(group);
+      const totalSlots = Math.max(1, actualOverlaps);
       
-      const combinedGroup = [...group, ...overlappingLunchBreaks];
-      
-      const totalAppointments = group.length;
-      const totalLunchBreaks = overlappingLunchBreaks.length;
-      const totalSlots = Math.max(totalAppointments, 1) + Math.max(totalLunchBreaks, 0);
-      
-      group.forEach((appointment, index) => {
-        results.push({
-          event: appointment,
-          slotIndex: index,
-          totalSlots: totalSlots
+      // Only apply slot divisions if there are actual overlapping events
+      if (group.length > 1 && actualOverlaps > 1) {
+        // Sort events within the group by status (regular appointments first, lunch breaks second)
+        const sortedGroup = [...group].sort((a, b) => {
+          if (a.status === 'lunch-break' && b.status !== 'lunch-break') return 1; // lunch breaks to the right
+          if (a.status !== 'lunch-break' && b.status === 'lunch-break') return -1; // appointments to the left
+          return a.start.getTime() - b.start.getTime(); // chronological order for same type
         });
-      });
-      
-      overlappingLunchBreaks.forEach((lunchBreak, index) => {
-        results.push({
-          event: lunchBreak,
-          slotIndex: totalAppointments + index,
-          totalSlots: totalSlots
+        
+        // Assign slot indices based on sorted position
+        sortedGroup.forEach((event, index) => {
+          results.push({
+            event,
+            slotIndex: index,
+            totalSlots: totalSlots
+          });
         });
-      });
-      
-      lunchBreaks.splice(0, overlappingLunchBreaks.length, ...lunchBreaks.filter(
-        lb => !overlappingLunchBreaks.includes(lb)
-      ));
+      } else {
+        // If there's only one event or no overlap, use full width
+        group.forEach(event => {
+          results.push({
+            event,
+            slotIndex: 0, // Always use index 0 for non-overlapping events
+            totalSlots: 1  // Always use full width for non-overlapping events
+          });
+        });
+      }
     });
     
-    lunchBreaks.forEach(lunchBreak => {
-      results.push({
-        event: lunchBreak,
-        slotIndex: 0,
-        totalSlots: 1
-      });
-    });
-    
+    // Process holidays separately - always give them full width
     holidays.forEach(holidayEvent => {
       results.push({
         event: holidayEvent,
         slotIndex: 0, 
-        totalSlots: 1
+        totalSlots: 1  // Always use full width for holidays
       });
     });
     
     return results;
   };
 
+  // Helper function to calculate actual overlaps
   const calculateActualOverlaps = (events: CalendarEvent[]) => {
     if (events.length <= 1) return 1;
     
@@ -141,8 +139,10 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   }, [events, date]);
 
   useEffect(() => {
+    // Only scroll to current time if autoScrollToCurrentTime is enabled
     if (!autoScrollToCurrentTime) return;
     
+    // Scroll to current time on initial load
     const now = new Date();
     const today = weekDays.findIndex(day => isToday(day));
     
@@ -156,6 +156,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         setTimeout(() => {
           const container = document.querySelector('.calendar-scrollable-container');
           if (container) {
+            // Scroll to current time minus some offset to show context
             container.scrollTop = position - 100;
           }
         }, 100);
@@ -190,6 +191,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const handleDragEnd = (e: React.DragEvent, dayIndex: number) => {
     if (!draggingEvent) return;
     
+    // Get the day for this column
     const selectedDate = weekDays[dayIndex];
     
     const container = e.currentTarget.getBoundingClientRect();
@@ -222,10 +224,14 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="h-full calendar-view week-view">
+      {/* Header grid - Fixed at the top */}
       <div className="calendar-header grid grid-cols-[4rem_repeat(7,1fr)] border-b border-border sticky top-0 z-20 bg-background">
+        {/* Empty cell for time column */}
         <div className="border-r border-border h-12"></div>
         
+        {/* Day headers */}
         {weekDays.map((day, index) => {
+          // Get holiday events for this day
           const dayDate = addDays(weekStart, index);
           const holidayEvents = getHolidayEventsForDate(events, dayDate);
           
@@ -236,6 +242,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 isToday(day) ? 'bg-primary/10' : ''
               }`}
             >
+              {/* Holiday Indicator */}
               <HolidayIndicator holidayEvents={holidayEvents} />
               
               <div className="h-12 flex flex-col items-center justify-center">
@@ -247,7 +254,9 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         })}
       </div>
       
+      {/* Main grid - Scrollable content */}
       <div className="calendar-body grid grid-cols-[4rem_repeat(7,1fr)]">
+        {/* Time column */}
         <div className="time-column border-r border-border">
           {Array.from({ length: totalHours + 1 }).map((_, index) => {
             const hour = startHour + index;
@@ -262,6 +271,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           })}
         </div>
         
+        {/* Day columns */}
         {weekDays.map((day, dayIndex) => {
           const isCurrentDay = isToday(day);
           
@@ -291,6 +301,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                   </div>
                 ))}
                 
+                {/* Current time indicator */}
                 {isCurrentDay && (() => {
                   const now = new Date();
                   const hours = now.getHours();
@@ -311,6 +322,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 })()}
                 
                 {processedEvents.map(({ event, slotIndex, totalSlots }) => {
+                  // Calculate the correct day to display events properly
                   const eventDate = event.start;
                   const eventDay = weekDays.findIndex(day => 
                     day.getDate() === eventDate.getDate() &&
@@ -357,11 +369,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         })}
       </div>
       
+      {/* Drag preview */}
       {dragPreview && dragPreview.columnIndex !== undefined && (
         <div 
           className="absolute left-0 top-0 pointer-events-none z-50 w-full h-full"
           style={{
-            gridColumnStart: dragPreview.columnIndex + 2,
+            gridColumnStart: dragPreview.columnIndex + 2, // +2 because we now have a time column
             gridColumnEnd: dragPreview.columnIndex + 3,
           }}
         >
