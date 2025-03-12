@@ -29,37 +29,53 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const holidays = events.filter(event => event.status === 'holiday');
     const nonHolidayEvents = events.filter(event => event.status !== 'holiday');
     
-    // Group events by time slots (based on start time)
-    const timeSlotMap: Record<string, { appointments: CalendarEvent[], lunchBreaks: CalendarEvent[] }> = {};
+    // Create a map to track overlapping events
+    const overlappingGroups: Map<number, { appointments: CalendarEvent[], lunchBreaks: CalendarEvent[] }> = new Map();
     
+    // Helper function to check if two time ranges overlap
+    const doEventsOverlap = (event1: CalendarEvent, event2: CalendarEvent) => {
+      return event1.start < event2.end && event2.start < event1.end;
+    };
+    
+    // Group overlapping events
     nonHolidayEvents.forEach(event => {
-      // Create a key based on 15-minute increments for better grouping
-      const startTime = event.start.getTime();
-      const timeSlotKey = Math.floor(startTime / (15 * 60 * 1000)).toString();
+      let foundGroup = false;
       
-      if (!timeSlotMap[timeSlotKey]) {
-        timeSlotMap[timeSlotKey] = {
-          appointments: [],
-          lunchBreaks: []
-        };
+      // Check existing groups for overlap
+      for (const [groupId, group] of overlappingGroups.entries()) {
+        const hasOverlap = [...group.appointments, ...group.lunchBreaks].some(
+          existingEvent => doEventsOverlap(event, existingEvent)
+        );
+        
+        if (hasOverlap) {
+          if (event.status === 'lunch-break') {
+            group.lunchBreaks.push(event);
+          } else {
+            group.appointments.push(event);
+          }
+          foundGroup = true;
+          break;
+        }
       }
       
-      // Separate lunch breaks from regular appointments
-      if (event.status === 'lunch-break') {
-        timeSlotMap[timeSlotKey].lunchBreaks.push(event);
-      } else {
-        timeSlotMap[timeSlotKey].appointments.push(event);
+      // If no overlap found, create new group
+      if (!foundGroup) {
+        const newGroupId = overlappingGroups.size;
+        overlappingGroups.set(newGroupId, {
+          appointments: event.status === 'lunch-break' ? [] : [event],
+          lunchBreaks: event.status === 'lunch-break' ? [event] : []
+        });
       }
     });
     
     const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
     
-    // Process each time slot
-    Object.values(timeSlotMap).forEach(({ appointments, lunchBreaks }) => {
-      const totalSlots = Math.max(1, appointments.length + lunchBreaks.length);
+    // Process each group
+    overlappingGroups.forEach(group => {
+      const totalSlots = Math.max(1, group.appointments.length + group.lunchBreaks.length);
       
-      // Process appointments first (they'll be on the left)
-      appointments.forEach((event, index) => {
+      // Add appointments first (they'll be on the left)
+      group.appointments.forEach((event, index) => {
         results.push({
           event,
           slotIndex: index,
@@ -67,17 +83,17 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         });
       });
       
-      // Then process lunch breaks (they'll be on the right)
-      lunchBreaks.forEach((event, index) => {
+      // Then add lunch breaks (they'll be on the right)
+      group.lunchBreaks.forEach((event, index) => {
         results.push({
           event,
-          slotIndex: appointments.length + index,
+          slotIndex: group.appointments.length + index,
           totalSlots
         });
       });
     });
     
-    // Process holidays separately - they should take full width
+    // Add holidays (full width)
     holidays.forEach(holidayEvent => {
       results.push({
         event: holidayEvent,
