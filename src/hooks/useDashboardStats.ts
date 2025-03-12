@@ -1,12 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 interface DashboardStats {
-  users: number;
-  barbers: number;
-  services: number;
-  revenue: number;
+  upcomingBookings: number;
+  bookingChangePercent: number;
+  averageBookingValue: number;
+  monthlyRevenue: number;
   bookings: any[];
   recentBookings: any[];
   isLoading: boolean;
@@ -15,10 +16,10 @@ interface DashboardStats {
 
 export const useDashboardStats = () => {
   const [stats, setStats] = useState<DashboardStats>({
-    users: 0,
-    barbers: 0,
-    services: 0,
-    revenue: 0,
+    upcomingBookings: 0,
+    bookingChangePercent: 0,
+    averageBookingValue: 0,
+    monthlyRevenue: 0,
     bookings: [],
     recentBookings: [],
     isLoading: true,
@@ -28,53 +29,79 @@ export const useDashboardStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch total users
-        // @ts-ignore - Supabase types issue
-        const { count: userCount, error: userError } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact' });
-
-        if (userError) throw userError;
-
-        // Fetch active barbers
-        // @ts-ignore - Supabase types issue
-        const { count: barberCount, error: barberError } = await supabase
-          .from('barbers')
-          .select('*', { count: 'exact' })
-          .eq('active', true);
-
-        if (barberError) throw barberError;
-
-        // Fetch active services
-        // @ts-ignore - Supabase types issue
-        const { count: serviceCount, error: serviceError } = await supabase
-          .from('services')
-          .select('*', { count: 'exact' })
-          .eq('active', true);
-
-        if (serviceError) throw serviceError;
-
-        // Fetch completed bookings for revenue calculation
-        // @ts-ignore - Supabase types issue
-        const { data: bookings, error: bookingError } = await supabase
+        setStats(prev => ({ ...prev, isLoading: true }));
+        
+        // Current date and start/end of current and previous month
+        const now = new Date();
+        const currentMonthStart = format(startOfMonth(now), 'yyyy-MM-dd');
+        const currentMonthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
+        const lastMonthStart = format(startOfMonth(subMonths(now, 1)), 'yyyy-MM-dd');
+        const lastMonthEnd = format(endOfMonth(subMonths(now, 1)), 'yyyy-MM-dd');
+        const today = format(now, 'yyyy-MM-dd');
+        
+        // Fetch all bookings for calculations
+        const { data: allBookings, error: bookingsError } = await supabase
           .from('bookings')
           .select(`
             *,
-            service:service_id(price)
+            barber:barber_id(name, color),
+            service:service_id(name, price, duration)
           `)
-          .eq('status', 'completed');
-
-        if (bookingError) throw bookingError;
-
-        // Type assertion for bookings to handle service access
-        const typedBookings = bookings as any[];
+          .order('booking_date', { ascending: false });
         
-        const totalRevenue = typedBookings?.reduce((total: number, booking: any) => {
+        if (bookingsError) throw bookingsError;
+        
+        // Filter bookings for different stats
+        const upcomingBookings = allBookings
+          ? allBookings.filter(b => 
+              b.booking_date >= today && 
+              b.status !== 'cancelled')
+          : [];
+          
+        const currentMonthBookings = allBookings
+          ? allBookings.filter(b => 
+              b.booking_date >= currentMonthStart && 
+              b.booking_date <= currentMonthEnd && 
+              b.status !== 'cancelled')
+          : [];
+          
+        const lastMonthBookings = allBookings
+          ? allBookings.filter(b => 
+              b.booking_date >= lastMonthStart && 
+              b.booking_date <= lastMonthEnd && 
+              b.status !== 'cancelled')
+          : [];
+        
+        const completedBookings = allBookings
+          ? allBookings.filter(b => b.status === 'completed')
+          : [];
+        
+        // Calculate stats
+        const upcomingBookingsCount = upcomingBookings.length;
+        
+        // Calculate booking percentage change
+        const lastMonthCount = lastMonthBookings.length;
+        const currentMonthCount = currentMonthBookings.length;
+        const bookingChangePercent = lastMonthCount > 0 
+          ? Math.round(((currentMonthCount - lastMonthCount) / lastMonthCount) * 100) 
+          : 0;
+        
+        // Calculate average booking value
+        const totalBookingValue = completedBookings.reduce((total, booking) => {
           return total + (booking.service?.price || 0);
-        }, 0) || 0;
-
+        }, 0);
+        
+        const averageBookingValue = completedBookings.length > 0 
+          ? totalBookingValue / completedBookings.length 
+          : 0;
+        
+        // Calculate this month's revenue
+        const monthlyRevenue = currentMonthBookings.reduce((total, booking) => {
+          return total + (booking.service?.price || 0);
+        }, 0);
+        
         // Group bookings by date for chart
-        const bookingsByDate = typedBookings?.reduce((acc: any, booking: any) => {
+        const bookingsByDate = allBookings?.reduce((acc: any, booking: any) => {
           const date = booking.booking_date;
           if (!acc[date]) {
             acc[date] = { date, count: 0, revenue: 0 };
@@ -85,14 +112,17 @@ export const useDashboardStats = () => {
         }, {}) || {};
 
         const chartData = Object.values(bookingsByDate);
+        
+        // Get 5 most recent upcoming bookings for display
+        const recentUpcomingBookings = upcomingBookings.slice(0, 5);
 
         setStats({
-          users: userCount || 0,
-          barbers: barberCount || 0,
-          services: serviceCount || 0,
-          revenue: totalRevenue,
+          upcomingBookings: upcomingBookingsCount,
+          bookingChangePercent: bookingChangePercent,
+          averageBookingValue: averageBookingValue,
+          monthlyRevenue: monthlyRevenue,
           bookings: chartData,
-          recentBookings: typedBookings?.slice(0, 5) || [],
+          recentBookings: recentUpcomingBookings,
           isLoading: false,
           error: null
         });

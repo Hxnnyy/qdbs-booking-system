@@ -28,10 +28,27 @@ const Dashboard = () => {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard title="Total Users" value={stats.users} />
-                <StatsCard title="Active Barbers" value={stats.barbers} />
-                <StatsCard title="Available Services" value={stats.services} />
-                <StatsCard title="Total Revenue" value={`£${stats.revenue.toFixed(2)}`} />
+                <StatsCard 
+                  title="Upcoming Bookings" 
+                  value={stats.upcomingBookings} 
+                  icon="bookings"
+                  change={stats.bookingChangePercent}
+                />
+                <StatsCard 
+                  title="Booking Change" 
+                  value={`${stats.bookingChangePercent > 0 ? '+' : ''}${stats.bookingChangePercent}%`} 
+                  icon="trending"
+                />
+                <StatsCard 
+                  title="Average Booking Value" 
+                  value={`£${stats.averageBookingValue.toFixed(2)}`} 
+                  icon="revenue"
+                />
+                <StatsCard 
+                  title="This Month's Revenue" 
+                  value={`£${stats.monthlyRevenue.toFixed(2)}`} 
+                  icon="revenue"
+                />
               </div>
               
               <BookingsChart data={stats.bookings} />
