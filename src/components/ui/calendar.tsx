@@ -50,7 +50,6 @@ function Calendar({
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
-        day_unavailable: "text-muted-foreground opacity-50 bg-gray-100", // Added for unavailable days
         ...classNames,
       }}
       components={{

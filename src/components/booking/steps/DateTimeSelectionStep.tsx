@@ -183,9 +183,6 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
               modifiers={{
                 unavailable: disabledDates
               }}
-              modifiersClassNames={{
-                unavailable: "text-muted-foreground opacity-50"
-              }}
             />
           )}
         </div>
