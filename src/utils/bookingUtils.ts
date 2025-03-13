@@ -16,18 +16,31 @@ export const isTimeSlotBooked = (
   const timeInMinutes = hours * 60 + minutes;
   const serviceLength = selectedServiceDetails.duration;
 
+  // Calculate the end time of this appointment
+  const endTimeInMinutes = timeInMinutes + serviceLength;
+
   // Check if any existing booking overlaps with this time slot
   return existingBookings.some(booking => {
+    // Parse booking time
     const [bookingHours, bookingMinutes] = booking.booking_time.split(':').map(Number);
     const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
+    
+    // Get booking service duration
     const bookingServiceLength = booking.services ? booking.services.duration : 60; // Default to 60 if unknown
     
-    // Check if there's an overlap
+    // Calculate the end time of the existing booking
+    const bookingEndTimeInMinutes = bookingTimeInMinutes + bookingServiceLength;
+    
+    // Check if there's an overlap (any part of the new booking overlaps with any part of existing booking)
     return (
-      (timeInMinutes >= bookingTimeInMinutes && 
-       timeInMinutes < bookingTimeInMinutes + bookingServiceLength) ||
-      (timeInMinutes + serviceLength > bookingTimeInMinutes && 
-       timeInMinutes < bookingTimeInMinutes)
+      // New booking starts during an existing booking
+      (timeInMinutes >= bookingTimeInMinutes && timeInMinutes < bookingEndTimeInMinutes) ||
+      // New booking ends during an existing booking
+      (endTimeInMinutes > bookingTimeInMinutes && endTimeInMinutes <= bookingEndTimeInMinutes) ||
+      // New booking completely contains an existing booking
+      (timeInMinutes <= bookingTimeInMinutes && endTimeInMinutes >= bookingEndTimeInMinutes) ||
+      // New booking is completely contained by an existing booking
+      (timeInMinutes >= bookingTimeInMinutes && endTimeInMinutes <= bookingEndTimeInMinutes)
     );
   });
 };
@@ -87,6 +100,7 @@ export const isWithinOpeningHours = async (
     // Convert time to minutes for easier comparison
     const [hours, minutes] = time.split(':').map(Number);
     const timeInMinutes = hours * 60 + minutes;
+    const endTimeInMinutes = timeInMinutes + serviceDuration;
     
     // Convert opening and closing times to minutes
     const [openHours, openMinutes] = openingHours.open_time.split(':').map(Number);
@@ -95,11 +109,10 @@ export const isWithinOpeningHours = async (
     const [closeHours, closeMinutes] = openingHours.close_time.split(':').map(Number);
     const closeTimeInMinutes = closeHours * 60 + closeMinutes;
     
-    // Check if time is within opening hours
-    // Also ensure the appointment ends before closing time
+    // The service must start after opening time and end before closing time
     return (
       timeInMinutes >= openTimeInMinutes && 
-      timeInMinutes + serviceDuration <= closeTimeInMinutes
+      endTimeInMinutes <= closeTimeInMinutes
     );
   } catch (error) {
     console.error('Error checking opening hours:', error);

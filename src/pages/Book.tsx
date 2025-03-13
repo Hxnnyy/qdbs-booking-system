@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -126,7 +125,6 @@ const Book = () => {
     }
   };
 
-  // Function to check if a date should be disabled
   const shouldDisableDate = (date: Date) => {
     if (isBefore(date, today) || isBefore(maxDate, date)) {
       return true;
@@ -140,12 +138,10 @@ const Book = () => {
   };
 
   const isDateDisabled = (date: Date) => {
-    // Basic checks first
     if (shouldDisableDate(date)) {
       return true;
     }
     
-    // Then check our pre-computed unavailable days
     return disabledDates.some(disabledDate => 
       disabledDate.getDate() === date.getDate() && 
       disabledDate.getMonth() === date.getMonth() && 
@@ -197,6 +193,101 @@ const Book = () => {
     }
   };
 
+  const fetchBarberTimeSlots = async (barberId: string, date: Date) => {
+    try {
+      const dayOfWeek = date.getDay();
+      
+      const { data, error } = await supabase
+        .from('opening_hours')
+        .select('*')
+        .eq('barber_id', barberId)
+        .eq('day_of_week', dayOfWeek)
+        .maybeSingle();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (!data || data.is_closed) {
+        return [];
+      }
+      
+      const slots = [];
+      let currentTime = data.open_time;
+      const closeTime = data.close_time;
+      
+      let [openHours, openMinutes] = currentTime.split(':').map(Number);
+      const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
+      
+      const closeTimeInMinutes = closeHours * 60 + closeMinutes;
+      
+      while (true) {
+        const timeInMinutes = openHours * 60 + openMinutes;
+        if (timeInMinutes >= closeTimeInMinutes) {
+          break;
+        }
+        
+        const formattedHours = openHours.toString().padStart(2, '0');
+        const formattedMinutes = openMinutes.toString().padStart(2, '0');
+        slots.push(`${formattedHours}:${formattedMinutes}`);
+        
+        openMinutes += 30;
+        if (openMinutes >= 60) {
+          openHours += 1;
+          openMinutes -= 60;
+        }
+      }
+      
+      return slots;
+    } catch (error) {
+      console.error('Error fetching barber time slots:', error);
+      return [];
+    }
+  };
+
+  const filterTimeSlots = async () => {
+    if (!selectedDate || !selectedBarber || !selectedServiceDetails) {
+      setAvailableTimeSlots([]);
+      return;
+    }
+    
+    setIsLoadingTimeSlots(true);
+    
+    try {
+      const barberTimeSlots = await fetchBarberTimeSlots(selectedBarber, selectedDate);
+      
+      if (barberTimeSlots.length === 0) {
+        setAvailableTimeSlots([]);
+        setIsLoadingTimeSlots(false);
+        return;
+      }
+      
+      const availableSlots = [];
+      
+      for (const time of barberTimeSlots) {
+        const isAvailable = await isWithinOpeningHours(
+          selectedBarber,
+          selectedDate,
+          time,
+          selectedServiceDetails.duration
+        );
+        
+        const isBooked = isTimeSlotBooked(time, selectedServiceDetails, existingBookings);
+        
+        if (isAvailable && !isBooked) {
+          availableSlots.push(time);
+        }
+      }
+      
+      setAvailableTimeSlots(availableSlots);
+    } catch (error) {
+      console.error('Error filtering time slots:', error);
+      toast.error('Failed to load available time slots');
+    } finally {
+      setIsLoadingTimeSlots(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -214,17 +305,21 @@ const Book = () => {
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
-      // Final check for barber availability
       const isHoliday = isBarberHolidayDate(allEvents, selectedDate, selectedBarber);
       if (isHoliday) {
         toast.error('Cannot book on this date as the barber is on holiday');
         return;
       }
       
-      // Final check for time slot availability
       const currentBookingTimeSlotAvailable = availableTimeSlots.includes(selectedTime);
       if (!currentBookingTimeSlotAvailable) {
         toast.error('The selected time is no longer available. Please choose another time.');
+        return;
+      }
+      
+      const bookingOverlaps = isTimeSlotBooked(selectedTime, selectedServiceDetails, existingBookings);
+      if (bookingOverlaps) {
+        toast.error('This time slot conflicts with an existing booking. Please select another time.');
         return;
       }
 
@@ -242,7 +337,6 @@ const Book = () => {
       }
     } catch (error) {
       console.error('Booking error:', error);
-      // Error is already handled in useBookings hook
     }
   };
 
@@ -315,7 +409,6 @@ const Book = () => {
     }
   };
 
-  // Pre-check available days for the selected month
   useEffect(() => {
     const checkMonthAvailability = async () => {
       if (!selectedBarber || !selectedServiceDetails) return;
@@ -323,11 +416,9 @@ const Book = () => {
       setIsCheckingDates(true);
       
       try {
-        // Generate dates for current month view
         const daysToCheck = [];
         const currentDate = new Date(today);
         
-        // Check next 30 days
         for (let i = 0; i < 30; i++) {
           const dateToCheck = new Date(currentDate);
           dateToCheck.setDate(currentDate.getDate() + i);
@@ -337,7 +428,6 @@ const Book = () => {
           }
         }
         
-        // Check each date for availability
         const unavailableDays = [];
         
         for (const date of daysToCheck) {
@@ -364,48 +454,13 @@ const Book = () => {
     checkMonthAvailability();
   }, [selectedBarber, selectedServiceDetails]);
 
-  // Load existing bookings when barber and date selected
   useEffect(() => {
     if (selectedBarber && selectedDate) {
       fetchExistingBookings(selectedBarber, selectedDate);
     }
   }, [selectedBarber, selectedDate]);
 
-  // Filter time slots based on barber availability
   useEffect(() => {
-    const filterTimeSlots = async () => {
-      if (!selectedDate || !selectedBarber || !selectedServiceDetails) {
-        setAvailableTimeSlots([]);
-        return;
-      }
-      
-      setIsLoadingTimeSlots(true);
-      
-      try {
-        const availableSlots = [];
-        
-        for (const time of timeSlots) {
-          // Check if the time slot is within opening hours and not booked
-          const isAvailable = await isWithinOpeningHours(
-            selectedBarber,
-            selectedDate,
-            time,
-            selectedServiceDetails.duration
-          );
-          
-          if (isAvailable && !isTimeSlotBooked(time, selectedServiceDetails, existingBookings)) {
-            availableSlots.push(time);
-          }
-        }
-        
-        setAvailableTimeSlots(availableSlots);
-      } catch (error) {
-        console.error('Error filtering time slots:', error);
-      } finally {
-        setIsLoadingTimeSlots(false);
-      }
-    };
-    
     if (selectedDate && selectedBarber && selectedServiceDetails) {
       filterTimeSlots();
     }
@@ -635,3 +690,4 @@ const Book = () => {
 };
 
 export default Book;
+

@@ -1,12 +1,7 @@
 
 import React from 'react';
-
-interface TimeSlotProps {
-  time: string;
-  selected: string | boolean;
-  onClick: () => void;
-  disabled?: boolean;
-}
+import { TimeSlotProps } from '@/types/booking';
+import { cn } from '@/lib/utils';
 
 const TimeSlot: React.FC<TimeSlotProps> = ({ time, selected, onClick, disabled = false }) => {
   // Convert selected to boolean if it's a string comparison
@@ -14,11 +9,13 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ time, selected, onClick, disabled =
   
   return (
     <button
-      className={`p-2 rounded border transition-colors ${
-        isSelected 
-          ? 'bg-burgundy text-white border-burgundy' 
-          : 'bg-secondary text-foreground border-input hover:bg-secondary/80'
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      className={cn(
+        "p-2 rounded border transition-colors w-full text-center",
+        isSelected
+          ? "bg-burgundy text-white border-burgundy hover:bg-burgundy-light" 
+          : "bg-secondary text-foreground border-input hover:bg-secondary/80",
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+      )}
       onClick={onClick}
       disabled={disabled}
     >

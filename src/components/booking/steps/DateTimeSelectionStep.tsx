@@ -10,6 +10,7 @@ import { CalendarEvent } from '@/types/calendar';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { isWithinOpeningHours, hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
 import { Spinner } from '@/components/ui/spinner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -44,12 +45,66 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   const [disabledDates, setDisabledDates] = useState<Date[]>([]);
   const [isCheckingDates, setIsCheckingDates] = useState<boolean>(false);
   
-  const allTimeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-    '18:00', '18:30', '19:00', '19:30', '20:00'
-  ];
+  // Fetch barber's time slots based on opening hours
+  const fetchBarberTimeSlots = async (barberId: string, date: Date) => {
+    try {
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      
+      // Get opening hours for this barber and day
+      const { data, error } = await supabase
+        .from('opening_hours')
+        .select('*')
+        .eq('barber_id', barberId)
+        .eq('day_of_week', dayOfWeek)
+        .maybeSingle();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // If no opening hours found or barber is closed on this day
+      if (!data || data.is_closed) {
+        return [];
+      }
+      
+      // Generate time slots based on opening hours
+      const slots = [];
+      let currentTime = data.open_time;
+      const closeTime = data.close_time;
+      
+      // Parse hours and minutes
+      let [openHours, openMinutes] = currentTime.split(':').map(Number);
+      const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
+      
+      // Calculate end time in minutes for comparison
+      const closeTimeInMinutes = closeHours * 60 + closeMinutes;
+      
+      // Generate slots in 30-minute increments
+      while (true) {
+        const timeInMinutes = openHours * 60 + openMinutes;
+        if (timeInMinutes >= closeTimeInMinutes) {
+          break;
+        }
+        
+        // Format time as "HH:MM"
+        const formattedHours = openHours.toString().padStart(2, '0');
+        const formattedMinutes = openMinutes.toString().padStart(2, '0');
+        slots.push(`${formattedHours}:${formattedMinutes}`);
+        
+        // Increment by 30 minutes
+        openMinutes += 30;
+        if (openMinutes >= 60) {
+          openHours += 1;
+          openMinutes -= 60;
+        }
+      }
+      
+      return slots;
+    } catch (error) {
+      console.error('Error fetching barber time slots:', error);
+      return [];
+    }
+  };
 
   // Function to check if a date should be disabled
   const shouldDisableDate = (date: Date) => {
@@ -122,9 +177,18 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
       setIsLoadingTimeSlots(true);
       
       try {
+        // First, get the barber's time slots based on opening hours
+        const barberTimeSlots = await fetchBarberTimeSlots(selectedBarberId, selectedDate);
+        
+        if (barberTimeSlots.length === 0) {
+          setAvailableTimeSlots([]);
+          setIsLoadingTimeSlots(false);
+          return;
+        }
+        
         const availableSlots = [];
         
-        for (const time of allTimeSlots) {
+        for (const time of barberTimeSlots) {
           // Check if the time slot is within opening hours and not booked
           const isAvailable = await isWithinOpeningHours(
             selectedBarberId,
@@ -180,9 +244,6 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
               onSelect={setSelectedDate}
               disabled={isDateDisabled}
               className="rounded-md border"
-              modifiers={{
-                unavailable: disabledDates
-              }}
             />
           )}
         </div>
