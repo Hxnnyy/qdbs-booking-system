@@ -19,6 +19,10 @@ interface GuestBookingWorkflowProps {
   isLoading: boolean;
   fetchBarberServices: (barberId: string) => Promise<void>;
   calendarEvents?: CalendarEvent[];
+  availableTimeSlots?: string[];
+  isLoadingTimeSlots?: boolean;
+  isCheckingDates?: boolean;
+  isDateDisabled?: (date: Date) => boolean;
 }
 
 const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
@@ -30,7 +34,11 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   existingBookings,
   isLoading,
   fetchBarberServices,
-  calendarEvents = []
+  calendarEvents = [],
+  availableTimeSlots = [],
+  isLoadingTimeSlots = false,
+  isCheckingDates = false,
+  isDateDisabled = () => false
 }) => {
   // Import the workflow logic from our custom hook
   const {
@@ -91,6 +99,10 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         handlers={handlers}
         allEvents={calendarEvents}
         selectedBarberId={formState.selectedBarber}
+        availableTimeSlots={availableTimeSlots}
+        isLoadingTimeSlots={isLoadingTimeSlots}
+        isCheckingDates={isCheckingDates}
+        isDateDisabled={isDateDisabled}
       />
     </div>
   );
