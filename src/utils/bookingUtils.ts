@@ -72,14 +72,14 @@ export const isWithinOpeningHours = async (
       .select('*')
       .eq('barber_id', barberId)
       .eq('day_of_week', dayOfWeek)
-      .single();
+      .maybeSingle(); // Changed from .single() to .maybeSingle() to handle cases where no hours exist
     
     if (error) {
       console.error('Error fetching opening hours:', error);
       return false;
     }
     
-    // If the barber is closed on this day, return false
+    // If no opening hours found or the barber is closed on this day, return false
     if (!openingHours || openingHours.is_closed) {
       return false;
     }
@@ -103,6 +103,44 @@ export const isWithinOpeningHours = async (
     );
   } catch (error) {
     console.error('Error checking opening hours:', error);
+    return false;
+  }
+};
+
+// New function to check if a barber has any available slots on a specific day
+export const hasAvailableSlotsOnDay = async (
+  barberId: string | null,
+  date: Date,
+  serviceDuration: number = 60
+): Promise<boolean> => {
+  if (!barberId) return false;
+
+  try {
+    // Get the day of week
+    const dayOfWeek = date.getDay();
+    
+    // Check if barber works on this day
+    const { data: openingHours, error } = await supabase
+      .from('opening_hours')
+      .select('*')
+      .eq('barber_id', barberId)
+      .eq('day_of_week', dayOfWeek)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching opening hours:', error);
+      return false;
+    }
+    
+    // If no opening hours found or the barber is closed on this day, return false
+    if (!openingHours || openingHours.is_closed) {
+      return false;
+    }
+    
+    // If barber works on this day, we consider it as having available slots
+    return true;
+  } catch (error) {
+    console.error('Error checking available slots:', error);
     return false;
   }
 };
