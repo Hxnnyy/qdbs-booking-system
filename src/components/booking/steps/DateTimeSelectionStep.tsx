@@ -2,12 +2,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { CalendarEvent } from '@/types/calendar';
 import { ExistingBooking } from '@/types/booking';
+import { toast } from 'sonner';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -26,6 +27,7 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedBarberId?: string;
   serviceDuration?: number;
   existingBookings?: ExistingBooking[];
+  error?: string | null;
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -38,8 +40,26 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   availableTimeSlots,
   isLoadingTimeSlots,
   isCheckingDates,
-  isDateDisabled
+  isDateDisabled,
+  error,
+  selectedBarberId,
+  serviceDuration,
+  existingBookings
 }) => {
+  // Function to retry loading calendar if it fails
+  const handleRetryCalendar = () => {
+    if (selectedBarberId && serviceDuration && existingBookings) {
+      toast.info("Retrying calendar load...");
+      // This will trigger a re-render and restart the calendar loading process
+      setSelectedDate(undefined);
+      setTimeout(() => {
+        setSelectedDate(new Date());
+      }, 100);
+    } else {
+      toast.error("Missing required information. Please go back and try again.");
+    }
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -54,12 +74,30 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
                 </div>
               </div>
             )}
+            
+            {error && (
+              <div className="absolute inset-0 bg-background/90 flex justify-center items-center z-10 rounded-md">
+                <div className="flex flex-col items-center space-y-4 p-6 text-center">
+                  <span className="text-sm text-destructive font-medium">Failed to load calendar</span>
+                  <p className="text-sm text-muted-foreground">Unable to check date availability. Please try again.</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleRetryCalendar}
+                    className="mt-2 flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" /> Retry
+                  </Button>
+                </div>
+              </div>
+            )}
+            
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
               disabled={isDateDisabled}
-              className="rounded-md border-0"
+              className="rounded-md border-0 pointer-events-auto"
             />
           </div>
         </div>

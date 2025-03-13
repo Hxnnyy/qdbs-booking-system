@@ -46,7 +46,8 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   const { 
     isDateDisabled, 
     isCheckingDates,
-    checkMonthAvailability 
+    checkMonthAvailability,
+    error: calendarError
   } = useDateAvailability(
     formState.selectedBarber,
     formState.selectedServiceDetails?.duration,
@@ -95,7 +96,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleSubmit
   };
 
-  console.log("GuestBookingWorkflow render - isCheckingDates:", isCheckingDates);
+  console.log("GuestBookingWorkflow render - isCheckingDates:", isCheckingDates, "calendarError:", calendarError);
 
   if (isLoading && !showSuccess) {
     return (
@@ -126,6 +127,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         isLoadingTimeSlots={isLoadingTimeSlots}
         isCheckingDates={isCheckingDates}
         isDateDisabled={isDateDisabled}
+        error={calendarError}
       />
     </div>
   );

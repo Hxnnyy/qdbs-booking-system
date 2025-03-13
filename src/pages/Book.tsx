@@ -34,6 +34,7 @@ const Book = () => {
     isLoadingTimeSlots,
     isCheckingDates,
     bookingLoading,
+    calendarError,
 
     // Setters
     setSelectedDate,
@@ -120,6 +121,7 @@ const Book = () => {
                 isLoadingTimeSlots={isLoadingTimeSlots}
                 isCheckingDates={isCheckingDates}
                 isDateDisabled={isDateDisabled}
+                error={calendarError}
               />
             )}
             

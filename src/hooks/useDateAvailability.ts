@@ -5,6 +5,7 @@ import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
 import { ExistingBooking } from '@/types/booking';
+import { toast } from 'sonner';
 
 export const useDateAvailability = (
   selectedBarber: string | null, 
@@ -13,6 +14,7 @@ export const useDateAvailability = (
 ) => {
   const [disabledDates, setDisabledDates] = useState<Date[]>([]);
   const [isCheckingDates, setIsCheckingDates] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   
   const today = startOfToday();
   const maxDate = addMonths(today, 6);
@@ -47,11 +49,12 @@ export const useDateAvailability = (
   const checkMonthAvailability = useCallback(async (
     existingBookings: ExistingBooking[] = []
   ) => {
-    // Reset state before starting checks
-    setDisabledDates([]);
+    // Reset error state before starting
+    setError(null);
     
     // Early return if prerequisites aren't met
     if (!selectedBarber || !serviceDuration) {
+      console.log("Early return from checkMonthAvailability - missing barber or service duration");
       setIsCheckingDates(false);
       return;
     }
@@ -59,6 +62,8 @@ export const useDateAvailability = (
     setIsCheckingDates(true);
     
     try {
+      console.log("Starting availability check with barber:", selectedBarber, "service duration:", serviceDuration);
+      
       // Add a small delay to ensure UI updates properly
       await new Promise(resolve => setTimeout(resolve, 100));
       
@@ -77,15 +82,24 @@ export const useDateAvailability = (
       
       // If no days to check, finish early
       if (daysToCheck.length === 0) {
+        console.log("No days to check after filtering holidays");
         setIsCheckingDates(false);
         return;
       }
       
-      const unavailableDays = [];
+      const unavailableDays: Date[] = [];
       
       // Process in smaller batches to avoid UI freezing
       const batchSize = 5;
       for (let i = 0; i < daysToCheck.length; i += batchSize) {
+        // Set a timeout for each batch to prevent long-running operations
+        const batchTimeout = setTimeout(() => {
+          console.log("Batch operation timed out");
+          setIsCheckingDates(false);
+          setError("Operation timed out. Please try again.");
+          toast.error("Calendar availability check timed out. Please try again.");
+        }, 10000); // 10 second timeout
+        
         const batch = daysToCheck.slice(i, i + batchSize);
         
         // Prevent infinite loops by checking if component is still mounted
@@ -96,6 +110,7 @@ export const useDateAvailability = (
           const results = await Promise.all(
             batch.map(async (date) => {
               try {
+                console.log("Checking slots for date:", date);
                 const hasSlots = await hasAvailableSlotsOnDay(
                   selectedBarber, 
                   date, 
@@ -112,6 +127,9 @@ export const useDateAvailability = (
             })
           );
           
+          // Clear the timeout as the batch completed successfully
+          clearTimeout(batchTimeout);
+          
           // Filter out days with no available slots
           results.forEach(({ date, hasSlots }) => {
             if (!hasSlots) {
@@ -119,14 +137,18 @@ export const useDateAvailability = (
             }
           });
         } catch (error) {
+          clearTimeout(batchTimeout);
           console.error('Error processing batch:', error);
           // Continue to next batch on error
         }
       }
       
+      console.log("Finished availability check, unavailable days:", unavailableDays.length);
       setDisabledDates(unavailableDays);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking month availability:', error);
+      setError(error.message || "Failed to load calendar data");
+      toast.error("Failed to load calendar. Please try again.");
     } finally {
       // Ensure loading state is always turned off
       setIsCheckingDates(false);
@@ -137,6 +159,7 @@ export const useDateAvailability = (
     isDateDisabled,
     disabledDates,
     isCheckingDates,
+    error,
     today,
     maxDate,
     checkMonthAvailability,
