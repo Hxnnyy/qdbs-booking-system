@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
+import { CalendarEvent } from '@/types/calendar';
+import { ExistingBooking } from '@/types/booking';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -19,10 +21,11 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   isLoadingTimeSlots: boolean;
   isCheckingDates: boolean;
   isDateDisabled: (date: Date) => boolean;
-  allEvents?: any;
+  // Add optional props that are passed but not directly used in this component
+  allEvents?: CalendarEvent[];
   selectedBarberId?: string;
   serviceDuration?: number;
-  existingBookings?: any[];
+  existingBookings?: ExistingBooking[];
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -42,10 +45,10 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           <h3 className="text-xl font-bold mb-4 font-playfair">Select Date</h3>
-          <div className="relative">
+          <div className="relative rounded-md border overflow-hidden">
             {isCheckingDates && (
               <div className="absolute inset-0 bg-background/70 flex justify-center items-center z-10 rounded-md">
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col items-center space-y-2">
                   <Spinner className="h-8 w-8" />
                   <span className="text-sm">Checking availability...</span>
                 </div>
@@ -56,7 +59,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
               selected={selectedDate}
               onSelect={setSelectedDate}
               disabled={isDateDisabled}
-              className="rounded-md border pointer-events-auto"
+              className="rounded-md border-0"
             />
           </div>
         </div>

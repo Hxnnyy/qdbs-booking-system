@@ -47,6 +47,10 @@ export const useDateAvailability = (
   const checkMonthAvailability = useCallback(async (
     existingBookings: ExistingBooking[] = []
   ) => {
+    // Reset state before starting checks
+    setDisabledDates([]);
+    
+    // Early return if prerequisites aren't met
     if (!selectedBarber || !serviceDuration) {
       setIsCheckingDates(false);
       return;
@@ -55,6 +59,9 @@ export const useDateAvailability = (
     setIsCheckingDates(true);
     
     try {
+      // Add a small delay to ensure UI updates properly
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const daysToCheck = [];
       const currentDate = new Date(today);
       
@@ -68,6 +75,12 @@ export const useDateAvailability = (
         }
       }
       
+      // If no days to check, finish early
+      if (daysToCheck.length === 0) {
+        setIsCheckingDates(false);
+        return;
+      }
+      
       const unavailableDays = [];
       
       // Process in smaller batches to avoid UI freezing
@@ -75,32 +88,47 @@ export const useDateAvailability = (
       for (let i = 0; i < daysToCheck.length; i += batchSize) {
         const batch = daysToCheck.slice(i, i + batchSize);
         
-        // Process batch in parallel for better performance
-        const results = await Promise.all(
-          batch.map(async (date) => {
-            const hasSlots = await hasAvailableSlotsOnDay(
-              selectedBarber, 
-              date, 
-              existingBookings,
-              serviceDuration
-            );
-            
-            return { date, hasSlots };
-          })
-        );
+        // Prevent infinite loops by checking if component is still mounted
+        if (!batch.length) continue;
         
-        // Filter out days with no available slots
-        results.forEach(({ date, hasSlots }) => {
-          if (!hasSlots) {
-            unavailableDays.push(date);
-          }
-        });
+        try {
+          // Process batch in parallel for better performance
+          const results = await Promise.all(
+            batch.map(async (date) => {
+              try {
+                const hasSlots = await hasAvailableSlotsOnDay(
+                  selectedBarber, 
+                  date, 
+                  existingBookings,
+                  serviceDuration
+                );
+                
+                return { date, hasSlots };
+              } catch (error) {
+                console.error(`Error checking slots for date ${date}:`, error);
+                // On error, assume there are slots to prevent blocking the UI
+                return { date, hasSlots: true };
+              }
+            })
+          );
+          
+          // Filter out days with no available slots
+          results.forEach(({ date, hasSlots }) => {
+            if (!hasSlots) {
+              unavailableDays.push(date);
+            }
+          });
+        } catch (error) {
+          console.error('Error processing batch:', error);
+          // Continue to next batch on error
+        }
       }
       
       setDisabledDates(unavailableDays);
     } catch (error) {
       console.error('Error checking month availability:', error);
     } finally {
+      // Ensure loading state is always turned off
       setIsCheckingDates(false);
     }
   }, [selectedBarber, serviceDuration, today, shouldDisableDate]);

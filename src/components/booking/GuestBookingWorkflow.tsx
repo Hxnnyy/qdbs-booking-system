@@ -56,6 +56,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   // Fetch availability data when barber or service changes
   React.useEffect(() => {
     if (formState.selectedBarber && formState.selectedServiceDetails) {
+      console.log("Starting availability check for guest booking");
       checkMonthAvailability(existingBookings);
     }
   }, [formState.selectedBarber, formState.selectedServiceDetails, existingBookings, checkMonthAvailability]);
@@ -93,6 +94,8 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleBackToVerification,
     handleSubmit
   };
+
+  console.log("GuestBookingWorkflow render - isCheckingDates:", isCheckingDates);
 
   if (isLoading && !showSuccess) {
     return (
