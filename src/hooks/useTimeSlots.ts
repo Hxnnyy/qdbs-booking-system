@@ -5,8 +5,8 @@ import { ExistingBooking } from '@/types/booking';
 import { filterTimeSlots } from '@/utils/bookingTimeUtils';
 
 export const useTimeSlots = (
-  selectedDate: Date | undefined,
-  selectedBarber: string | null,
+  selectedDate: Date | undefined, 
+  selectedBarber: string | null, 
   selectedServiceDetails: Service | null,
   existingBookings: ExistingBooking[]
 ) => {
