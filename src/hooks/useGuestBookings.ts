@@ -1,9 +1,8 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { isBarberOnHoliday } from '@/utils/calendarUtils';
+import { isBarberOnHoliday } from '@/utils/bookingUpdateUtils';
 
 interface GuestBooking {
   id: string;
@@ -27,8 +26,6 @@ interface CreateGuestBookingParams {
   notes?: string;
 }
 
-// Define a constant for the guest user ID
-// This should be a UUID that is reserved for guest bookings
 const GUEST_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 export const useGuestBookings = () => {
@@ -92,14 +89,12 @@ export const useGuestBookings = () => {
     try {
       setIsLoading(true);
 
-      // 1. Verify the booking code
       const booking = await verifyBooking(bookingId, phone, code);
 
       if (!booking) {
         throw new Error('Invalid booking code or booking not found');
       }
 
-      // 2. Cancel the booking
       const { error } = await supabase
         .from('bookings')
         .update({ status: 'cancelled' })
@@ -128,21 +123,18 @@ export const useGuestBookings = () => {
     try {
       setIsLoading(true);
       
-      // 1. Verify the booking code
       const booking = await verifyBooking(bookingId, phone, code);
       
       if (!booking) {
         throw new Error('Invalid booking code or booking not found');
       }
       
-      // 2. Check if the barber is on holiday for the new date
       const isHoliday = await isBarberOnHoliday(booking.barber_id, new Date(newBookingDate));
       
       if (isHoliday) {
         throw new Error('Cannot reschedule to this date as the barber is on holiday');
       }
       
-      // 3. Update the booking
       const { error } = await supabase
         .from('bookings')
         .update({
@@ -168,20 +160,16 @@ export const useGuestBookings = () => {
     try {
       setIsLoading(true);
       
-      // Generate a 6-digit verification code
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // Include guest info and verification code in notes
       const formattedNotes = `Guest booking by ${params.guest_name} (${params.guest_phone}). Verification code: ${verificationCode}${params.notes ? `. Notes: ${params.notes}` : ''}`;
       
-      // Check if barber is on holiday
       const isHoliday = await isBarberOnHoliday(params.barber_id, new Date(params.booking_date));
       
       if (isHoliday) {
         throw new Error('Cannot book on this date as the barber is on holiday');
       }
       
-      // Create the booking with guest_email field
       const { data, error } = await supabase
         .from('bookings')
         .insert({
@@ -205,9 +193,6 @@ export const useGuestBookings = () => {
       
       toast.success('Booking created successfully!');
       
-      // Create the booking result to return
-      // Note: We're not sending SMS here anymore to avoid duplication
-      // The SMS will be sent from the useBookingWorkflow hook
       return {
         ...data,
         bookingCode: verificationCode

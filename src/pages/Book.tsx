@@ -14,7 +14,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Scissors, Clock, ArrowRight, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Service } from '@/supabase-types';
-import { isBarberOnHoliday } from '@/utils/calendarUtils';
+import { isBarberOnHoliday } from '@/utils/bookingUpdateUtils';
+import { useCalendarBookings } from '@/hooks/useCalendarBookings';
+import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 
 interface TimeSlotProps {
   time: string;
@@ -45,6 +47,7 @@ const Book = () => {
   const { services, isLoading: servicesLoading } = useServices();
   const { createBooking, isLoading: bookingLoading } = useBookings();
   const { user } = useAuth();
+  const { allEvents, isLoading: calendarLoading } = useCalendarBookings();
 
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
   const [barberServices, setBarberServices] = useState<Service[]>([]);
@@ -67,7 +70,7 @@ const Book = () => {
     '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
   ];
 
-  const isLoading = barbersLoading || servicesLoading || bookingLoading || isLoadingBarberServices || isLoadingBookings;
+  const isLoading = barbersLoading || servicesLoading || bookingLoading || isLoadingBarberServices || isLoadingBookings || calendarLoading;
 
   const fetchBarberServices = async (barberId: string) => {
     try {
@@ -110,7 +113,7 @@ const Book = () => {
       setIsLoadingBookings(true);
       const formattedDate = format(date, 'yyyy-MM-dd');
       
-      const isHoliday = await isBarberOnHoliday(barberId, date);
+      const isHoliday = isBarberHolidayDate(allEvents, date, barberId);
       
       if (isHoliday) {
         toast.error('Barber is on holiday on this date. Please select another date.');
@@ -220,6 +223,12 @@ const Book = () => {
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
+      const isHoliday = isBarberHolidayDate(allEvents, selectedDate, selectedBarber);
+      if (isHoliday) {
+        toast.error('Cannot book on this date as the barber is on holiday');
+        return;
+      }
+      
       const result = await createBooking({
         barber_id: selectedBarber,
         service_id: selectedService,
@@ -307,6 +316,18 @@ const Book = () => {
     }
   };
 
+  const shouldDisableDate = (date: Date) => {
+    if (isBefore(date, today) || isBefore(maxDate, date)) {
+      return true;
+    }
+    
+    if (selectedBarber) {
+      return isBarberHolidayDate(allEvents, date, selectedBarber);
+    }
+    
+    return false;
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -361,7 +382,7 @@ const Book = () => {
             
             {step === 'service' && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {barberServices.map((service) => (
                     <Card 
                       key={service.id}
@@ -401,7 +422,7 @@ const Book = () => {
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
-                      disabled={(date) => isBefore(date, today) || isBefore(maxDate, date)}
+                      disabled={shouldDisableDate}
                       className="rounded-md border"
                     />
                   </div>

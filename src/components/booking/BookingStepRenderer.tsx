@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BookingStep, BookingFormState, BookingStepHandlers, BookingResult } from '@/types/booking';
 import BarberSelectionStep from './steps/BarberSelectionStep';
