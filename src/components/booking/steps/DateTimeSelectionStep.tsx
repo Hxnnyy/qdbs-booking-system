@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -41,20 +42,23 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           <h3 className="text-xl font-bold mb-4 font-playfair">Select Date</h3>
-          {isCheckingDates ? (
-            <div className="flex justify-center items-center h-48">
-              <Spinner className="h-8 w-8" />
-              <span className="ml-2">Checking availability...</span>
-            </div>
-          ) : (
+          <div className="relative">
+            {isCheckingDates && (
+              <div className="absolute inset-0 bg-background/70 flex justify-center items-center z-10 rounded-md">
+                <div className="flex items-center space-x-2">
+                  <Spinner className="h-8 w-8" />
+                  <span className="text-sm">Checking availability...</span>
+                </div>
+              </div>
+            )}
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
               disabled={isDateDisabled}
-              className="rounded-md border"
+              className="rounded-md border pointer-events-auto"
             />
-          )}
+          </div>
         </div>
 
         {selectedDate && (

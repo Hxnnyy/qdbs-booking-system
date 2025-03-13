@@ -47,7 +47,10 @@ export const useDateAvailability = (
   const checkMonthAvailability = useCallback(async (
     existingBookings: ExistingBooking[] = []
   ) => {
-    if (!selectedBarber || !serviceDuration) return;
+    if (!selectedBarber || !serviceDuration) {
+      setIsCheckingDates(false);
+      return;
+    }
     
     setIsCheckingDates(true);
     
@@ -55,6 +58,7 @@ export const useDateAvailability = (
       const daysToCheck = [];
       const currentDate = new Date(today);
       
+      // Only check availability for the next 30 days to improve performance
       for (let i = 0; i < 30; i++) {
         const dateToCheck = new Date(currentDate);
         dateToCheck.setDate(currentDate.getDate() + i);
@@ -66,17 +70,31 @@ export const useDateAvailability = (
       
       const unavailableDays = [];
       
-      for (const date of daysToCheck) {
-        const hasSlots = await hasAvailableSlotsOnDay(
-          selectedBarber, 
-          date, 
-          existingBookings,
-          serviceDuration
+      // Process in smaller batches to avoid UI freezing
+      const batchSize = 5;
+      for (let i = 0; i < daysToCheck.length; i += batchSize) {
+        const batch = daysToCheck.slice(i, i + batchSize);
+        
+        // Process batch in parallel for better performance
+        const results = await Promise.all(
+          batch.map(async (date) => {
+            const hasSlots = await hasAvailableSlotsOnDay(
+              selectedBarber, 
+              date, 
+              existingBookings,
+              serviceDuration
+            );
+            
+            return { date, hasSlots };
+          })
         );
         
-        if (!hasSlots) {
-          unavailableDays.push(date);
-        }
+        // Filter out days with no available slots
+        results.forEach(({ date, hasSlots }) => {
+          if (!hasSlots) {
+            unavailableDays.push(date);
+          }
+        });
       }
       
       setDisabledDates(unavailableDays);
