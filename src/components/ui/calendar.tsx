@@ -50,11 +50,16 @@ function Calendar({
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
+        day_unavailable: "text-muted-foreground opacity-50 bg-gray-100", // Added for unavailable days
         ...classNames,
       }}
       components={{
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
+      }}
+      modifiersClassNames={{
+        unavailable: "text-muted-foreground opacity-50 bg-gray-100",
+        ...props.modifiersClassNames,
       }}
       {...props}
     />

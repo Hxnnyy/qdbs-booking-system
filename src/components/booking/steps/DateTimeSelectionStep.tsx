@@ -8,7 +8,7 @@ import { BookingStepProps } from '@/types/booking';
 import TimeSlot from '../TimeSlot';
 import { CalendarEvent } from '@/types/calendar';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
-import { isWithinOpeningHours } from '@/utils/bookingUtils';
+import { isWithinOpeningHours, hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
 import { Spinner } from '@/components/ui/spinner';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
@@ -20,6 +20,7 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   allEvents?: CalendarEvent[];
   selectedBarberId?: string;
   serviceDuration?: number;
+  existingBookings?: any[];
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -32,13 +33,16 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   onBack,
   allEvents = [],
   selectedBarberId,
-  serviceDuration = 60
+  serviceDuration = 60,
+  existingBookings = []
 }) => {
   const today = startOfToday();
   const maxDate = addMonths(today, 6); // Changed from 30 days to 6 months
   
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState<boolean>(false);
+  const [disabledDates, setDisabledDates] = useState<Date[]>([]);
+  const [isCheckingDates, setIsCheckingDates] = useState<boolean>(false);
   
   const allTimeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
@@ -57,6 +61,55 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
     // Check if the barber is on holiday for this date
     return isBarberHolidayDate(allEvents, date, selectedBarberId);
   };
+  
+  // Pre-check available days for the selected month
+  useEffect(() => {
+    const checkMonthAvailability = async () => {
+      if (!selectedBarberId) return;
+      
+      setIsCheckingDates(true);
+      
+      try {
+        // Generate dates for current month view
+        const daysToCheck = [];
+        const currentDate = new Date(today);
+        
+        // Check next 30 days
+        for (let i = 0; i < 30; i++) {
+          const dateToCheck = new Date(currentDate);
+          dateToCheck.setDate(currentDate.getDate() + i);
+          
+          if (!shouldDisableDate(dateToCheck)) {
+            daysToCheck.push(dateToCheck);
+          }
+        }
+        
+        // Check each date for availability
+        const unavailableDays = [];
+        
+        for (const date of daysToCheck) {
+          const hasSlots = await hasAvailableSlotsOnDay(
+            selectedBarberId, 
+            date, 
+            existingBookings,
+            serviceDuration
+          );
+          
+          if (!hasSlots) {
+            unavailableDays.push(date);
+          }
+        }
+        
+        setDisabledDates(unavailableDays);
+      } catch (error) {
+        console.error('Error checking month availability:', error);
+      } finally {
+        setIsCheckingDates(false);
+      }
+    };
+    
+    checkMonthAvailability();
+  }, [selectedBarberId, serviceDuration]);
   
   // Filter time slots based on barber availability
   useEffect(() => {
@@ -96,18 +149,45 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
     filterTimeSlots();
   }, [selectedDate, selectedBarberId, serviceDuration, isTimeSlotBooked]);
 
+  const isDateDisabled = (date: Date) => {
+    // Basic checks first
+    if (shouldDisableDate(date)) {
+      return true;
+    }
+    
+    // Then check our pre-computed unavailable days
+    return disabledDates.some(disabledDate => 
+      disabledDate.getDate() === date.getDate() && 
+      disabledDate.getMonth() === date.getMonth() && 
+      disabledDate.getFullYear() === date.getFullYear()
+    );
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           <h3 className="text-xl font-bold mb-4 font-playfair">Select Date</h3>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            disabled={shouldDisableDate}
-            className="rounded-md border"
-          />
+          {isCheckingDates ? (
+            <div className="flex justify-center items-center h-48">
+              <Spinner className="h-8 w-8" />
+              <span className="ml-2">Checking availability...</span>
+            </div>
+          ) : (
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              disabled={isDateDisabled}
+              className="rounded-md border"
+              modifiers={{
+                unavailable: disabledDates
+              }}
+              modifiersClassNames={{
+                unavailable: "text-muted-foreground opacity-50"
+              }}
+            />
+          )}
         </div>
 
         {selectedDate && (
@@ -129,7 +209,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
                   <TimeSlot 
                     key={time} 
                     time={time} 
-                    selected={selectedTime === time ? "true" : "false"} 
+                    selected={selectedTime === time}
                     onClick={() => setSelectedTime(time)}
                     disabled={false} // Already filtered out unavailable slots
                   />
