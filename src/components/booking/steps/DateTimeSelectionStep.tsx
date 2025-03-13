@@ -5,20 +5,16 @@ import { Calendar } from '@/components/ui/calendar';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 import TimeSlot from '../TimeSlot';
-import { CalendarEvent } from '@/types/calendar';
 import { Spinner } from '@/components/ui/spinner';
-import { ExistingBooking } from '@/types/booking';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
   setSelectedDate: (date: Date | undefined) => void;
   selectedTime: string | null;
   setSelectedTime: (time: string) => void;
-  isTimeSlotBooked: (time: string) => boolean;
-  allEvents?: CalendarEvent[];
-  selectedBarberId?: string | null;
-  serviceDuration?: number;
-  existingBookings?: ExistingBooking[];
+  isTimeSlotBooked?: (time: string) => boolean;
+  onNext: () => void;
+  onBack: () => void;
   availableTimeSlots: string[];
   isLoadingTimeSlots: boolean;
   isCheckingDates: boolean;
@@ -30,7 +26,6 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   setSelectedDate, 
   selectedTime, 
   setSelectedTime, 
-  isTimeSlotBooked,
   onNext,
   onBack,
   availableTimeSlots,

@@ -8,6 +8,8 @@ import { Service } from '@/supabase-types';
 import BookingStepRenderer from './BookingStepRenderer';
 import { useBookingWorkflow } from '@/hooks/useBookingWorkflow';
 import { CalendarEvent } from '@/types/calendar';
+import { useTimeSlots } from '@/hooks/useTimeSlots';
+import { useDateAvailability } from '@/hooks/useDateAvailability';
 
 interface GuestBookingWorkflowProps {
   barbers: Barber[];
@@ -19,10 +21,6 @@ interface GuestBookingWorkflowProps {
   isLoading: boolean;
   fetchBarberServices: (barberId: string) => Promise<void>;
   calendarEvents?: CalendarEvent[];
-  availableTimeSlots?: string[];
-  isLoadingTimeSlots?: boolean;
-  isCheckingDates?: boolean;
-  isDateDisabled?: (date: Date) => boolean;
 }
 
 const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
@@ -34,12 +32,34 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   existingBookings,
   isLoading,
   fetchBarberServices,
-  calendarEvents = [],
-  availableTimeSlots = [],
-  isLoadingTimeSlots = false,
-  isCheckingDates = false,
-  isDateDisabled = () => false
+  calendarEvents = []
 }) => {
+  // Use the shared time slots hook for consistency
+  const { availableTimeSlots, isLoadingTimeSlots } = useTimeSlots(
+    formState.selectedDate,
+    formState.selectedBarber,
+    formState.selectedServiceDetails,
+    existingBookings
+  );
+
+  // Use the shared date availability hook for consistency
+  const { 
+    isDateDisabled, 
+    isCheckingDates,
+    checkMonthAvailability 
+  } = useDateAvailability(
+    formState.selectedBarber,
+    formState.selectedServiceDetails?.duration,
+    calendarEvents
+  );
+
+  // Fetch availability data when barber or service changes
+  React.useEffect(() => {
+    if (formState.selectedBarber && formState.selectedServiceDetails) {
+      checkMonthAvailability(existingBookings);
+    }
+  }, [formState.selectedBarber, formState.selectedServiceDetails, existingBookings, checkMonthAvailability]);
+
   // Import the workflow logic from our custom hook
   const {
     step,

@@ -18,7 +18,7 @@ export const useDateAvailability = (
   const maxDate = addMonths(today, 6);
   
   // Basic date validation check
-  const shouldDisableDate = (date: Date) => {
+  const shouldDisableDate = useCallback((date: Date) => {
     if (isBefore(date, today) || isBefore(maxDate, date)) {
       return true;
     }
@@ -28,10 +28,10 @@ export const useDateAvailability = (
     }
     
     return false;
-  };
+  }, [selectedBarber, today, maxDate, allEvents]);
   
   // Combined check that includes our computed unavailable days
-  const isDateDisabled = (date: Date) => {
+  const isDateDisabled = useCallback((date: Date) => {
     if (shouldDisableDate(date)) {
       return true;
     }
@@ -41,9 +41,9 @@ export const useDateAvailability = (
       disabledDate.getMonth() === date.getMonth() && 
       disabledDate.getFullYear() === date.getFullYear()
     );
-  };
+  }, [shouldDisableDate, disabledDates]);
   
-  // Define checkMonthAvailability outside of useEffect
+  // Define checkMonthAvailability with useCallback to properly memoize it
   const checkMonthAvailability = useCallback(async (
     existingBookings: ExistingBooking[] = []
   ) => {
@@ -85,7 +85,7 @@ export const useDateAvailability = (
     } finally {
       setIsCheckingDates(false);
     }
-  }, [selectedBarber, serviceDuration, today, maxDate, allEvents]);
+  }, [selectedBarber, serviceDuration, today, shouldDisableDate]);
   
   return {
     isDateDisabled,
@@ -93,6 +93,7 @@ export const useDateAvailability = (
     isCheckingDates,
     today,
     maxDate,
-    checkMonthAvailability
+    checkMonthAvailability,
+    shouldDisableDate
   };
 };
