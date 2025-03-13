@@ -72,8 +72,9 @@ export const useDashboardStats = () => {
               b.status !== 'cancelled')
           : [];
         
-        const completedBookings = allBookings
-          ? allBookings.filter(b => b.status === 'completed')
+        // Fix: Use all non-cancelled bookings for average calculation instead of just completed
+        const validBookings = allBookings
+          ? allBookings.filter(b => b.status !== 'cancelled')
           : [];
         
         // Calculate stats
@@ -86,13 +87,13 @@ export const useDashboardStats = () => {
           ? Math.round(((currentMonthCount - lastMonthCount) / lastMonthCount) * 100) 
           : 0;
         
-        // Calculate average booking value
-        const totalBookingValue = completedBookings.reduce((total, booking) => {
+        // Fix: Calculate average booking value based on all valid bookings
+        const totalBookingValue = validBookings.reduce((total, booking) => {
           return total + (booking.service?.price || 0);
         }, 0);
         
-        const averageBookingValue = completedBookings.length > 0 
-          ? totalBookingValue / completedBookings.length 
+        const averageBookingValue = validBookings.length > 0 
+          ? totalBookingValue / validBookings.length 
           : 0;
         
         // Calculate this month's revenue
