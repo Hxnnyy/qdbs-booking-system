@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -19,6 +18,10 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   isLoadingTimeSlots: boolean;
   isCheckingDates: boolean;
   isDateDisabled: (date: Date) => boolean;
+  allEvents?: any;
+  selectedBarberId?: string;
+  serviceDuration?: number;
+  existingBookings?: any[];
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
