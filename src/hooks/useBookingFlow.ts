@@ -44,7 +44,7 @@ export const useBookingFlow = (
   
   // Custom hooks
   const { barberServices, isLoadingBarberServices, fetchBarberServices } = useBarberServices();
-  const { isDateDisabled, isCheckingDates, today, maxDate } = useDateAvailability(
+  const { isDateDisabled, isCheckingDates, today, maxDate, error: calendarError } = useDateAvailability(
     selectedBarber, 
     selectedServiceDetails?.duration,
     allEvents
@@ -190,6 +190,7 @@ export const useBookingFlow = (
     today,
     maxDate,
     bookingLoading,
+    calendarError,   // Add the missing calendarError property
 
     // Setters
     setSelectedDate,
