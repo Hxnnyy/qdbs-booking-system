@@ -29,8 +29,8 @@ const Dashboard = () => {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatsCard 
-                  title="Upcoming Bookings" 
-                  value={stats.upcomingBookings} 
+                  title="This Month's Bookings" 
+                  value={stats.totalMonthlyBookings} 
                   icon="bookings"
                   change={stats.bookingChangePercent}
                 />

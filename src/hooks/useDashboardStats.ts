@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 interface DashboardStats {
-  upcomingBookings: number;
+  totalMonthlyBookings: number;  // Changed from upcomingBookings
   bookingChangePercent: number;
   averageBookingValue: number;
   monthlyRevenue: number;
@@ -16,7 +16,7 @@ interface DashboardStats {
 
 export const useDashboardStats = () => {
   const [stats, setStats] = useState<DashboardStats>({
-    upcomingBookings: 0,
+    totalMonthlyBookings: 0,  // Changed from upcomingBookings
     bookingChangePercent: 0,
     averageBookingValue: 0,
     monthlyRevenue: 0,
@@ -78,7 +78,7 @@ export const useDashboardStats = () => {
           : [];
         
         // Calculate stats
-        const upcomingBookingsCount = upcomingBookings.length;
+        const totalMonthlyBookings = currentMonthBookings.length;  // Changed from upcomingBookings.length
         
         // Calculate booking percentage change
         const lastMonthCount = lastMonthBookings.length;
@@ -118,7 +118,7 @@ export const useDashboardStats = () => {
         const recentUpcomingBookings = upcomingBookings.slice(0, 5);
 
         setStats({
-          upcomingBookings: upcomingBookingsCount,
+          totalMonthlyBookings: totalMonthlyBookings,  // Changed from upcomingBookings
           bookingChangePercent: bookingChangePercent,
           averageBookingValue: averageBookingValue,
           monthlyRevenue: monthlyRevenue,
