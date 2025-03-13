@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 interface BookingsByBarber {
   barber_id: string;
@@ -43,7 +44,9 @@ export const BarberBookingStats: React.FC<BarberBookingStatsProps> = ({
                 <Progress 
                   value={(barber.count / maxCount) * 100} 
                   className="h-2" 
-                  indicatorClassName={`bg-[${barber.barber_color}]`}
+                  style={{ 
+                    '--progress-color': barber.barber_color 
+                  } as React.CSSProperties}
                 />
               </div>
             ))
