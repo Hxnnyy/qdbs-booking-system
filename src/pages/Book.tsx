@@ -32,7 +32,6 @@ const Book = () => {
     selectedServiceDetails,
     availableTimeSlots,
     isLoadingTimeSlots,
-    disabledDates,
     isCheckingDates,
     bookingLoading,
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { isBefore, startOfToday, addMonths } from 'date-fns';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { CalendarEvent } from '@/types/calendar';
@@ -43,52 +43,48 @@ export const useDateAvailability = (
     );
   };
   
-  // Check available days for the selected month
-  useEffect(() => {
-    const checkMonthAvailability = async (
-      existingBookings: ExistingBooking[] = []
-    ) => {
-      if (!selectedBarber || !serviceDuration) return;
-      
-      setIsCheckingDates(true);
-      
-      try {
-        const daysToCheck = [];
-        const currentDate = new Date(today);
-        
-        for (let i = 0; i < 30; i++) {
-          const dateToCheck = new Date(currentDate);
-          dateToCheck.setDate(currentDate.getDate() + i);
-          
-          if (!shouldDisableDate(dateToCheck)) {
-            daysToCheck.push(dateToCheck);
-          }
-        }
-        
-        const unavailableDays = [];
-        
-        for (const date of daysToCheck) {
-          const hasSlots = await hasAvailableSlotsOnDay(
-            selectedBarber, 
-            date, 
-            existingBookings,
-            serviceDuration
-          );
-          
-          if (!hasSlots) {
-            unavailableDays.push(date);
-          }
-        }
-        
-        setDisabledDates(unavailableDays);
-      } catch (error) {
-        console.error('Error checking month availability:', error);
-      } finally {
-        setIsCheckingDates(false);
-      }
-    };
+  // Define checkMonthAvailability outside of useEffect
+  const checkMonthAvailability = useCallback(async (
+    existingBookings: ExistingBooking[] = []
+  ) => {
+    if (!selectedBarber || !serviceDuration) return;
     
-    return { checkMonthAvailability };
+    setIsCheckingDates(true);
+    
+    try {
+      const daysToCheck = [];
+      const currentDate = new Date(today);
+      
+      for (let i = 0; i < 30; i++) {
+        const dateToCheck = new Date(currentDate);
+        dateToCheck.setDate(currentDate.getDate() + i);
+        
+        if (!shouldDisableDate(dateToCheck)) {
+          daysToCheck.push(dateToCheck);
+        }
+      }
+      
+      const unavailableDays = [];
+      
+      for (const date of daysToCheck) {
+        const hasSlots = await hasAvailableSlotsOnDay(
+          selectedBarber, 
+          date, 
+          existingBookings,
+          serviceDuration
+        );
+        
+        if (!hasSlots) {
+          unavailableDays.push(date);
+        }
+      }
+      
+      setDisabledDates(unavailableDays);
+    } catch (error) {
+      console.error('Error checking month availability:', error);
+    } finally {
+      setIsCheckingDates(false);
+    }
   }, [selectedBarber, serviceDuration, today, maxDate, allEvents]);
   
   return {
@@ -96,6 +92,7 @@ export const useDateAvailability = (
     disabledDates,
     isCheckingDates,
     today,
-    maxDate
+    maxDate,
+    checkMonthAvailability
   };
 };
