@@ -3,25 +3,34 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
+interface BookingsByBarber {
+  barber_id: string;
+  barber_name: string;
+  barber_color: string;
+  count: number;
+}
+
 interface DashboardStats {
-  totalMonthlyBookings: number;  // Changed from upcomingBookings
+  totalMonthlyBookings: number;
   bookingChangePercent: number;
   averageBookingValue: number;
   monthlyRevenue: number;
   bookings: any[];
   recentBookings: any[];
+  barberBookings: BookingsByBarber[];
   isLoading: boolean;
   error: string | null;
 }
 
 export const useDashboardStats = () => {
   const [stats, setStats] = useState<DashboardStats>({
-    totalMonthlyBookings: 0,  // Changed from upcomingBookings
+    totalMonthlyBookings: 0,
     bookingChangePercent: 0,
     averageBookingValue: 0,
     monthlyRevenue: 0,
     bookings: [],
     recentBookings: [],
+    barberBookings: [],
     isLoading: true,
     error: null
   });
@@ -38,6 +47,15 @@ export const useDashboardStats = () => {
         const lastMonthStart = format(startOfMonth(subMonths(now, 1)), 'yyyy-MM-dd');
         const lastMonthEnd = format(endOfMonth(subMonths(now, 1)), 'yyyy-MM-dd');
         const today = format(now, 'yyyy-MM-dd');
+        
+        // Fetch all active barbers first
+        const { data: activeBarbers, error: barbersError } = await supabase
+          .from('barbers')
+          .select('id, name, color')
+          .eq('active', true)
+          .order('name');
+          
+        if (barbersError) throw barbersError;
         
         // Fetch all bookings for calculations
         const { data: allBookings, error: bookingsError } = await supabase
@@ -78,7 +96,7 @@ export const useDashboardStats = () => {
           : [];
         
         // Calculate stats
-        const totalMonthlyBookings = currentMonthBookings.length;  // Changed from upcomingBookings.length
+        const totalMonthlyBookings = currentMonthBookings.length;
         
         // Calculate booking percentage change
         const lastMonthCount = lastMonthBookings.length;
@@ -117,13 +135,34 @@ export const useDashboardStats = () => {
         // Get 5 most recent upcoming bookings for display
         const recentUpcomingBookings = upcomingBookings.slice(0, 5);
 
+        // Calculate bookings per barber
+        const barberBookings: BookingsByBarber[] = [];
+        
+        // Initialize counts for all active barbers (even those with zero bookings)
+        activeBarbers?.forEach(barber => {
+          const barberMonthlyBookings = currentMonthBookings.filter(
+            booking => booking.barber_id === barber.id
+          ).length;
+          
+          barberBookings.push({
+            barber_id: barber.id,
+            barber_name: barber.name,
+            barber_color: barber.color || '#3B82F6',
+            count: barberMonthlyBookings
+          });
+        });
+        
+        // Sort by count descending
+        barberBookings.sort((a, b) => b.count - a.count);
+
         setStats({
-          totalMonthlyBookings: totalMonthlyBookings,  // Changed from upcomingBookings
-          bookingChangePercent: bookingChangePercent,
-          averageBookingValue: averageBookingValue,
-          monthlyRevenue: monthlyRevenue,
+          totalMonthlyBookings,
+          bookingChangePercent,
+          averageBookingValue,
+          monthlyRevenue,
           bookings: chartData,
           recentBookings: recentUpcomingBookings,
+          barberBookings,
           isLoading: false,
           error: null
         });

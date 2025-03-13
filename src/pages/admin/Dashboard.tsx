@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { BookingsChart } from '@/components/admin/BookingsChart';
 import { RecentBookings } from '@/components/admin/RecentBookings';
+import { BarberBookingStats } from '@/components/admin/BarberBookingStats';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 const Dashboard = () => {
@@ -34,10 +35,9 @@ const Dashboard = () => {
                   icon="bookings"
                   change={stats.bookingChangePercent}
                 />
-                <StatsCard 
-                  title="Booking Change" 
-                  value={`${stats.bookingChangePercent > 0 ? '+' : ''}${stats.bookingChangePercent}%`} 
-                  icon="trending"
+                <BarberBookingStats 
+                  barberBookings={stats.barberBookings} 
+                  total={stats.totalMonthlyBookings}
                 />
                 <StatsCard 
                   title="Average Booking Value" 
