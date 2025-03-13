@@ -50,11 +50,12 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   const handleRetryCalendar = () => {
     if (selectedBarberId && serviceDuration && existingBookings) {
       toast.info("Retrying calendar load...");
-      // This will trigger a re-render and restart the calendar loading process
+      // Force a re-render by temporarily clearing the selected date
       setSelectedDate(undefined);
+      // Then set it back to today after a short delay
       setTimeout(() => {
         setSelectedDate(new Date());
-      }, 100);
+      }, 300);
     } else {
       toast.error("Missing required information. Please go back and try again.");
     }
@@ -79,7 +80,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
               <div className="absolute inset-0 bg-background/90 flex justify-center items-center z-10 rounded-md">
                 <div className="flex flex-col items-center space-y-4 p-6 text-center">
                   <span className="text-sm text-destructive font-medium">Failed to load calendar</span>
-                  <p className="text-sm text-muted-foreground">Unable to check date availability. Please try again.</p>
+                  <p className="text-sm text-muted-foreground">{error || "Unable to check date availability."}</p>
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -92,13 +93,15 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
               </div>
             )}
             
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              disabled={isDateDisabled}
-              className="rounded-md border-0 pointer-events-auto"
-            />
+            <div className="pointer-events-auto">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                disabled={isDateDisabled}
+                className="rounded-md border-0"
+              />
+            </div>
           </div>
         </div>
 

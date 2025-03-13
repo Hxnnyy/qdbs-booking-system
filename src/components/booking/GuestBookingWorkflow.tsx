@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepTitle } from '@/utils/bookingUtils';
 import { BookingFormState } from '@/types/booking';
@@ -47,7 +47,8 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     isDateDisabled, 
     isCheckingDates,
     checkMonthAvailability,
-    error: calendarError
+    error: calendarError,
+    resetCalendarError
   } = useDateAvailability(
     formState.selectedBarber,
     formState.selectedServiceDetails?.duration,
@@ -55,12 +56,19 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   );
 
   // Fetch availability data when barber or service changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (formState.selectedBarber && formState.selectedServiceDetails) {
       console.log("Starting availability check for guest booking");
-      checkMonthAvailability(existingBookings);
+      // Reset any previous errors before checking availability
+      resetCalendarError();
+      // Add a small delay to ensure UI state is updated
+      const timeoutId = setTimeout(() => {
+        checkMonthAvailability(existingBookings);
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [formState.selectedBarber, formState.selectedServiceDetails, existingBookings, checkMonthAvailability]);
+  }, [formState.selectedBarber, formState.selectedServiceDetails, existingBookings, checkMonthAvailability, resetCalendarError]);
 
   // Import the workflow logic from our custom hook
   const {

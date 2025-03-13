@@ -19,6 +19,11 @@ export const useDateAvailability = (
   const today = startOfToday();
   const maxDate = addMonths(today, 6);
   
+  // Reset error state function
+  const resetCalendarError = useCallback(() => {
+    setError(null);
+  }, []);
+  
   // Basic date validation check
   const shouldDisableDate = useCallback((date: Date) => {
     if (isBefore(date, today) || isBefore(maxDate, date)) {
@@ -98,7 +103,7 @@ export const useDateAvailability = (
           setIsCheckingDates(false);
           setError("Operation timed out. Please try again.");
           toast.error("Calendar availability check timed out. Please try again.");
-        }, 10000); // 10 second timeout
+        }, 15000); // 15 second timeout, increased from 10 seconds
         
         const batch = daysToCheck.slice(i, i + batchSize);
         
@@ -145,13 +150,12 @@ export const useDateAvailability = (
       
       console.log("Finished availability check, unavailable days:", unavailableDays.length);
       setDisabledDates(unavailableDays);
+      setIsCheckingDates(false);
     } catch (error: any) {
       console.error('Error checking month availability:', error);
       setError(error.message || "Failed to load calendar data");
-      toast.error("Failed to load calendar. Please try again.");
-    } finally {
-      // Ensure loading state is always turned off
       setIsCheckingDates(false);
+      toast.error("Failed to load calendar. Please try again.");
     }
   }, [selectedBarber, serviceDuration, today, shouldDisableDate]);
   
@@ -163,6 +167,7 @@ export const useDateAvailability = (
     today,
     maxDate,
     checkMonthAvailability,
-    shouldDisableDate
+    shouldDisableDate,
+    resetCalendarError
   };
 };
