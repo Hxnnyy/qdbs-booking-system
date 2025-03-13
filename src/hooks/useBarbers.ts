@@ -10,16 +10,22 @@ export const useBarbers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBarbers = async () => {
+  const fetchBarbers = async (includeInactive = true) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // @ts-ignore - Supabase types issue
-      const { data, error } = await supabase
+      let query = supabase
         .from('barbers')
-        .select('*')
-        .order('active', { ascending: false })
+        .select('*');
+      
+      // If we don't want inactive barbers, filter them out
+      if (!includeInactive) {
+        query = query.eq('active', true);
+      }
+
+      // @ts-ignore - Supabase types issue
+      const { data, error } = await query.order('active', { ascending: false })
         .order('name');
 
       if (error) throw error;
@@ -91,6 +97,28 @@ export const useBarbers = () => {
 
   useEffect(() => {
     fetchBarbers();
+
+    // Set up real-time subscription for barber status changes
+    const channel = supabase
+      .channel('barber-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'barbers'
+        },
+        (payload) => {
+          console.log('Barber status changed:', payload);
+          fetchBarbers();
+        }
+      )
+      .subscribe();
+
+    // Clean up subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return { 

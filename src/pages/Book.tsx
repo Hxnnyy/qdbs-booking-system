@@ -160,6 +160,12 @@ const Book = () => {
   };
 
   const handleSelectBarber = (barberId: string) => {
+    const selectedBarber = barbers.find(b => b.id === barberId);
+    if (!selectedBarber || !selectedBarber.active) {
+      toast.error("This barber is currently unavailable");
+      return;
+    }
+    
     setSelectedBarber(barberId);
     setSelectedService(null);
     setSelectedServiceDetails(null);
@@ -322,8 +328,11 @@ const Book = () => {
                 {barbers.map((barber) => (
                   <Card 
                     key={barber.id}
-                    className="cursor-pointer transition-all hover:shadow-md"
-                    onClick={() => handleSelectBarber(barber.id)}
+                    className={`transition-all ${barber.active 
+                      ? 'cursor-pointer hover:shadow-md' 
+                      : 'opacity-50 cursor-not-allowed'
+                    }`}
+                    onClick={() => barber.active && handleSelectBarber(barber.id)}
                   >
                     <CardContent className="p-4 flex flex-col items-center text-center">
                       <div className="w-24 h-24 rounded-full bg-gray-200 mb-4 overflow-hidden">
@@ -341,6 +350,9 @@ const Book = () => {
                       </div>
                       <h3 className="font-bold text-lg">{barber.name}</h3>
                       <p className="text-sm text-muted-foreground">{barber.specialty}</p>
+                      {!barber.active && (
+                        <p className="text-sm text-red-500 mt-2">Currently unavailable</p>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

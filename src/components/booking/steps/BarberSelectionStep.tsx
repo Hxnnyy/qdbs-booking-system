@@ -14,13 +14,26 @@ const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
   barbers, 
   onSelectBarber 
 }) => {
+  // Filter barbers to show only active ones first, then inactive ones
+  const sortedBarbers = [...barbers].sort((a, b) => {
+    // Sort by active status first (active barbers first)
+    if (a.active !== b.active) {
+      return a.active ? -1 : 1;
+    }
+    // Then sort by name
+    return a.name.localeCompare(b.name);
+  });
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {barbers.map((barber) => (
+      {sortedBarbers.map((barber) => (
         <Card 
           key={barber.id}
-          className="cursor-pointer transition-all hover:shadow-md"
-          onClick={() => onSelectBarber(barber.id)}
+          className={`transition-all ${barber.active 
+            ? 'cursor-pointer hover:shadow-md' 
+            : 'opacity-50 cursor-not-allowed'
+          }`}
+          onClick={() => barber.active && onSelectBarber(barber.id)}
         >
           <CardContent className="p-4 flex flex-col items-center text-center">
             <div className="w-24 h-24 rounded-full bg-gray-200 mb-4 overflow-hidden">
@@ -38,6 +51,9 @@ const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
             </div>
             <h3 className="font-bold text-lg">{barber.name}</h3>
             <p className="text-sm text-muted-foreground">{barber.specialty}</p>
+            {!barber.active && (
+              <p className="text-sm text-red-500 mt-2">Currently unavailable</p>
+            )}
           </CardContent>
         </Card>
       ))}
