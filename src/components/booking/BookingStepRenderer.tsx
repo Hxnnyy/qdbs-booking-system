@@ -55,6 +55,20 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
     });
   };
 
+  // Get the selected service duration
+  const getServiceDuration = (): number => {
+    if (formState.selectedServiceDetails) {
+      return formState.selectedServiceDetails.duration;
+    }
+    
+    if (formState.selectedService) {
+      const service = services.find(s => s.id === formState.selectedService);
+      return service?.duration || 60; // Default to 60 if not found
+    }
+    
+    return 60; // Default duration
+  };
+
   switch (step) {
     case 'barber':
       return (
@@ -85,6 +99,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           onBack={handlers.handleBackToServices}
           allEvents={allEvents}
           selectedBarberId={selectedBarberId}
+          serviceDuration={getServiceDuration()}
         />
       );
     case 'guest-info':

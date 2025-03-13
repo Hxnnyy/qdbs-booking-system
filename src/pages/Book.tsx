@@ -17,6 +17,7 @@ import { Service } from '@/supabase-types';
 import { isBarberOnHoliday } from '@/utils/bookingUpdateUtils';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
+import { isWithinOpeningHours } from '@/utils/bookingUtils';
 
 interface TimeSlotProps {
   time: string;
@@ -60,6 +61,8 @@ const Book = () => {
   const [existingBookings, setExistingBookings] = useState<any[]>([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState<boolean>(false);
   const [selectedServiceDetails, setSelectedServiceDetails] = useState<Service | null>(null);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState<boolean>(false);
 
   const today = startOfToday();
   const maxDate = addMonths(today, 6);
@@ -160,6 +163,22 @@ const Book = () => {
          timeInMinutes < bookingTimeInMinutes)
       );
     });
+  };
+
+  const isTimeSlotAvailable = async (time: string): Promise<boolean> => {
+    const isBooked = isTimeSlotBooked(time);
+    if (isBooked) return false;
+    
+    if (selectedBarber && selectedDate && selectedServiceDetails) {
+      return await isWithinOpeningHours(
+        selectedBarber,
+        selectedDate,
+        time,
+        selectedServiceDetails.duration
+      );
+    }
+    
+    return true;
   };
 
   const handleSelectBarber = (barberId: string) => {
@@ -328,6 +347,44 @@ const Book = () => {
     return false;
   };
 
+  useEffect(() => {
+    const filterTimeSlots = async () => {
+      if (!selectedDate || !selectedBarber || !selectedServiceDetails) {
+        setAvailableTimeSlots([]);
+        return;
+      }
+      
+      setIsLoadingTimeSlots(true);
+      
+      try {
+        const availableSlots = [];
+        
+        for (const time of timeSlots) {
+          const isAvailable = await isWithinOpeningHours(
+            selectedBarber,
+            selectedDate,
+            time,
+            selectedServiceDetails.duration
+          );
+          
+          if (isAvailable && !isTimeSlotBooked(time)) {
+            availableSlots.push(time);
+          }
+        }
+        
+        setAvailableTimeSlots(availableSlots);
+      } catch (error) {
+        console.error('Error filtering time slots:', error);
+      } finally {
+        setIsLoadingTimeSlots(false);
+      }
+    };
+    
+    if (selectedDate && selectedBarber && selectedServiceDetails) {
+      filterTimeSlots();
+    }
+  }, [selectedDate, selectedBarber, selectedServiceDetails, existingBookings]);
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -430,17 +487,29 @@ const Book = () => {
                   {selectedDate && (
                     <div>
                       <h3 className="text-xl font-bold mb-4 font-playfair">Select Time</h3>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {timeSlots.map((time) => (
-                          <TimeSlot 
-                            key={time} 
-                            time={time} 
-                            selected={selectedTime === time ? "true" : "false"} 
-                            onClick={() => setSelectedTime(time)}
-                            disabled={isTimeSlotBooked(time)}
-                          />
-                        ))}
-                      </div>
+                      
+                      {isLoadingTimeSlots ? (
+                        <div className="flex justify-center items-center h-48">
+                          <Spinner className="h-8 w-8" />
+                        </div>
+                      ) : availableTimeSlots.length === 0 ? (
+                        <div className="text-center p-4 border rounded-md bg-muted">
+                          <p className="text-muted-foreground">No available time slots for this date.</p>
+                          <p className="text-sm mt-2">Please select another date or barber.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {availableTimeSlots.map((time) => (
+                            <TimeSlot 
+                              key={time} 
+                              time={time} 
+                              selected={selectedTime === time ? "true" : "false"} 
+                              onClick={() => setSelectedTime(time)}
+                              disabled={false}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -530,3 +599,4 @@ const Book = () => {
 };
 
 export default Book;
+
