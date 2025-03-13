@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BookingStep, BookingFormState, BookingStepHandlers, BookingResult } from '@/types/booking';
 import BarberSelectionStep from './steps/BarberSelectionStep';
@@ -10,7 +11,6 @@ import ConfirmationStep from './steps/ConfirmationStep';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
-import { isTimeSlotBooked } from '@/utils/bookingUtils';
 
 interface BookingStepRendererProps {
   step: BookingStep;
@@ -41,16 +41,21 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   allEvents = [],
   selectedBarberId
 }) => {
-  const checkTimeSlotBooked = (time: string) => {
+  const isTimeSlotBooked = (time: string) => {
     if (!formState.selectedDate) return false;
     
-    return isTimeSlotBooked(
-      time, 
-      formState.selectedServiceDetails, 
-      existingBookings
-    );
+    const formattedDate = formState.selectedDate.toISOString().split('T')[0];
+    
+    return existingBookings.some(booking => {
+      return (
+        booking.booking_date === formattedDate &&
+        booking.booking_time === time &&
+        booking.barber_id === formState.selectedBarber
+      );
+    });
   };
 
+  // Get the selected service duration
   const getServiceDuration = (): number => {
     if (formState.selectedServiceDetails) {
       return formState.selectedServiceDetails.duration;
@@ -89,7 +94,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           setSelectedDate={(date) => updateFormState({ selectedDate: date })}
           selectedTime={formState.selectedTime}
           setSelectedTime={(time) => updateFormState({ selectedTime: time })}
-          isTimeSlotBooked={checkTimeSlotBooked}
+          isTimeSlotBooked={isTimeSlotBooked}
           onNext={handlers.handleDateTimeComplete}
           onBack={handlers.handleBackToServices}
           allEvents={allEvents}

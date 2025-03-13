@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { format, addDays, isBefore, startOfToday, addMonths, isPast } from 'date-fns';
+import { format, addDays, isBefore, startOfToday, addMonths } from 'date-fns';
 import { BookingStepProps } from '@/types/booking';
 import TimeSlot from '../TimeSlot';
 import { CalendarEvent } from '@/types/calendar';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
-import { isWithinOpeningHours, hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
+import { isWithinOpeningHours } from '@/utils/bookingUtils';
 import { Spinner } from '@/components/ui/spinner';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
@@ -39,8 +39,6 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState<boolean>(false);
-  const [disabledDates, setDisabledDates] = useState<Date[]>([]);
-  const [isCheckingDates, setIsCheckingDates] = useState<boolean>(false);
   
   const allTimeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
@@ -52,61 +50,13 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   // Function to check if a date should be disabled
   const shouldDisableDate = (date: Date) => {
     // Check if date is before today or after max booking window
-    if (isPast(date) && !isBefore(date, today)) {
-      return true;
-    }
-    
-    if (isBefore(maxDate, date)) {
+    if (isBefore(date, today) || isBefore(maxDate, date)) {
       return true;
     }
     
     // Check if the barber is on holiday for this date
-    if (isBarberHolidayDate(allEvents, date, selectedBarberId)) {
-      return true;
-    }
-    
-    // Check if date has been marked as disabled (no available slots)
-    return disabledDates.some(disabledDate => 
-      disabledDate.getFullYear() === date.getFullYear() &&
-      disabledDate.getMonth() === date.getMonth() &&
-      disabledDate.getDate() === date.getDate()
-    );
+    return isBarberHolidayDate(allEvents, date, selectedBarberId);
   };
-  
-  // Effect to calculate and mark days with no available slots
-  useEffect(() => {
-    const checkAvailableSlots = async () => {
-      if (!selectedBarberId) return;
-      
-      setIsCheckingDates(true);
-      const unavailableDates: Date[] = [];
-      
-      // Check next 30 days
-      for (let i = 0; i < 30; i++) {
-        const date = addDays(today, i);
-        
-        // Skip if already known to be holiday
-        if (isBarberHolidayDate(allEvents, date, selectedBarberId)) {
-          continue;
-        }
-        
-        const hasSlots = await hasAvailableSlotsOnDay(
-          selectedBarberId, 
-          date,
-          serviceDuration
-        );
-        
-        if (!hasSlots) {
-          unavailableDates.push(date);
-        }
-      }
-      
-      setDisabledDates(unavailableDates);
-      setIsCheckingDates(false);
-    };
-    
-    checkAvailableSlots();
-  }, [selectedBarberId, allEvents, serviceDuration]);
   
   // Filter time slots based on barber availability
   useEffect(() => {
@@ -151,20 +101,13 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           <h3 className="text-xl font-bold mb-4 font-playfair">Select Date</h3>
-          {isCheckingDates ? (
-            <div className="flex justify-center items-center h-48">
-              <Spinner className="h-8 w-8" />
-              <p className="ml-2 text-muted-foreground">Checking available days...</p>
-            </div>
-          ) : (
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              disabled={shouldDisableDate}
-              className="rounded-md border"
-            />
-          )}
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            disabled={shouldDisableDate}
+            className="rounded-md border"
+          />
         </div>
 
         {selectedDate && (
