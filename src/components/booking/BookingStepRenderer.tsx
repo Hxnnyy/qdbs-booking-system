@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BookingStep, BookingFormState, BookingStepHandlers, BookingResult } from '@/types/booking';
 import BarberSelectionStep from './steps/BarberSelectionStep';
@@ -29,7 +30,6 @@ interface BookingStepRendererProps {
   isLoadingTimeSlots: boolean;
   isCheckingDates: boolean;
   isDateDisabled: (date: Date) => boolean;
-  error?: string | null;
 }
 
 const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
@@ -48,8 +48,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   availableTimeSlots = [],
   isLoadingTimeSlots = false,
   isCheckingDates = false,
-  isDateDisabled = () => false,
-  error = null
+  isDateDisabled = () => false
 }) => {
   const checkTimeSlotBooked = (time: string) => {
     if (!formState.selectedDate || !formState.selectedServiceDetails) {
@@ -109,7 +108,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           isLoadingTimeSlots={isLoadingTimeSlots}
           isCheckingDates={isCheckingDates}
           isDateDisabled={isDateDisabled}
-          error={error}
         />
       );
     case 'guest-info':

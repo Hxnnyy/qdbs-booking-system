@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, addDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isBarberOnHoliday } from '@/utils/calendarUtils';
@@ -132,14 +131,6 @@ export const useGuestBookingForm = () => {
       fetchExistingBookings(formState.selectedBarber, formState.selectedDate);
     }
   }, [formState.selectedBarber, formState.selectedDate]);
-
-  // Effect to update selectedServiceDetails when selectedService changes
-  useEffect(() => {
-    if (formState.selectedService) {
-      const serviceDetails = barberServices.find(s => s.id === formState.selectedService) || null;
-      updateFormState({ selectedServiceDetails: serviceDetails });
-    }
-  }, [formState.selectedService, barberServices]);
 
   return {
     formState,

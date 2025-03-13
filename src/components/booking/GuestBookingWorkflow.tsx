@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepTitle } from '@/utils/bookingUtils';
 import { BookingFormState } from '@/types/booking';
@@ -8,8 +8,6 @@ import { Service } from '@/supabase-types';
 import BookingStepRenderer from './BookingStepRenderer';
 import { useBookingWorkflow } from '@/hooks/useBookingWorkflow';
 import { CalendarEvent } from '@/types/calendar';
-import { useTimeSlots } from '@/hooks/useTimeSlots';
-import { useDateAvailability } from '@/hooks/useDateAvailability';
 
 interface GuestBookingWorkflowProps {
   barbers: Barber[];
@@ -21,6 +19,10 @@ interface GuestBookingWorkflowProps {
   isLoading: boolean;
   fetchBarberServices: (barberId: string) => Promise<void>;
   calendarEvents?: CalendarEvent[];
+  availableTimeSlots?: string[];
+  isLoadingTimeSlots?: boolean;
+  isCheckingDates?: boolean;
+  isDateDisabled?: (date: Date) => boolean;
 }
 
 const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
@@ -32,44 +34,12 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   existingBookings,
   isLoading,
   fetchBarberServices,
-  calendarEvents = []
+  calendarEvents = [],
+  availableTimeSlots = [],
+  isLoadingTimeSlots = false,
+  isCheckingDates = false,
+  isDateDisabled = () => false
 }) => {
-  // Use the shared time slots hook for consistency
-  const { availableTimeSlots, isLoadingTimeSlots } = useTimeSlots(
-    formState.selectedDate,
-    formState.selectedBarber,
-    formState.selectedServiceDetails,
-    existingBookings
-  );
-
-  // Use the shared date availability hook for consistency
-  const { 
-    isDateDisabled, 
-    isCheckingDates,
-    checkMonthAvailability,
-    error: calendarError,
-    resetCalendarError
-  } = useDateAvailability(
-    formState.selectedBarber,
-    formState.selectedServiceDetails?.duration,
-    calendarEvents
-  );
-
-  // Fetch availability data when barber or service changes
-  useEffect(() => {
-    if (formState.selectedBarber && formState.selectedServiceDetails) {
-      console.log("Starting availability check for guest booking");
-      // Reset any previous errors before checking availability
-      resetCalendarError();
-      // Add a small delay to ensure UI state is updated
-      const timeoutId = setTimeout(() => {
-        checkMonthAvailability(existingBookings);
-      }, 100);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [formState.selectedBarber, formState.selectedServiceDetails, existingBookings, checkMonthAvailability, resetCalendarError]);
-
   // Import the workflow logic from our custom hook
   const {
     step,
@@ -104,8 +74,6 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleSubmit
   };
 
-  console.log("GuestBookingWorkflow render - isCheckingDates:", isCheckingDates, "calendarError:", calendarError);
-
   if (isLoading && !showSuccess) {
     return (
       <div className="flex justify-center py-12">
@@ -135,7 +103,6 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         isLoadingTimeSlots={isLoadingTimeSlots}
         isCheckingDates={isCheckingDates}
         isDateDisabled={isDateDisabled}
-        error={calendarError}
       />
     </div>
   );
