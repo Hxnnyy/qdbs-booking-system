@@ -1,8 +1,9 @@
+
 import { Service } from '@/supabase-types';
 
 export interface TimeSlotProps {
   time: string;
-  selected: string;
+  selected: string | boolean;
   onClick: () => void;
   disabled?: boolean;
 }
