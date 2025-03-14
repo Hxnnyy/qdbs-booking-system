@@ -83,43 +83,7 @@ const AdminManagement = () => {
     setIsLoading(true);
     
     try {
-      // First check if the user exists in profiles
-      const profileQuery: ProfileQueryResponse = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .limit(1);
-      
-      const { data: profileData, error: profileError } = profileQuery;
-      
-      if (profileError) {
-        throw new Error('Error checking user profile');
-      }
-      
-      // If profile exists, update it
-      if (profileData && profileData.length > 0) {
-        const profileId = profileData[0].id;
-        
-        const updateResult: MutationResponse = await supabase
-          .from('profiles')
-          .update({ 
-            is_admin: true,
-            is_super_admin: makeSuperAdmin 
-          })
-          .eq('id', profileId);
-          
-        if (updateResult.error) {
-          throw new Error('Failed to update user profile');
-        }
-        
-        toast.success(`${makeSuperAdmin ? 'Super Admin' : 'Admin'} privileges granted to ${email}`);
-        setEmail('');
-        setMakeSuperAdmin(false);
-        fetchAdmins();
-        return;
-      }
-      
-      // If no profile, try to get user ID by email
+      // First check if the user exists in auth.users via RPC function
       const rpcResult: RPCResponse = await supabase.rpc('get_user_id_by_email', {
         user_email: email
       });
@@ -127,21 +91,59 @@ const AdminManagement = () => {
       const { data: userId, error: userIdError } = rpcResult;
       
       if (userIdError || !userId) {
-        throw new Error('User not found');
+        console.error("User ID lookup error:", userIdError);
+        throw new Error('User not found. Ensure the email is registered in the system.');
       }
       
-      // Create a profile for the user
-      const insertResult: MutationResponse = await supabase
+      console.log('Found user with ID:', userId);
+      
+      // Check if profile exists for this user
+      const profileQuery: ProfileQueryResponse = await supabase
         .from('profiles')
-        .insert({
-          id: userId,
-          email: email,
-          is_admin: true,
-          is_super_admin: makeSuperAdmin
-        });
+        .select('*')
+        .eq('id', userId)
+        .limit(1);
+      
+      const { data: profileData, error: profileError } = profileQuery;
+      
+      if (profileError) {
+        console.error("Profile query error:", profileError);
+        throw new Error('Error checking user profile');
+      }
+      
+      if (profileData && profileData.length > 0) {
+        // Profile exists, update it
+        console.log('Updating existing profile for:', email);
         
-      if (insertResult.error) {
-        throw new Error('Failed to create user profile');
+        const updateResult: MutationResponse = await supabase
+          .from('profiles')
+          .update({ 
+            is_admin: true,
+            is_super_admin: makeSuperAdmin 
+          })
+          .eq('id', userId);
+          
+        if (updateResult.error) {
+          console.error("Profile update error:", updateResult.error);
+          throw new Error('Failed to update user profile');
+        }
+      } else {
+        // Profile doesn't exist, create it
+        console.log('Creating new profile for:', email);
+        
+        const insertResult: MutationResponse = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: email,
+            is_admin: true,
+            is_super_admin: makeSuperAdmin
+          });
+          
+        if (insertResult.error) {
+          console.error("Profile insert error:", insertResult.error);
+          throw new Error('Failed to create user profile');
+        }
       }
       
       toast.success(`${makeSuperAdmin ? 'Super Admin' : 'Admin'} privileges granted to ${email}`);
