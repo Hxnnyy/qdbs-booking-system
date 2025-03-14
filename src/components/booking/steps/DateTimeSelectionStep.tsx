@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 import TimeSlot from '../TimeSlot';
 import { CalendarEvent } from '@/types/calendar';
@@ -23,6 +23,7 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   isLoadingTimeSlots: boolean;
   isCheckingDates: boolean;
   isDateDisabled: (date: Date) => boolean;
+  timeSlotError?: string | null;
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -36,8 +37,18 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   availableTimeSlots,
   isLoadingTimeSlots,
   isCheckingDates,
-  isDateDisabled
+  isDateDisabled,
+  timeSlotError
 }) => {
+  const handleRetry = () => {
+    // Re-trigger the date selection to refresh time slots
+    if (selectedDate) {
+      const refreshDate = new Date(selectedDate);
+      setSelectedDate(undefined);
+      setTimeout(() => setSelectedDate(refreshDate), 100);
+    }
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -66,6 +77,17 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
             {isLoadingTimeSlots ? (
               <div className="flex justify-center items-center h-48">
                 <Spinner className="h-8 w-8" />
+              </div>
+            ) : timeSlotError ? (
+              <div className="text-center p-4 border rounded-md bg-muted flex flex-col items-center">
+                <p className="text-muted-foreground mb-4">{timeSlotError}</p>
+                <Button 
+                  variant="secondary" 
+                  onClick={handleRetry}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" /> Retry
+                </Button>
               </div>
             ) : availableTimeSlots.length === 0 ? (
               <div className="text-center p-4 border rounded-md bg-muted">

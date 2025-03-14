@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepTitle } from '@/utils/bookingUtils';
 import { BookingFormState } from '@/types/booking';
@@ -8,6 +7,9 @@ import { Service } from '@/supabase-types';
 import BookingStepRenderer from './BookingStepRenderer';
 import { useBookingWorkflow } from '@/hooks/useBookingWorkflow';
 import { CalendarEvent } from '@/types/calendar';
+import { isTimeSlotBooked, isWithinOpeningHours, hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GuestBookingWorkflowProps {
   barbers: Barber[];
@@ -40,7 +42,6 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   isCheckingDates = false,
   isDateDisabled = () => false
 }) => {
-  // Import the workflow logic from our custom hook
   const {
     step,
     showSuccess,
@@ -59,7 +60,146 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleSubmit
   } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services);
 
-  // Create an object of all the handlers to pass to the step renderer
+  const [calculatedTimeSlots, setCalculatedTimeSlots] = useState<string[]>([]);
+  const [isCalculatingTimeSlots, setIsCalculatingTimeSlots] = useState<boolean>(false);
+  const [timeSlotError, setTimeSlotError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const calculateAvailableTimeSlots = async () => {
+      if (!formState.selectedDate || !formState.selectedBarber || !formState.selectedServiceDetails) {
+        setCalculatedTimeSlots([]);
+        return;
+      }
+      
+      setIsCalculatingTimeSlots(true);
+      setTimeSlotError(null);
+      
+      try {
+        const slots = await fetchBarberTimeSlots(
+          formState.selectedBarber, 
+          formState.selectedDate, 
+          formState.selectedServiceDetails.duration
+        );
+        
+        setCalculatedTimeSlots(slots);
+      } catch (error) {
+        console.error('Error calculating time slots:', error);
+        setTimeSlotError('Failed to load available time slots');
+        toast.error('Failed to load available time slots');
+      } finally {
+        setIsCalculatingTimeSlots(false);
+      }
+    };
+    
+    calculateAvailableTimeSlots();
+  }, [formState.selectedDate, formState.selectedBarber, formState.selectedServiceDetails, existingBookings]);
+
+  const fetchBarberTimeSlots = async (barberId: string, date: Date, serviceDuration: number) => {
+    try {
+      const dayOfWeek = date.getDay();
+      
+      const { data, error } = await supabase
+        .from('opening_hours')
+        .select('*')
+        .eq('barber_id', barberId)
+        .eq('day_of_week', dayOfWeek)
+        .maybeSingle();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (!data || data.is_closed) {
+        return [];
+      }
+      
+      const slots = [];
+      let currentTime = data.open_time;
+      const closeTime = data.close_time;
+      
+      let [openHours, openMinutes] = currentTime.split(':').map(Number);
+      const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
+      
+      const closeTimeInMinutes = closeHours * 60 + closeMinutes;
+      
+      while (true) {
+        const timeInMinutes = openHours * 60 + openMinutes;
+        if (timeInMinutes >= closeTimeInMinutes) {
+          break;
+        }
+        
+        const formattedHours = openHours.toString().padStart(2, '0');
+        const formattedMinutes = openMinutes.toString().padStart(2, '0');
+        const timeSlot = `${formattedHours}:${formattedMinutes}`;
+        
+        const isBooked = isTimeSlotBooked(
+          timeSlot, 
+          formState.selectedServiceDetails, 
+          existingBookings
+        );
+        
+        const withinHours = await isWithinOpeningHours(
+          barberId,
+          date,
+          timeSlot,
+          serviceDuration
+        );
+        
+        if (!isBooked && withinHours) {
+          slots.push(timeSlot);
+        }
+        
+        openMinutes += 30;
+        if (openMinutes >= 60) {
+          openHours += 1;
+          openMinutes -= 60;
+        }
+      }
+      
+      return slots;
+    } catch (error) {
+      console.error('Error fetching barber time slots:', error);
+      return [];
+    }
+  };
+
+  const checkDateAvailability = async (date: Date): Promise<boolean> => {
+    if (!formState.selectedBarber || !formState.selectedServiceDetails) return false;
+    
+    try {
+      return await hasAvailableSlotsOnDay(
+        formState.selectedBarber,
+        date,
+        existingBookings,
+        formState.selectedServiceDetails.duration
+      );
+    } catch (error) {
+      console.error('Error checking date availability:', error);
+      return false;
+    }
+  };
+
+  const checkIsDateDisabled = (date: Date): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (date < today) {
+      return true;
+    }
+    
+    if (calendarEvents.some(event => 
+      event.barberId === formState.selectedBarber && 
+      event.status === 'holiday' &&
+      new Date(event.start).getDate() === date.getDate() &&
+      new Date(event.start).getMonth() === date.getMonth() &&
+      new Date(event.start).getFullYear() === date.getFullYear()
+    )) {
+      return true;
+    }
+    
+    return false;
+  };
+
   const handlers = {
     handleSelectBarber,
     handleSelectService,
@@ -99,10 +239,11 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         handlers={handlers}
         allEvents={calendarEvents}
         selectedBarberId={formState.selectedBarber}
-        availableTimeSlots={availableTimeSlots}
-        isLoadingTimeSlots={isLoadingTimeSlots}
+        availableTimeSlots={calculatedTimeSlots}
+        isLoadingTimeSlots={isCalculatingTimeSlots}
         isCheckingDates={isCheckingDates}
-        isDateDisabled={isDateDisabled}
+        isDateDisabled={checkIsDateDisabled}
+        timeSlotError={timeSlotError}
       />
     </div>
   );

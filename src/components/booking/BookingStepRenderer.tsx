@@ -25,11 +25,12 @@ interface BookingStepRendererProps {
   bookingResult: BookingResult | null;
   handlers: BookingStepHandlers;
   allEvents?: CalendarEvent[];
-  selectedBarberId?: string;
+  selectedBarberId?: string | null;
   availableTimeSlots: string[];
   isLoadingTimeSlots: boolean;
   isCheckingDates: boolean;
   isDateDisabled: (date: Date) => boolean;
+  timeSlotError?: string | null;
 }
 
 const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
@@ -48,7 +49,8 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   availableTimeSlots = [],
   isLoadingTimeSlots = false,
   isCheckingDates = false,
-  isDateDisabled = () => false
+  isDateDisabled = () => false,
+  timeSlotError = null
 }) => {
   const checkTimeSlotBooked = (time: string) => {
     if (!formState.selectedDate || !formState.selectedServiceDetails) {
@@ -108,6 +110,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           isLoadingTimeSlots={isLoadingTimeSlots}
           isCheckingDates={isCheckingDates}
           isDateDisabled={isDateDisabled}
+          timeSlotError={timeSlotError}
         />
       );
     case 'guest-info':

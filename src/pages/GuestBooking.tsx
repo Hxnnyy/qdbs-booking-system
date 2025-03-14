@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useBarbers } from '@/hooks/useBarbers';
 import { useServices } from '@/hooks/useServices';
@@ -8,6 +8,7 @@ import StepIndicator from '@/components/booking/StepIndicator';
 import GuestBookingWorkflow from '@/components/booking/GuestBookingWorkflow';
 import { BookingStep } from '@/types/booking';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
+import { supabase } from '@/integrations/supabase/client';
 
 const GuestBooking = () => {
   const { barbers, isLoading: barbersLoading } = useBarbers();
@@ -35,6 +36,28 @@ const GuestBooking = () => {
     
     return formState.bookingComplete === true ? 'confirmation' : 'notes';
   };
+
+  // Pre-fetch opening hours for all barbers to speed up loading
+  const [barberOpeningHours, setBarberOpeningHours] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const fetchAllBarberOpeningHours = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('opening_hours')
+          .select('*')
+          .order('barber_id, day_of_week');
+          
+        if (!error) {
+          setBarberOpeningHours(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching barber opening hours:', error);
+      }
+    };
+    
+    fetchAllBarberOpeningHours();
+  }, []);
 
   return (
     <Layout>

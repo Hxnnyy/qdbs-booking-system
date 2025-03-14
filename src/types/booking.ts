@@ -11,6 +11,7 @@ export interface TimeSlotProps {
 export interface BookingStepProps {
   onNext: () => void;
   onBack?: () => void;
+  timeSlotError?: string | null;
 }
 
 export interface BookingFormState {
