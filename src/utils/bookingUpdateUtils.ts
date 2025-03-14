@@ -1,5 +1,5 @@
 
-import { format } from 'date-fns';
+import { format, isBefore, set, startOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 
 // Update booking time based on drag-and-drop
@@ -34,4 +34,26 @@ export const isBarberOnHoliday = async (barberId: string, date: Date): Promise<b
     console.error('Error in isBarberOnHoliday:', error);
     return false;
   }
+};
+
+// Check if a time slot is in the past (for today's date)
+export const isTimeSlotInPast = (date: Date, timeSlot: string): boolean => {
+  // Only relevant for today's date
+  if (!isSameDay(date, new Date())) {
+    return false;
+  }
+  
+  const [hours, minutes] = timeSlot.split(':').map(Number);
+  const timeSlotDate = set(new Date(date), { hours, minutes });
+  
+  return isBefore(timeSlotDate, new Date());
+};
+
+// Compare if two dates are the same day
+export const isSameDay = (date1: Date, date2: Date): boolean => {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
 };

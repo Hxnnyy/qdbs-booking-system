@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { addDays, isAfter, isBefore, addMonths } from 'date-fns';
@@ -13,6 +14,7 @@ import { CalendarEvent } from '@/types/calendar';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
 import { toast } from 'sonner';
+import { isTimeSlotInPast, isSameDay } from '@/utils/bookingUpdateUtils';
 
 interface ModifyBookingDialogProps {
   isOpen: boolean;
@@ -103,12 +105,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       isSameDay(unavailableDate, date)
     );
   };
-  
-  const isSameDay = (date1: Date, date2: Date) => {
-    return date1.getFullYear() === date2.getFullYear() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getDate() === date2.getDate();
-  };
 
   const handleCalendarContainerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -135,6 +131,18 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const handleDoneSelectingDate = () => {
     setCalendarPopoverOpen(false);
   };
+
+  // Filter available time slots to prevent booking in the past for today
+  const filteredTimeSlots = newBookingDate ? 
+    availableTimeSlots.filter(time => !isTimeSlotInPast(newBookingDate, time)) : 
+    [];
+
+  // Clear selected time if it becomes invalid
+  useEffect(() => {
+    if (newBookingDate && newBookingTime && isTimeSlotInPast(newBookingDate, newBookingTime)) {
+      onTimeSelection('');
+    }
+  }, [newBookingDate, newBookingTime, onTimeSelection]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -201,14 +209,18 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
             {newBookingDate && (
               <div className="space-y-2">
                 <Label>Select New Time</Label>
-                {availableTimeSlots.length === 0 ? (
+                {filteredTimeSlots.length === 0 ? (
                   <div className="text-center p-4 border rounded-md">
-                    <p className="text-muted-foreground">No available time slots for this date.</p>
+                    <p className="text-muted-foreground">
+                      {isSameDay(newBookingDate, new Date()) && isTimeSlotInPast(newBookingDate, "23:59") ? 
+                        "No more available time slots for today." : 
+                        "No available time slots for this date."}
+                    </p>
                     <p className="text-sm text-muted-foreground mt-1">Please select another date.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
-                    {availableTimeSlots.map((time) => (
+                    {filteredTimeSlots.map((time) => (
                       <TimeSlot
                         key={time}
                         time={time}
@@ -230,7 +242,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </Button>
           <Button 
             onClick={onModifyBooking} 
-            disabled={isModifying || !newBookingDate || !newBookingTime || availableTimeSlots.length === 0}
+            disabled={isModifying || !newBookingDate || !newBookingTime || filteredTimeSlots.length === 0}
             className="bg-burgundy hover:bg-burgundy-light"
           >
             {isModifying ? (

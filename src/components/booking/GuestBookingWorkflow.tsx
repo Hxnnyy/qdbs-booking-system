@@ -12,6 +12,7 @@ import { isTimeSlotBooked, isWithinOpeningHours, hasAvailableSlotsOnDay } from '
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
+import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 
 interface GuestBookingWorkflowProps {
   barbers: Barber[];
@@ -93,7 +94,12 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
           formState.selectedServiceDetails.duration
         );
         
-        setCalculatedTimeSlots(slots);
+        // Filter out time slots that are in the past (for today only)
+        const filteredSlots = slots.filter(
+          timeSlot => !isTimeSlotInPast(formState.selectedDate!, timeSlot)
+        );
+        
+        setCalculatedTimeSlots(filteredSlots);
       } catch (error) {
         console.error('Error calculating time slots:', error);
         setTimeSlotError('Failed to load available time slots');

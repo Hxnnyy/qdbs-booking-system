@@ -8,6 +8,7 @@ import TimeSlot from '../TimeSlot';
 import { CalendarEvent } from '@/types/calendar';
 import { Spinner } from '@/components/ui/spinner';
 import { ExistingBooking } from '@/types/booking';
+import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -49,6 +50,18 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
     }
   };
 
+  // Filter time slots to prevent booking in the past for today
+  const filteredTimeSlots = selectedDate ? 
+    availableTimeSlots.filter(time => !isTimeSlotInPast(selectedDate, time)) : 
+    [];
+
+  // Clear the selected time if it's now in the past
+  React.useEffect(() => {
+    if (selectedDate && selectedTime && isTimeSlotInPast(selectedDate, selectedTime)) {
+      setSelectedTime('');
+    }
+  }, [selectedDate, selectedTime, setSelectedTime]);
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -89,14 +102,18 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
                   <RefreshCw className="h-4 w-4" /> Retry
                 </Button>
               </div>
-            ) : availableTimeSlots.length === 0 ? (
+            ) : filteredTimeSlots.length === 0 ? (
               <div className="text-center p-4 border rounded-md bg-muted">
-                <p className="text-muted-foreground">No available time slots for this date.</p>
+                <p className="text-muted-foreground">
+                  {isTimeSlotInPast(selectedDate, '23:59') ? 
+                    "No more available time slots for today." : 
+                    "No available time slots for this date."}
+                </p>
                 <p className="text-sm mt-2">Please select another date or barber.</p>
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {availableTimeSlots.map((time) => (
+                {filteredTimeSlots.map((time) => (
                   <TimeSlot 
                     key={time} 
                     time={time} 
