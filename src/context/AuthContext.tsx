@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +18,8 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   updateProfile: (data: UpdatableProfile) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,7 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user || null);
@@ -44,7 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -69,7 +68,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching profile for userId:', userId);
       
-      // Make sure to use RLS policies correctly now
       const { data, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -93,7 +91,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Is super admin set to:', !!data.is_super_admin);
       } else {
         console.log('No profile found for user, creating one');
-        // If no profile exists yet, create one
         await createInitialProfile(userId);
       }
     } catch (error: any) {
@@ -105,7 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createInitialProfile = async (userId: string) => {
     try {
-      // Create a default profile if none exists
       const { error } = await supabase
         .from('profiles')
         .insert({ id: userId })
@@ -113,7 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      // Fetch the profile we just created
       await fetchProfile(userId);
     } catch (error: any) {
       console.error('Error creating profile:', error.message);
@@ -156,6 +151,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Password reset instructions sent to your email');
     } catch (error: any) {
       toast.error(error.message);
+      throw error;
+    }
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email as string,
+        password: currentPassword,
+      });
+      
+      if (signInError) throw new Error('Current password is incorrect');
+      
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      
+      if (error) throw error;
+      
+      toast.success('Password updated successfully');
+    } catch (error: any) {
+      toast.error(error.message);
+      throw error;
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+        
+      if (profileError) throw profileError;
+      
+      const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+      
+      if (authError) throw authError;
+      
+      await supabase.auth.signOut();
+      
+      toast.success('Your account has been deleted');
+      navigate('/');
+    } catch (error: any) {
+      toast.error(`Failed to delete account: ${error.message}`);
       throw error;
     }
   };
@@ -220,6 +262,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshProfile,
         updateProfile,
         resetPassword,
+        updatePassword,
+        deleteAccount,
       }}
     >
       {children}
