@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching profile for userId:', userId);
       
-      // @ts-ignore - Supabase types issue
+      // Make sure to use RLS policies correctly now
       const { data, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -77,21 +77,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) {
         console.error('Error fetching profile:', profileError.message);
+        setIsLoading(false);
         return;
       }
 
       console.log('Profile data received:', data);
       
-      setProfile(data || null);
-      setIsAdmin(data?.is_admin || false);
-      setIsSuperAdmin(data?.is_super_admin || false);
-      
-      console.log('Is admin set to:', data?.is_admin);
-      console.log('Is super admin set to:', data?.is_super_admin);
+      if (data) {
+        setProfile(data);
+        setIsAdmin(!!data.is_admin);
+        setIsSuperAdmin(!!data.is_super_admin);
+        
+        console.log('Is admin set to:', !!data.is_admin);
+        console.log('Is super admin set to:', !!data.is_super_admin);
+      } else {
+        console.log('No profile found for user, creating one');
+        // If no profile exists yet, create one
+        await createInitialProfile(userId);
+      }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const createInitialProfile = async (userId: string) => {
+    try {
+      // Create a default profile if none exists
+      const { error } = await supabase
+        .from('profiles')
+        .insert({ id: userId })
+        .select();
+      
+      if (error) throw error;
+      
+      // Fetch the profile we just created
+      await fetchProfile(userId);
+    } catch (error: any) {
+      console.error('Error creating profile:', error.message);
     }
   };
 
@@ -105,7 +129,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) throw new Error('No user logged in');
       
-      // @ts-ignore - Supabase types issue
       const { error } = await supabase
         .from('profiles')
         .update(data)

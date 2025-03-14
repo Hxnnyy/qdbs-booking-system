@@ -349,10 +349,22 @@ export type Database = {
         }
         Returns: string
       }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       is_barber_on_holiday: {
         Args: {
           p_barber_id: string
           p_date: string
+        }
+        Returns: boolean
+      }
+      is_super_admin: {
+        Args: {
+          user_id: string
         }
         Returns: boolean
       }
