@@ -5,6 +5,10 @@ import { CalendarEvent } from '@/types/calendar';
  * Extracts holiday events from a list of calendar events for a specific date
  */
 export const getHolidayEventsForDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
+  if (!events || events.length === 0) {
+    return [];
+  }
+
   // Add debug logging to understand what's happening
   console.log("getHolidayEventsForDate - Input date:", date);
   console.log("getHolidayEventsForDate - All events:", events.length);
@@ -33,8 +37,8 @@ export const getHolidayEventsForDate = (events: CalendarEvent[], date: Date): Ca
       console.log("Found holiday event:", event.title, 
         "Date in holiday period:", isDateInHolidayPeriod,
         "AllDay:", isAllDay,
-        "Event start:", event.start.toISOString(),
-        "Event end:", event.end.toISOString(),
+        "Event start:", new Date(event.start).toISOString(),
+        "Event end:", new Date(event.end).toISOString(),
         "Target date:", date.toISOString());
     }
     
@@ -45,14 +49,14 @@ export const getHolidayEventsForDate = (events: CalendarEvent[], date: Date): Ca
   return holidayEvents;
 };
 
-// New function to check if a date is a barber holiday
+// Function to check if a date is a barber holiday
 export const isBarberHolidayDate = (
   allEvents: CalendarEvent[],
   date: Date,
-  barberId?: string
+  barberId?: string | null
 ): boolean => {
-  // If we don't have a barberId, we can't determine holidays
-  if (!barberId) return false;
+  // If we don't have events or a barberId, we can't determine holidays
+  if (!allEvents || allEvents.length === 0 || !barberId) return false;
   
   // Filter events to only get holidays for this barber
   const barberEvents = barberId 

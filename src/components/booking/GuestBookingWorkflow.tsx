@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepTitle } from '@/utils/bookingUtils';
@@ -10,6 +11,7 @@ import { CalendarEvent } from '@/types/calendar';
 import { isTimeSlotBooked, isWithinOpeningHours, hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 
 interface GuestBookingWorkflowProps {
   barbers: Barber[];
@@ -75,6 +77,16 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
       setTimeSlotError(null);
       
       try {
+        // Check if the barber is on holiday
+        const isHoliday = isBarberHolidayDate(calendarEvents, formState.selectedDate, formState.selectedBarber);
+        
+        if (isHoliday) {
+          setTimeSlotError('Barber is on holiday on this date.');
+          setCalculatedTimeSlots([]);
+          setIsCalculatingTimeSlots(false);
+          return;
+        }
+        
         const slots = await fetchBarberTimeSlots(
           formState.selectedBarber, 
           formState.selectedDate, 
@@ -92,7 +104,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     };
     
     calculateAvailableTimeSlots();
-  }, [formState.selectedDate, formState.selectedBarber, formState.selectedServiceDetails, existingBookings]);
+  }, [formState.selectedDate, formState.selectedBarber, formState.selectedServiceDetails, existingBookings, calendarEvents]);
 
   const fetchBarberTimeSlots = async (barberId: string, date: Date, serviceDuration: number) => {
     try {
@@ -122,6 +134,35 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
       
       const closeTimeInMinutes = closeHours * 60 + closeMinutes;
       
+      // Get lunch break times for this barber
+      const { data: lunchBreaks, error: lunchError } = await supabase
+        .from('barber_lunch_breaks')
+        .select('*')
+        .eq('barber_id', barberId)
+        .eq('is_active', true);
+      
+      if (lunchError) {
+        console.error('Error fetching lunch breaks:', lunchError);
+      }
+      
+      // Create a function to check if a time slot overlaps with a lunch break
+      const isLunchBreak = (timeSlot: string) => {
+        if (!lunchBreaks || lunchBreaks.length === 0) return false;
+        
+        const [hours, minutes] = timeSlot.split(':').map(Number);
+        const timeInMinutes = hours * 60 + minutes;
+        
+        return lunchBreaks.some(breakTime => {
+          const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
+          const breakStartMinutes = breakHours * 60 + breakMinutes;
+          const breakEndMinutes = breakStartMinutes + breakTime.duration;
+          
+          // Check if slot starts during lunch break or if service would overlap with lunch break
+          return (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) || 
+                 (timeInMinutes < breakStartMinutes && (timeInMinutes + serviceDuration) > breakStartMinutes);
+        });
+      };
+      
       while (true) {
         const timeInMinutes = openHours * 60 + openMinutes;
         if (timeInMinutes >= closeTimeInMinutes) {
@@ -145,7 +186,9 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
           serviceDuration
         );
         
-        if (!isBooked && withinHours) {
+        const isOnLunchBreak = isLunchBreak(timeSlot);
+        
+        if (!isBooked && withinHours && !isOnLunchBreak) {
           slots.push(timeSlot);
         }
         
@@ -167,6 +210,11 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     if (!formState.selectedBarber || !formState.selectedServiceDetails) return false;
     
     try {
+      // First check if the barber is on holiday
+      if (isBarberHolidayDate(calendarEvents, date, formState.selectedBarber)) {
+        return false;
+      }
+      
       return await hasAvailableSlotsOnDay(
         formState.selectedBarber,
         date,
@@ -187,13 +235,8 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
       return true;
     }
     
-    if (calendarEvents.some(event => 
-      event.barberId === formState.selectedBarber && 
-      event.status === 'holiday' &&
-      new Date(event.start).getDate() === date.getDate() &&
-      new Date(event.start).getMonth() === date.getMonth() &&
-      new Date(event.start).getFullYear() === date.getFullYear()
-    )) {
+    // Check if barber is on holiday
+    if (isBarberHolidayDate(calendarEvents, date, formState.selectedBarber)) {
       return true;
     }
     
