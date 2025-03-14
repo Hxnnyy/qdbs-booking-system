@@ -11,6 +11,8 @@ import TimeSlot from '@/components/booking/TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { CalendarEvent } from '@/types/calendar';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
+import { hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
+import { toast } from 'sonner';
 
 interface ModifyBookingDialogProps {
   isOpen: boolean;
@@ -25,6 +27,7 @@ interface ModifyBookingDialogProps {
   onModifyBooking: () => void;
   allEvents?: CalendarEvent[];
   barberId?: string;
+  existingBookings?: any[];
 }
 
 const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
@@ -39,32 +42,96 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   onTimeSelection,
   onModifyBooking,
   allEvents = [],
-  barberId
+  barberId,
+  existingBookings = []
 }) => {
   const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
+  const [isCheckingDateAvailability, setIsCheckingDateAvailability] = useState(false);
+  const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   
-  // Function to check if a date should be disabled
+  useEffect(() => {
+    if (isOpen && barberId && selectedBooking?.service?.duration) {
+      cacheUnavailableDates();
+    }
+  }, [isOpen, barberId]);
+  
+  const cacheUnavailableDates = async () => {
+    if (!barberId || !selectedBooking?.service?.duration) return;
+    
+    setIsCheckingDateAvailability(true);
+    const unavailable: Date[] = [];
+    
+    const today = new Date();
+    const maxDate = addMonths(today, 3);
+    let checkDate = new Date(today);
+    
+    while (checkDate <= maxDate) {
+      const isHoliday = isBarberHolidayDate(allEvents, checkDate, barberId);
+      
+      if (isHoliday) {
+        unavailable.push(new Date(checkDate));
+      } else {
+        const hasAvailableSlots = await hasAvailableSlotsOnDay(
+          barberId,
+          new Date(checkDate), 
+          existingBookings,
+          selectedBooking?.service?.duration
+        );
+        
+        if (!hasAvailableSlots) {
+          unavailable.push(new Date(checkDate));
+        }
+      }
+      
+      checkDate = addDays(checkDate, 1);
+    }
+    
+    setUnavailableDates(unavailable);
+    setIsCheckingDateAvailability(false);
+  };
+  
   const shouldDisableDate = (date: Date) => {
-    // Check if date is before today or after max booking window
-    if (isBefore(date, addDays(new Date(), 0)) || isAfter(date, addMonths(new Date(), 6))) {
+    if (isBefore(date, addDays(new Date(), 0)) || isAfter(date, addMonths(new Date(), 3))) {
       return true;
     }
     
-    // Check if the barber is on holiday for this date
-    return isBarberHolidayDate(allEvents, date, barberId);
+    if (isBarberHolidayDate(allEvents, date, barberId)) {
+      return true;
+    }
+    
+    return unavailableDates.some(unavailableDate => 
+      isSameDay(unavailableDate, date)
+    );
+  };
+  
+  const isSameDay = (date1: Date, date2: Date) => {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
   };
 
-  // Prevent event propagation to keep popover open when interacting with the calendar
   const handleCalendarContainerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
-  // Update calendar when date is selected
   const handleSelectDate = (date: Date | undefined) => {
+    if (date) {
+      const isHoliday = isBarberHolidayDate(allEvents, date, barberId);
+      
+      if (isHoliday) {
+        toast.error("Barber is not available on this date");
+        return;
+      }
+      
+      if (unavailableDates.some(unavailableDate => isSameDay(unavailableDate, date))) {
+        toast.error("No available time slots on this date");
+        return;
+      }
+    }
+    
     onDateChange(date);
   };
 
-  // Close popover when done selecting
   const handleDoneSelectingDate = () => {
     setCalendarPopoverOpen(false);
   };
@@ -78,7 +145,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
         
         <div className="py-4">
           <div className="space-y-4">
-            {/* Date Selection */}
             <div className="space-y-2">
               <Label>Select New Date</Label>
               <Popover 
@@ -100,14 +166,24 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                   onClick={handleCalendarContainerClick}
                 >
                   <div className="p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newBookingDate}
-                      onSelect={handleSelectDate}
-                      initialFocus
-                      disabled={shouldDisableDate}
-                      className="p-3 pointer-events-auto"
-                    />
+                    {isCheckingDateAvailability ? (
+                      <div className="h-[300px] flex items-center justify-center">
+                        <Spinner className="h-8 w-8" />
+                        <span className="ml-2">Checking availability...</span>
+                      </div>
+                    ) : (
+                      <Calendar
+                        mode="single"
+                        selected={newBookingDate}
+                        onSelect={handleSelectDate}
+                        initialFocus
+                        disabled={shouldDisableDate}
+                        className="p-3 pointer-events-auto"
+                        modifiers={{
+                          unavailable: unavailableDates
+                        }}
+                      />
+                    )}
                     <div className="flex justify-end p-2 border-t">
                       <Button 
                         variant="outline" 
@@ -122,7 +198,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
               </Popover>
             </div>
             
-            {/* Time Selection */}
             {newBookingDate && (
               <div className="space-y-2">
                 <Label>Select New Time</Label>

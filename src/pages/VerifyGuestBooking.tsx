@@ -33,6 +33,7 @@ const VerifyGuestBooking = () => {
     cancelBooking,
     allCalendarEvents,
     verifyBooking,
+    existingBookings
   } = useManageGuestBooking(bookingId, verificationCode);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,6 +116,7 @@ const VerifyGuestBooking = () => {
               onModifyBooking={modifyBooking}
               allEvents={allCalendarEvents}
               barberId={booking?.barber_id}
+              existingBookings={existingBookings}
             />
           </>
         )}
