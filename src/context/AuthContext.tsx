@@ -66,6 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for userId:', userId);
+      
       // @ts-ignore - Supabase types issue
       const { data, error: profileError } = await supabase
         .from('profiles')
@@ -78,9 +80,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log('Profile data received:', data);
+      
       setProfile(data || null);
       setIsAdmin(data?.is_admin || false);
       setIsSuperAdmin(data?.is_super_admin || false);
+      
+      console.log('Is admin set to:', data?.is_admin);
+      console.log('Is super admin set to:', data?.is_super_admin);
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
     } finally {

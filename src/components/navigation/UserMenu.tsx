@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { User, LogOut, Calendar, Settings } from 'lucide-react';
+import { User, LogOut, Calendar, Settings, Shield } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +59,14 @@ const UserMenu = () => {
                     <span>Admin Panel</span>
                   </Link>
                 </DropdownMenuItem>
+                {isSuperAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/admin-management" className="cursor-pointer">
+                      <Shield className="mr-2 h-4 w-4" />
+                      <span>Admin Management</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
               </>
             )}
             <DropdownMenuSeparator />
