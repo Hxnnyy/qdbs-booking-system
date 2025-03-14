@@ -19,12 +19,14 @@ const MakeJosephAdmin = () => {
         });
         
         if (userError || !userId) {
+          console.error('User not found error:', userError);
           setStatus('User not found');
           toast.error('User not found');
           return;
         }
         
         setStatus(`User found with ID: ${userId}`);
+        console.log('Found user with ID:', userId);
         
         // Check if user has a profile
         const { data: profile, error: profileError } = await supabase
@@ -33,9 +35,13 @@ const MakeJosephAdmin = () => {
           .eq('id', userId)
           .single();
         
+        console.log('Profile check result:', profile, profileError);
+        
         if (profileError) {
           // Create profile if not exists
           setStatus('Creating profile...');
+          console.log('Creating new profile for user:', userId);
+          
           const { error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -46,11 +52,16 @@ const MakeJosephAdmin = () => {
             });
           
           if (insertError) {
+            console.error('Insert error:', insertError);
             throw insertError;
           }
+          
+          console.log('Profile created successfully');
         } else {
           // Update existing profile
           setStatus('Updating profile...');
+          console.log('Updating existing profile:', profile);
+          
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ 
@@ -60,12 +71,29 @@ const MakeJosephAdmin = () => {
             .eq('id', userId);
           
           if (updateError) {
+            console.error('Update error:', updateError);
             throw updateError;
           }
+          
+          console.log('Profile updated successfully');
         }
         
-        setStatus('Admin privileges granted successfully!');
-        toast.success('SuperAdmin privileges granted to josephdraper@hotmail.com');
+        // Verify the update was successful
+        const { data: verifyProfile, error: verifyError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+          
+        console.log('Verification check:', verifyProfile, verifyError);
+        
+        if (verifyProfile && verifyProfile.is_super_admin) {
+          setStatus('Admin privileges granted successfully!');
+          toast.success('SuperAdmin privileges granted to josephdraper@hotmail.com');
+        } else {
+          setStatus('Update verification failed. Please check database logs.');
+          toast.error('Failed to verify SuperAdmin privileges were set correctly');
+        }
       } catch (error: any) {
         console.error('Error:', error);
         setStatus(`Error: ${error.message}`);
