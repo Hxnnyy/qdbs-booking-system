@@ -54,6 +54,8 @@ const VerifyGuestBooking = () => {
       // Clean the phone number by removing spaces, dashes, etc.
       const cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
       
+      // Fetch the booking information using just the code and phone number
+      // instead of relying on the bookingId from URL which might be missing
       const result = await verifyBooking(cleanedPhone);
       console.log('Verification result:', result);
       

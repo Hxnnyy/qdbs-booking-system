@@ -26,18 +26,18 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
       setIsLoading(true);
       setError(null);
 
-      if (!bookingId || !verificationCode) {
-        console.error('Missing booking information', { bookingId, verificationCode });
-        setError('Missing booking information');
+      if (!verificationCode) {
+        console.error('Missing verification code');
+        setError('Verification code is required');
         return false;
       }
 
-      console.log('Verifying booking with:', { bookingId, phone, code: verificationCode });
+      console.log('Verifying booking with:', { phone, code: verificationCode });
       
       // Format the verification code
       const formattedCode = verificationCode.trim();
       
-      // Query all bookings with the given ID
+      // Query all bookings with the verification code in the notes field
       const { data, error: fetchError } = await supabase
         .from('bookings')
         .select(`
@@ -45,8 +45,8 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
           barber:barber_id(*),
           service:service_id(*)
         `)
-        .eq('id', bookingId)
-        .single();
+        .eq('status', 'confirmed')
+        .ilike('notes', `%Verification code: ${formattedCode}%`);
 
       if (fetchError) {
         console.error('Error fetching booking:', fetchError);
@@ -54,44 +54,33 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         return false;
       }
 
-      if (!data) {
-        console.error('Booking not found');
-        setError('Booking not found');
+      if (!data || data.length === 0) {
+        console.error('No booking found with this verification code');
+        setError('No booking found with this verification code');
         return false;
       }
 
-      console.log('Booking found:', data);
-      console.log('Notes field:', data.notes);
+      console.log('All bookings found with this code:', data);
       
-      // Check if the code is in the notes field (case insensitive)
-      const notesLower = (data.notes || '').toLowerCase();
-      const formattedCodeLower = formattedCode.toLowerCase();
-      
-      console.log('Looking for verification code pattern:', `verification code: ${formattedCodeLower}`);
-      const isCodeInNotes = notesLower.includes(`verification code: ${formattedCodeLower}`);
-      
-      // Check if the phone number is in the notes (more flexible matching)
+      // Filter the bookings by phone number
       const phoneDigitsOnly = phone.replace(/\D/g, '');
-      console.log('Phone digits only:', phoneDigitsOnly);
-      const phonePattern = new RegExp(phoneDigitsOnly);
-      const isPhoneInNotes = phonePattern.test(notesLower);
+      console.log('Looking for phone number:', phoneDigitsOnly);
       
-      console.log('Verification checks:', { 
-        isCodeInNotes, 
-        isPhoneInNotes,
-        phoneDigitsOnly,
-        notesContains: notesLower
+      // Find the booking that contains the phone number in the notes
+      const matchingBooking = data.find(booking => {
+        const notes = (booking.notes || '').toLowerCase();
+        return notes.includes(phoneDigitsOnly);
       });
-
-      if (!isCodeInNotes || !isPhoneInNotes) {
-        console.error('Invalid verification code or phone number');
-        setError('Invalid verification code or phone number');
+      
+      if (!matchingBooking) {
+        console.error('No booking found with this phone number and verification code');
+        setError('No booking found with this phone number and verification code');
         return false;
       }
 
       // Success - set booking data and verified state
-      console.log('Verification successful!');
-      setBooking(data);
+      console.log('Verification successful! Found booking:', matchingBooking);
+      setBooking(matchingBooking);
       setIsVerified(true);
       return true;
     } catch (err: any) {
@@ -119,7 +108,7 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
           .select('booking_time')
           .eq('barber_id', booking.barber_id)
           .eq('booking_date', formattedDate)
-          .neq('id', bookingId)  // Exclude the current booking
+          .neq('id', booking.id)  // Exclude the current booking
           .neq('status', 'cancelled');
 
         if (error) throw error;
@@ -144,7 +133,7 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     };
 
     loadTimeSlots();
-  }, [newBookingDate, booking, bookingId]);
+  }, [newBookingDate, booking]);
 
   // Function to modify booking date/time
   const modifyBooking = async () => {
