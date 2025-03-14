@@ -1,3 +1,4 @@
+
 # Queens Dock Barbershop App
 
 A comprehensive booking and management system for Queen's Dock Barbershop, allowing customers to book appointments with their preferred barbers and enabling staff to manage bookings, barbers, services, and business operations.
@@ -100,10 +101,14 @@ queens-dock-barbershop/
 │   │   └── ...
 │   ├── context/             # React context providers
 │   ├── hooks/               # Custom React hooks
+│   │   └── useBookingQuery.ts  # React Query hooks for bookings
 │   ├── integrations/        # Third-party integrations
 │   ├── lib/                 # Utility libraries
 │   ├── pages/               # Page components
+│   ├── services/            # Backend service interfaces
+│   │   └── bookingService.ts   # Booking data operations
 │   ├── types/               # TypeScript type definitions
+│   │   └── bookingTypes.ts     # Booking type definitions
 │   └── utils/               # Utility functions
 ├── supabase/                # Supabase-related files and functions
 └── ...
@@ -144,56 +149,6 @@ queens-dock-barbershop/
 4. Cancel bookings if necessary
 5. Use the calendar view for visual booking management
 
-## API Documentation
-
-The application uses Supabase for backend functionality, with the following main tables:
-
-- `profiles`: User profiles
-- `barbers`: Barber information
-- `services`: Available services
-- `bookings`: Customer bookings
-- `opening_hours`: Barber working hours
-- `barber_lunch_breaks`: Barber lunch breaks
-- `barber_holidays`: Barber holiday periods
-- `notification_templates`: Email and SMS templates
-
-## Deployment
-
-### Deploying to Lovable
-
-1. Open your project in Lovable
-2. Click on the "Publish" button in the top right
-3. Follow the instructions to deploy your application
-
-### Deploying to Netlify
-
-1. Connect your repository to Netlify
-2. Configure the build settings:
-   - Build command: `npm run build` or `yarn build`
-   - Publish directory: `dist`
-3. Set up the environment variables in Netlify (same as in the `.env` file)
-4. Deploy the application
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Booking conflicts**: Ensure that there are no overlapping bookings or lunch breaks
-2. **Calendar not showing events**: Check that the barber filter is set correctly
-3. **SMS verification not working**: Verify Twilio credentials and phone number format
-
-### Support
-
-For issues or questions, please contact support at [your-email@example.com]
-
-## License
-
-[Your chosen license]
-
-## Credits
-
-This application was built with [Lovable](https://lovable.ai).
-
 ## Data Fetching Architecture
 
 The application uses a layered approach to data fetching and state management:
@@ -226,3 +181,69 @@ This architecture provides:
 - Reusable data fetching logic
 - Optimized performance with caching
 - Consistent error handling
+
+## API Documentation
+
+The application uses Supabase for backend functionality, with the following main tables:
+
+- `profiles`: User profiles
+- `barbers`: Barber information
+- `services`: Available services
+- `bookings`: Customer bookings
+- `opening_hours`: Barber working hours
+- `barber_lunch_breaks`: Barber lunch breaks
+- `barber_holidays`: Barber holiday periods
+- `notification_templates`: Email and SMS templates
+
+## Deployment
+
+### Deploying to Lovable
+
+1. Open your project in Lovable
+2. Click on the "Publish" button in the top right
+3. Follow the instructions to deploy your application
+
+### Deploying to Netlify
+
+1. Connect your repository to Netlify
+2. Configure the build settings:
+   - Build command: `npm run build` or `yarn build`
+   - Publish directory: `dist`
+3. Set up the environment variables in Netlify (same as in the `.env` file)
+4. Deploy the application
+
+## License
+
+MIT License with Commons Clause
+
+Copyright (c) 2023 Queens Dock Barbershop
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+"Commons Clause" License Condition v1.0
+
+The Software is provided to you by the Licensor under the License, as defined below, subject to the following condition.
+
+Without limiting other conditions in the License, the grant of rights under the License will not include, and the License does not grant to you, the right to Sell the Software.
+
+For purposes of the foregoing, "Sell" means practicing any or all of the rights granted to you under the License to provide to third parties, for a fee or other consideration (including without limitation fees for hosting or consulting/ support services related to the Software), a product or service whose value derives, entirely or substantially, from the functionality of the Software.
+
+## Credits
+
+This application was built with [Lovable](https://lovable.ai).
