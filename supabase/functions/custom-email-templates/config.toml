@@ -1,2 +1,12 @@
 
 project_id = "mvcqywuqkeerlmodohgw"
+
+[api]
+enabled = true
+method = ["GET", "POST"]
+
+[api.headers]
+Content-Type = "application/json"
+
+[functions.custom_email_templates.app]
+external_url = "https://mvcqywuqkeerlmodohgw.supabase.co/functions/v1/custom-email-templates"
