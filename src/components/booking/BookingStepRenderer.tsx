@@ -11,7 +11,6 @@ import ConfirmationStep from './steps/ConfirmationStep';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
-import { isTimeSlotBooked } from '@/utils/bookingUtils';
 
 interface BookingStepRendererProps {
   step: BookingStep;
@@ -52,14 +51,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   isDateDisabled = () => false,
   timeSlotError = null
 }) => {
-  const checkTimeSlotBooked = (time: string) => {
-    if (!formState.selectedDate || !formState.selectedServiceDetails) {
-      return false;
-    }
-    
-    return isTimeSlotBooked(time, formState.selectedServiceDetails, existingBookings);
-  };
-
   // Get the selected service duration
   const getServiceDuration = (): number => {
     if (formState.selectedServiceDetails) {
@@ -99,7 +90,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           setSelectedDate={(date) => updateFormState({ selectedDate: date })}
           selectedTime={formState.selectedTime}
           setSelectedTime={(time) => updateFormState({ selectedTime: time })}
-          isTimeSlotBooked={checkTimeSlotBooked}
           onNext={handlers.handleDateTimeComplete}
           onBack={handlers.handleBackToServices}
           allEvents={allEvents}

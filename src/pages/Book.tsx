@@ -107,10 +107,6 @@ const Book = () => {
                 setSelectedDate={setSelectedDate}
                 selectedTime={selectedTime}
                 setSelectedTime={setSelectedTime}
-                isTimeSlotBooked={(time) => {
-                  if (!selectedServiceDetails) return false;
-                  return !availableTimeSlots.includes(time);
-                }}
                 onNext={handleDateTimeComplete}
                 onBack={handleBackToServices}
                 allEvents={allEvents}
