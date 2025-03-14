@@ -40,7 +40,7 @@ type MutationResponse = {
 };
 
 const AdminManagement = () => {
-  const { isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [admins, setAdmins] = useState<Profile[]>([]);
@@ -83,6 +83,11 @@ const AdminManagement = () => {
     setIsLoading(true);
     
     try {
+      // Check if the current user is a super admin with appropriate permissions
+      if (!user || !isSuperAdmin) {
+        throw new Error('You must be a super admin to assign admin privileges');
+      }
+      
       // First check if the user exists in auth.users via RPC function
       console.log(`Looking up user with email: ${email}`);
       const rpcResult: RPCResponse = await supabase.rpc('get_user_id_by_email', {
