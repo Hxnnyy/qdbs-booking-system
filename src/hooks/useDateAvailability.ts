@@ -104,7 +104,7 @@ export const useDateAvailability = (
         
         // First, get all holidays in one go
         const barberHolidays = calendarEvents.filter(event => 
-          event.type === 'holiday' && 
+          event.status === 'holiday' && 
           event.barberId === barberId
         );
         
