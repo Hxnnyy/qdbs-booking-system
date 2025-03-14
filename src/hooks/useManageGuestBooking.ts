@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,10 +19,8 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
   const [isCancelling, setIsCancelling] = useState(false);
   const [existingBookings, setExistingBookings] = useState<any[]>([]);
 
-  // Get calendar events for holiday checking
-  const { allEvents } = useCalendarBookings(); 
+  const { allEvents } = useCalendarBookings();
 
-  // Function to verify the booking with phone number and code
   const verifyBooking = async (phone: string) => {
     try {
       setIsLoading(true);
@@ -37,10 +34,8 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
 
       console.log('Verifying booking with:', { phone, code: verificationCode });
       
-      // Format the verification code
       const formattedCode = verificationCode.trim();
       
-      // Query all bookings with the verification code in the notes field
       const { data, error: fetchError } = await supabase
         .from('bookings')
         .select(`
@@ -65,11 +60,9 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
 
       console.log('All bookings found with this code:', data);
       
-      // Filter the bookings by phone number
       const phoneDigitsOnly = phone.replace(/\D/g, '');
       console.log('Looking for phone number:', phoneDigitsOnly);
       
-      // Find the booking that contains the phone number in the notes
       const matchingBooking = data.find(booking => {
         const notes = (booking.notes || '').toLowerCase();
         return notes.includes(phoneDigitsOnly);
@@ -81,7 +74,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         return false;
       }
 
-      // Success - set booking data and verified state
       console.log('Verification successful! Found booking:', matchingBooking);
       setBooking(matchingBooking);
       setIsVerified(true);
@@ -95,7 +87,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     }
   };
 
-  // Fetch existing bookings when date or barber changes
   useEffect(() => {
     const fetchExistingBookings = async () => {
       if (!newBookingDate || !booking?.barber_id) return;
@@ -105,13 +96,12 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         
         const formattedDate = format(newBookingDate, 'yyyy-MM-dd');
         
-        // Get all bookings for this barber on the selected date
         const { data, error } = await supabase
           .from('bookings')
           .select('*, service:service_id(duration)')
           .eq('barber_id', booking.barber_id)
           .eq('booking_date', formattedDate)
-          .neq('id', booking.id)  // Exclude the current booking
+          .neq('id', booking.id)
           .eq('status', 'confirmed');
 
         if (error) throw error;
@@ -128,7 +118,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     fetchExistingBookings();
   }, [newBookingDate, booking]);
 
-  // Calculate available time slots
   useEffect(() => {
     const calculateTimeSlots = async () => {
       if (!newBookingDate || !booking || !booking.barber_id || !booking.service) {
@@ -140,7 +129,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         setIsLoading(true);
         setAvailableTimeSlots([]);
         
-        // Check if barber is on holiday
         const isHoliday = isBarberHolidayDate(allEvents, newBookingDate, booking.barber_id);
         
         if (isHoliday) {
@@ -149,7 +137,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
           return;
         }
         
-        // Fetch barber opening hours for this day
         const dayOfWeek = newBookingDate.getDay();
         
         const { data: openingHours, error: openingHoursError } = await supabase
@@ -167,7 +154,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
           return;
         }
         
-        // Get lunch breaks
         const { data: lunchBreaks, error: lunchBreakError } = await supabase
           .from('barber_lunch_breaks')
           .select('*')
@@ -176,7 +162,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         
         if (lunchBreakError) throw lunchBreakError;
         
-        // Create time slots based on opening hours
         const slots = [];
         let currentTime = openingHours.open_time;
         const closeTime = openingHours.close_time;
@@ -186,7 +171,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         
         const closeTimeInMinutes = closeHours * 60 + closeMinutes;
         
-        // Function to check if a time slot overlaps with any lunch break
         const isLunchBreak = (time: string) => {
           if (!lunchBreaks || lunchBreaks.length === 0) return false;
           
@@ -199,13 +183,11 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
             const breakStartMinutes = breakHours * 60 + breakMinutes;
             const breakEndMinutes = breakStartMinutes + breakTime.duration;
             
-            // Check if slot starts during lunch break or if service would overlap with lunch break
             return (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) || 
                    (timeInMinutes < breakStartMinutes && (timeInMinutes + serviceDuration) > breakStartMinutes);
           });
         };
         
-        // Generate all possible 30-minute slots within opening hours
         while (true) {
           const timeInMinutes = hours * 60 + minutes;
           if (timeInMinutes >= closeTimeInMinutes) {
@@ -216,7 +198,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
           const formattedMinutes = minutes.toString().padStart(2, '0');
           const timeSlot = `${formattedHours}:${formattedMinutes}`;
           
-          // Check various constraints
           const isBooked = isTimeSlotBooked(timeSlot, booking.service, existingBookings);
           const withinHours = await isWithinOpeningHours(
             booking.barber_id,
@@ -230,7 +211,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
             slots.push(timeSlot);
           }
           
-          // Increment by 30 minutes
           minutes += 30;
           if (minutes >= 60) {
             hours += 1;
@@ -250,14 +230,12 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     calculateTimeSlots();
   }, [newBookingDate, booking, existingBookings, allEvents]);
 
-  // Function to modify booking date/time
   const modifyBooking = async () => {
     if (!booking || !newBookingDate || !newBookingTime) return;
     
     try {
       setIsModifying(true);
       
-      // Final validation
       if (!availableTimeSlots.includes(newBookingTime)) {
         toast.error('This time slot is no longer available');
         return;
@@ -275,14 +253,12 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         
       if (error) throw error;
       
-      // Update the local booking data
       setBooking({
         ...booking,
         booking_date: formattedDate,
         booking_time: newBookingTime
       });
       
-      // Reset state
       setNewBookingDate(undefined);
       setNewBookingTime(null);
       setIsDialogOpen(false);
@@ -296,7 +272,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     }
   };
 
-  // Function to cancel booking
   const cancelBooking = async () => {
     if (!booking) return;
     
@@ -312,7 +287,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         
       if (error) throw error;
       
-      // Update the local booking data
       setBooking({
         ...booking,
         status: 'cancelled'
@@ -327,7 +301,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     }
   };
 
-  // Format the booking date/time for display
   const formattedBookingDateTime = booking ? {
     date: format(parseISO(booking.booking_date), 'EEEE, MMMM d, yyyy'),
     time: booking.booking_time
@@ -352,5 +325,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     cancelBooking,
     allCalendarEvents: allEvents,
     verifyBooking,
+    existingBookings,
   };
 };
