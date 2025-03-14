@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Link, useLocation } from 'react-router-dom';
 import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, ShieldIcon, FileUpIcon, ClipboardListIcon, BellIcon, UserIcon } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { isSuperAdmin } = useAuth();
   
   const isActive = (path: string) => {
     if (path === '/admin' && currentPath === '/admin') {
@@ -128,14 +130,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild tooltip="Assign Admin">
-                        <Link to="/admin/assign-admin">
-                          <ShieldIcon className={getIconStyle('/admin/assign-admin')} />
-                          <span>Assign Admin</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {isSuperAdmin && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Admin Management">
+                          <Link to="/admin/admin-management">
+                            <ShieldIcon className={getIconStyle('/admin/admin-management')} />
+                            <span>Admin Management</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

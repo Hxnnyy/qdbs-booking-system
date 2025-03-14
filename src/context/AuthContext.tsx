@@ -15,6 +15,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData: any) => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   refreshProfile: () => Promise<void>;
   updateProfile: (data: UpdatableProfile) => Promise<void>;
 }
@@ -28,6 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -51,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setProfile(null);
           setIsAdmin(false);
+          setIsSuperAdmin(false);
           setIsLoading(false);
         }
       }
@@ -77,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setProfile(data || null);
       setIsAdmin(data?.is_admin || false);
+      setIsSuperAdmin(data?.is_super_admin || false);
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
     } finally {
@@ -166,6 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signUp,
         signOut,
         isAdmin,
+        isSuperAdmin,
         refreshProfile,
         updateProfile,
       }}

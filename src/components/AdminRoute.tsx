@@ -5,10 +5,11 @@ import { Spinner } from '@/components/ui/spinner';
 
 interface AdminRouteProps {
   children: React.ReactNode;
+  superAdminOnly?: boolean;
 }
 
-const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { isAdmin, isLoading } = useAuth();
+const AdminRoute: React.FC<AdminRouteProps> = ({ children, superAdminOnly = false }) => {
+  const { isAdmin, isSuperAdmin, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -18,7 +19,11 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
-  if (!isAdmin) {
+  if (superAdminOnly && !isSuperAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (!isAdmin && !isSuperAdmin) {
     return <Navigate to="/" replace />;
   }
 

@@ -22,7 +22,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import ManageBarbers from "./pages/admin/ManageBarbers";
 import ManageServices from "./pages/admin/ManageServices";
 import ManageBookings from "./pages/admin/ManageBookings";
-import AssignAdmin from "./pages/admin/AssignAdmin";
+import AdminManagement from "./pages/admin/AdminManagement";
 import ImportBookings from './pages/admin/ImportBookings';
 import CalendarView from './pages/admin/CalendarView';
 import NotificationSettings from './pages/admin/NotificationSettings';
@@ -46,7 +46,7 @@ function App() {
               <Route path="/admin/services" element={<AdminRoute><ManageServices /></AdminRoute>} />
               <Route path="/admin/clients" element={<AdminRoute><ManageClients /></AdminRoute>} />
               <Route path="/admin/import-bookings" element={<AdminRoute><ImportBookings /></AdminRoute>} />
-              <Route path="/admin/assign-admin" element={<AdminRoute><AssignAdmin /></AdminRoute>} />
+              <Route path="/admin/admin-management" element={<AdminRoute superAdminOnly={true}><AdminManagement /></AdminRoute>} />
               <Route path="/admin/notifications" element={<AdminRoute><NotificationSettings /></AdminRoute>} />
               <Route path="/" element={<Index />} />
               <Route path="/about" element={<About />} />
