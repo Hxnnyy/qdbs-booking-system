@@ -1,4 +1,3 @@
-
 # Queens Dock Barbershop App
 
 A comprehensive booking and management system for Queen's Dock Barbershop, allowing customers to book appointments with their preferred barbers and enabling staff to manage bookings, barbers, services, and business operations.
@@ -194,3 +193,36 @@ For issues or questions, please contact support at [your-email@example.com]
 ## Credits
 
 This application was built with [Lovable](https://lovable.ai).
+
+## Data Fetching Architecture
+
+The application uses a layered approach to data fetching and state management:
+
+### Service Layer
+The `src/services/` directory contains service modules that handle direct communication with Supabase and encapsulate database operations:
+
+- `bookingService.ts`: Functions for CRUD operations on bookings
+- `timeSlotService.ts`: Manages time slot availability logic
+- Other service files for specific domain functionality
+
+### Hooks Layer
+Custom React hooks in `src/hooks/` use the service layer and provide React components with data and mutations:
+
+- **Standard hooks**: Basic hooks like `useBarbers`, `useServices`, etc.
+- **React Query hooks**: Enhanced hooks like `useBookingQuery` that leverage React Query for caching, deduplication, and optimistic updates
+
+### UI Layer
+Components consume the hooks and focus solely on rendering and user interaction, without direct database access.
+
+### Example Data Flow
+
+1. **Component needs data**: A component like `ManageBookingsWithQuery` needs to display bookings
+2. **Hook manages state**: The component uses `useBookingsQuery(page, pageSize)` from `useBookingQuery.ts`
+3. **Service fetches data**: The hook calls `fetchPaginatedBookings` from `bookingService.ts`
+4. **Caching & updates**: React Query handles caching, refetching, and updates to the UI
+
+This architecture provides:
+- Clear separation of concerns
+- Reusable data fetching logic
+- Optimized performance with caching
+- Consistent error handling
