@@ -84,14 +84,20 @@ const AdminManagement = () => {
     
     try {
       // First check if the user exists in auth.users via RPC function
+      console.log(`Looking up user with email: ${email}`);
       const rpcResult: RPCResponse = await supabase.rpc('get_user_id_by_email', {
-        user_email: email
+        user_email: email.trim()
       });
       
       const { data: userId, error: userIdError } = rpcResult;
       
-      if (userIdError || !userId) {
+      if (userIdError) {
         console.error("User ID lookup error:", userIdError);
+        throw new Error(`Error looking up user: ${userIdError.message}`);
+      }
+      
+      if (!userId) {
+        console.error("No user ID returned for email:", email);
         throw new Error('User not found. Ensure the email is registered in the system.');
       }
       
@@ -108,7 +114,7 @@ const AdminManagement = () => {
       
       if (profileError) {
         console.error("Profile query error:", profileError);
-        throw new Error('Error checking user profile');
+        throw new Error(`Error checking user profile: ${profileError.message}`);
       }
       
       if (profileData && profileData.length > 0) {
@@ -125,7 +131,7 @@ const AdminManagement = () => {
           
         if (updateResult.error) {
           console.error("Profile update error:", updateResult.error);
-          throw new Error('Failed to update user profile');
+          throw new Error(`Failed to update user profile: ${updateResult.error.message}`);
         }
       } else {
         // Profile doesn't exist, create it
@@ -135,14 +141,16 @@ const AdminManagement = () => {
           .from('profiles')
           .insert({
             id: userId,
-            email: email,
+            email: email.trim(),
             is_admin: true,
-            is_super_admin: makeSuperAdmin
+            is_super_admin: makeSuperAdmin,
+            first_name: '', // Adding empty strings for optional fields
+            last_name: ''
           });
           
         if (insertResult.error) {
           console.error("Profile insert error:", insertResult.error);
-          throw new Error('Failed to create user profile');
+          throw new Error(`Failed to create user profile: ${insertResult.error.message}`);
         }
       }
       
