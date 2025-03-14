@@ -155,63 +155,84 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Wrap the content in our standard email template
+    // Wrap the content in our standard email template with same styling as auth emails
     const emailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>${emailSubject}</title>
           <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              line-height: 1.6; 
-              color: #333; 
-              margin: 0; 
-              padding: 0; 
+            body {
+              font-family: 'Playfair Display', serif;
+              margin: 0;
+              padding: 0;
+              background-color: #f8f8f8;
+              color: #333;
             }
-            .email-template { 
-              max-width: 600px; 
-              margin: 0 auto; 
-              background-color: #ffffff; 
+            .email-container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
             }
-            .header { 
-              background-color: #ffffff; 
-              padding: 20px; 
-              text-align: center; 
-              border-bottom: 1px solid #eaeaea; 
+            .email-header {
+              background-color: #800020; /* Burgundy */
+              padding: 24px;
+              text-align: center;
             }
-            .header h1 { 
-              color: #800020; 
-              font-size: 24px; 
-              margin: 0; 
+            .email-header h1 {
+              margin: 0;
+              color: white;
+              font-size: 28px;
+              font-weight: 400;
             }
-            .content { 
-              padding: 20px; 
+            .email-body {
+              background-color: white;
+              padding: 30px;
+              border: 1px solid #e9e9e9;
             }
-            .footer { 
-              text-align: center; 
-              font-size: 14px; 
-              color: #666; 
-              border-top: 1px solid #eaeaea; 
-              padding: 20px; 
-              background-color: #f9f9f9; 
+            .email-footer {
+              text-align: center;
+              padding: 20px;
+              font-size: 14px;
+              color: #666;
+            }
+            .button {
+              display: inline-block;
+              background-color: #800020; /* Burgundy */
+              color: white;
+              text-decoration: none;
+              padding: 12px 24px;
+              border-radius: 0;
+              margin: 20px 0;
+              font-weight: bold;
+            }
+            .code-container {
+              background-color: #f5f5f5;
+              padding: 12px;
+              text-align: center;
+              font-size: 24px;
+              letter-spacing: 4px;
+              border: 1px solid #e0e0e0;
+              font-family: monospace;
+              margin: 20px 0;
             }
           </style>
         </head>
         <body>
-          <div class="email-template">
-            <div class="header">
+          <div class="email-container">
+            <div class="email-header">
               <h1>Queens Dock Barbershop</h1>
             </div>
-            <div class="content">
+            <div class="email-body">
+              <h2>${emailSubject}</h2>
               ${emailContent}
             </div>
-            <div class="footer">
-              <p>Queens Dock Barbershop</p>
-              <p>52 Bank Street, Rossendale, BB4 8DY</p>
-              <p>Phone: 01706 831878</p>
-              <p>© ${new Date().getFullYear()} Queens Dock Barbershop. All rights reserved.</p>
+            <div class="email-footer">
+              &copy; ${new Date().getFullYear()} Queens Dock Barbershop. All rights reserved.<br>
+              52 Bank Street, Rossendale, BB4 8DY<br>
+              Phone: 01706 831878
             </div>
           </div>
         </body>
