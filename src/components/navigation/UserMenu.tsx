@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
 
 const UserMenu = () => {
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin, isSuperAdmin } = useAuth();
 
   return (
     <div className="hidden md:flex items-center space-x-2">
@@ -29,6 +29,12 @@ const UserMenu = () => {
             <div className="flex items-center justify-start gap-2 p-2">
               <div className="flex flex-col space-y-0.5">
                 <p className="text-sm font-medium">{user.email}</p>
+                {isSuperAdmin && (
+                  <p className="text-xs text-muted-foreground">Super Admin</p>
+                )}
+                {isAdmin && !isSuperAdmin && (
+                  <p className="text-xs text-muted-foreground">Admin</p>
+                )}
               </div>
             </div>
             <DropdownMenuSeparator />
@@ -44,7 +50,7 @@ const UserMenu = () => {
                 <span>My Bookings</span>
               </Link>
             </DropdownMenuItem>
-            {isAdmin && (
+            {(isAdmin || isSuperAdmin) && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>

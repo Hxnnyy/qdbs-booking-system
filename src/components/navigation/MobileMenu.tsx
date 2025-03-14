@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { User, LogOut, Calendar, Settings, CalendarCheck } from 'lucide-react';
+import { User, LogOut, Calendar, Settings, CalendarCheck, Shield } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
 import NavLink from './NavLink';
@@ -12,7 +12,7 @@ interface MobileMenuProps {
 }
 
 const MobileMenu = ({ isOpen, closeMobileMenu }: MobileMenuProps) => {
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin, isSuperAdmin } = useAuth();
 
   if (!isOpen) return null;
 
@@ -54,7 +54,7 @@ const MobileMenu = ({ isOpen, closeMobileMenu }: MobileMenuProps) => {
                 <Calendar className="mr-2 h-5 w-5" />
                 My Bookings
               </Link>
-              {isAdmin && (
+              {(isAdmin || isSuperAdmin) && (
                 <Link 
                   to="/admin" 
                   className="flex items-center py-2 text-lg font-medium" 
@@ -62,6 +62,16 @@ const MobileMenu = ({ isOpen, closeMobileMenu }: MobileMenuProps) => {
                 >
                   <Settings className="mr-2 h-5 w-5" />
                   Admin Panel
+                </Link>
+              )}
+              {isSuperAdmin && (
+                <Link 
+                  to="/admin/admin-management" 
+                  className="flex items-center py-2 text-lg font-medium" 
+                  onClick={closeMobileMenu}
+                >
+                  <Shield className="mr-2 h-5 w-5" />
+                  Admin Management
                 </Link>
               )}
               <button 
