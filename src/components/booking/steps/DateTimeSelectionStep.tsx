@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 import { Spinner } from '@/components/ui/spinner';
 import TimeSlotsGrid from '../TimeSlotsGrid';
+import { CalendarEvent } from '@/types/calendar';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -18,6 +19,11 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   isDateDisabled: (date: Date) => boolean;
   timeSlotError?: string | null;
   onRetry?: () => void;
+  selectedBarberId?: string | null;
+  serviceDuration?: number;
+  existingBookings?: any[];
+  // Add the missing props that were causing the TypeScript errors
+  allEvents?: CalendarEvent[];
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -32,7 +38,8 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   isCheckingDates,
   isDateDisabled,
   timeSlotError,
-  onRetry
+  onRetry,
+  // We don't need to destructure allEvents since it's not directly used in this component
 }) => {
   const handleRetry = () => {
     // Re-trigger the date selection to refresh time slots
