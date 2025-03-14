@@ -8,7 +8,7 @@ import { useCalendarBookings } from './useCalendarBookings';
 export const useManageGuestBooking = (bookingId: string, verificationCode: string) => {
   const [booking, setBooking] = useState<any>(null);
   const [isVerified, setIsVerified] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newBookingDate, setNewBookingDate] = useState<Date | undefined>(undefined);
   const [newBookingTime, setNewBookingTime] = useState<string | null>(null);
@@ -20,63 +20,66 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
   // Get calendar events for holiday checking
   const { allEvents } = useCalendarBookings(); 
 
-  // Verify the booking
-  useEffect(() => {
-    const verifyBooking = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+  // Function to verify the booking with phone number and code
+  const verifyBooking = async (phone: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        if (!bookingId || !verificationCode) {
-          setError('Missing booking information');
-          return;
-        }
-
-        // Format the verification code
-        const formattedCode = verificationCode.trim();
-        
-        // Validate with Supabase
-        const { data, error } = await supabase
-          .from('bookings')
-          .select(`
-            *,
-            barber:barber_id(*),
-            service:service_id(*)
-          `)
-          .eq('id', bookingId)
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        if (!data) {
-          setError('Booking not found');
-          return;
-        }
-
-        // Check if the code is in the notes field
-        const notesLower = (data.notes || '').toLowerCase();
-        const codePattern = new RegExp(`verification code: ${formattedCode.toLowerCase()}`);
-        const isCodeValid = codePattern.test(notesLower);
-
-        if (!isCodeValid) {
-          setError('Invalid verification code');
-          return;
-        }
-
-        setBooking(data);
-        setIsVerified(true);
-      } catch (err: any) {
-        setError(err.message || 'Error verifying booking');
-        toast.error('Error verifying booking');
-      } finally {
-        setIsLoading(false);
+      if (!bookingId || !verificationCode) {
+        setError('Missing booking information');
+        return false;
       }
-    };
 
-    verifyBooking();
-  }, [bookingId, verificationCode]);
+      // Format the verification code
+      const formattedCode = verificationCode.trim();
+      
+      // Validate with Supabase
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          barber:barber_id(*),
+          service:service_id(*)
+        `)
+        .eq('id', bookingId)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        setError('Booking not found');
+        return false;
+      }
+
+      // Check if the code is in the notes field
+      const notesLower = (data.notes || '').toLowerCase();
+      const codePattern = new RegExp(`verification code: ${formattedCode.toLowerCase()}`);
+      const isCodeValid = codePattern.test(notesLower);
+      
+      // Make sure the phone number is also in the notes
+      const formattedPhone = phone.replace(/\s+/g, ''); // Remove spaces
+      const phonePattern = new RegExp(`\\(${formattedPhone}\\)`);
+      const isPhoneValid = phonePattern.test(notesLower);
+
+      if (!isCodeValid || !isPhoneValid) {
+        setError('Invalid verification code or phone number');
+        return false;
+      }
+
+      setBooking(data);
+      setIsVerified(true);
+      return true;
+    } catch (err: any) {
+      setError(err.message || 'Error verifying booking');
+      toast.error('Error verifying booking');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Load available time slots when a new date is selected
   useEffect(() => {
@@ -214,5 +217,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     modifyBooking,
     cancelBooking,
     allCalendarEvents: allEvents,
+    verifyBooking,
   };
 };

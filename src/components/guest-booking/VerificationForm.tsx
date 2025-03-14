@@ -76,7 +76,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
           <Button 
             type="submit" 
             className="w-full bg-burgundy hover:bg-burgundy-light"
-            disabled={isLoading}
+            disabled={isLoading || !phone || !code}
           >
             {isLoading ? (
               <>

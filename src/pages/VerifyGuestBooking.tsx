@@ -7,17 +7,18 @@ import BookingStatusCard from '@/components/guest-booking/BookingStatusCard';
 import { useManageGuestBooking } from '@/hooks/useManageGuestBooking';
 import ModifyBookingDialog from '@/components/guest-booking/ModifyBookingDialog';
 import { Spinner } from '@/components/ui/spinner';
+import { toast } from 'sonner';
 
 const VerifyGuestBooking = () => {
   const { bookingId = '' } = useParams<{ bookingId: string }>();
   const [verificationCode, setVerificationCode] = React.useState('');
   const [phone, setPhone] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
   
   const {
     booking,
     formattedBookingDateTime,
     isLoading,
-    error,
     isVerified,
     newBookingDate,
     setNewBookingDate,
@@ -31,11 +32,28 @@ const VerifyGuestBooking = () => {
     modifyBooking,
     cancelBooking,
     allCalendarEvents,
+    verifyBooking,
   } = useManageGuestBooking(bookingId, verificationCode);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Verification logic is handled in the hook
+    setError(null);
+    
+    if (!phone || !verificationCode) {
+      setError('Phone number and booking code are required');
+      return;
+    }
+    
+    try {
+      const result = await verifyBooking(phone);
+      if (!result) {
+        setError('Unable to verify booking. Please check your phone number and booking code.');
+        toast.error('Verification failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
+      toast.error('Verification failed');
+    }
   };
 
   return (
@@ -54,6 +72,7 @@ const VerifyGuestBooking = () => {
             onPhoneChange={setPhone}
             onCodeChange={setVerificationCode}
             onSubmit={handleSubmit}
+            error={error || undefined}
           />
         ) : isLoading ? (
           <div className="flex justify-center py-12">
