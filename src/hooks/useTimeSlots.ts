@@ -1,12 +1,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { isTimeSlotBooked, isWithinOpeningHours } from '@/utils/bookingUtils';
-import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
+import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
@@ -30,23 +28,12 @@ export const useTimeSlots = (
   useEffect(() => {
     if (!selectedBarberId || cachedLunchBreaks !== null) return;
     
-    const fetchLunchBreaks = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('barber_lunch_breaks')
-          .select('*')
-          .eq('barber_id', selectedBarberId)
-          .eq('is_active', true);
-          
-        if (error) throw error;
-        setCachedLunchBreaks(data || []);
-      } catch (err) {
-        console.error('Error fetching lunch breaks:', err);
-        setCachedLunchBreaks([]);
-      }
+    const loadLunchBreaks = async () => {
+      const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+      setCachedLunchBreaks(lunchBreaks);
     };
     
-    fetchLunchBreaks();
+    loadLunchBreaks();
   }, [selectedBarberId, cachedLunchBreaks]);
 
   // The main calculation function, optimized
@@ -72,11 +59,15 @@ export const useTimeSlots = (
     }
     
     try {
-      // Check if the barber is on holiday
-      const isHoliday = isBarberHolidayDate(calendarEvents, selectedDate, selectedBarberId);
+      // Check barber availability for the selected date
+      const { isAvailable, errorMessage } = checkBarberAvailability(
+        selectedDate, 
+        selectedBarberId, 
+        calendarEvents
+      );
       
-      if (isHoliday) {
-        setError('Barber is on holiday on this date.');
+      if (!isAvailable) {
+        setError(errorMessage);
         setTimeSlots([]);
         return;
       }
@@ -119,128 +110,5 @@ export const useTimeSlots = (
   };
 };
 
-/**
- * Fetch available time slots for a barber on a specific date
- */
-export const fetchBarberTimeSlots = async (
-  barberId: string, 
-  date: Date, 
-  serviceDuration: number,
-  existingBookings: any[] = [],
-  cachedLunchBreaks: any[] = []
-): Promise<string[]> => {
-  try {
-    const dayOfWeek = date.getDay();
-    
-    const { data, error } = await supabase
-      .from('opening_hours')
-      .select('*')
-      .eq('barber_id', barberId)
-      .eq('day_of_week', dayOfWeek)
-      .maybeSingle();
-    
-    if (error) {
-      throw error;
-    }
-    
-    if (!data || data.is_closed) {
-      return [];
-    }
-    
-    const slots = [];
-    let currentTime = data.open_time;
-    const closeTime = data.close_time;
-    
-    let [openHours, openMinutes] = currentTime.split(':').map(Number);
-    const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
-    
-    const closeTimeInMinutes = closeHours * 60 + closeMinutes;
-    
-    // Use cached lunch breaks if available, otherwise fetch them
-    let lunchBreaks = cachedLunchBreaks;
-    
-    if (!lunchBreaks || lunchBreaks.length === 0) {
-      const { data: fetchedLunchBreaks, error: lunchError } = await supabase
-        .from('barber_lunch_breaks')
-        .select('*')
-        .eq('barber_id', barberId)
-        .eq('is_active', true);
-      
-      if (lunchError) {
-        console.error('Error fetching lunch breaks:', lunchError);
-      } else {
-        lunchBreaks = fetchedLunchBreaks || [];
-      }
-    }
-    
-    // Create a function to check if a time slot overlaps with a lunch break
-    const isLunchBreak = (timeSlot: string) => {
-      if (!lunchBreaks || lunchBreaks.length === 0) return false;
-      
-      const [hours, minutes] = timeSlot.split(':').map(Number);
-      const timeInMinutes = hours * 60 + minutes;
-      
-      return lunchBreaks.some(breakTime => {
-        const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
-        const breakStartMinutes = breakHours * 60 + breakMinutes;
-        const breakEndMinutes = breakStartMinutes + breakTime.duration;
-        
-        // Check if slot starts during lunch break or if service would overlap with lunch break
-        return (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) || 
-               (timeInMinutes < breakStartMinutes && (timeInMinutes + serviceDuration) > breakStartMinutes);
-      });
-    };
-    
-    // Build all possible slots in one go for better performance
-    const possibleSlots: {time: string, minutes: number}[] = [];
-    
-    while (true) {
-      const timeInMinutes = openHours * 60 + openMinutes;
-      if (timeInMinutes >= closeTimeInMinutes) {
-        break;
-      }
-      
-      const formattedHours = openHours.toString().padStart(2, '0');
-      const formattedMinutes = openMinutes.toString().padStart(2, '0');
-      const timeSlot = `${formattedHours}:${formattedMinutes}`;
-      
-      possibleSlots.push({
-        time: timeSlot,
-        minutes: timeInMinutes
-      });
-      
-      openMinutes += 30;
-      if (openMinutes >= 60) {
-        openHours += 1;
-        openMinutes -= 60;
-      }
-    }
-    
-    // Process each time slot in batches for faster computation
-    for (const slot of possibleSlots) {
-      const isBooked = isTimeSlotBooked(
-        slot.time, 
-        { duration: serviceDuration } as any, 
-        existingBookings
-      );
-      
-      const withinHours = await isWithinOpeningHours(
-        barberId,
-        date,
-        slot.time,
-        serviceDuration
-      );
-      
-      const isOnLunchBreak = isLunchBreak(slot.time);
-      
-      if (!isBooked && withinHours && !isOnLunchBreak) {
-        slots.push(slot.time);
-      }
-    }
-    
-    return slots;
-  } catch (error) {
-    console.error('Error fetching barber time slots:', error);
-    return [];
-  }
-};
+// Export for compatibility with existing code
+export { fetchBarberTimeSlots } from '@/services/timeSlotService';
