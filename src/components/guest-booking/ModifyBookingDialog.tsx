@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { addDays, isAfter, isBefore, addMonths } from 'date-fns';
@@ -42,6 +41,9 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   allEvents = [],
   barberId
 }) => {
+  // State to manage the open state of the calendar popover separately from the dialog
+  const [calendarOpen, setCalendarOpen] = React.useState(false);
+  
   // Function to check if a date should be disabled
   const shouldDisableDate = (date: Date) => {
     // Check if date is before today or after max booking window
@@ -51,6 +53,12 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     
     // Check if the barber is on holiday for this date
     return isBarberHolidayDate(allEvents, date, barberId);
+  };
+
+  // Handle date selection and keep popover open
+  const handleDateSelect = (date: Date | undefined) => {
+    onDateChange(date);
+    setCalendarOpen(false); // Close the popover after selection
   };
 
   return (
@@ -64,7 +72,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Select New Date</Label>
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -78,7 +86,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                   <Calendar
                     mode="single"
                     selected={newBookingDate}
-                    onSelect={onDateChange}
+                    onSelect={handleDateSelect}
                     initialFocus
                     disabled={shouldDisableDate}
                   />
