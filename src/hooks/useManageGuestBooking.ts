@@ -27,15 +27,18 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
       setError(null);
 
       if (!bookingId || !verificationCode) {
+        console.error('Missing booking information', { bookingId, verificationCode });
         setError('Missing booking information');
         return false;
       }
 
+      console.log('Verifying booking with:', { bookingId, phone, code: verificationCode });
+      
       // Format the verification code
       const formattedCode = verificationCode.trim();
       
-      // Validate with Supabase
-      const { data, error } = await supabase
+      // Query all bookings with the given ID
+      const { data, error: fetchError } = await supabase
         .from('bookings')
         .select(`
           *,
@@ -45,36 +48,55 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
         .eq('id', bookingId)
         .single();
 
-      if (error) {
-        throw error;
+      if (fetchError) {
+        console.error('Error fetching booking:', fetchError);
+        setError(`Error fetching booking: ${fetchError.message}`);
+        return false;
       }
 
       if (!data) {
+        console.error('Booking not found');
         setError('Booking not found');
         return false;
       }
 
-      // Check if the code is in the notes field
-      const notesLower = (data.notes || '').toLowerCase();
-      const codePattern = new RegExp(`verification code: ${formattedCode.toLowerCase()}`);
-      const isCodeValid = codePattern.test(notesLower);
+      console.log('Booking found:', data);
+      console.log('Notes field:', data.notes);
       
-      // Make sure the phone number is also in the notes
-      const formattedPhone = phone.replace(/\s+/g, ''); // Remove spaces
-      const phonePattern = new RegExp(`\\(${formattedPhone}\\)`);
-      const isPhoneValid = phonePattern.test(notesLower);
+      // Check if the code is in the notes field (case insensitive)
+      const notesLower = (data.notes || '').toLowerCase();
+      const formattedCodeLower = formattedCode.toLowerCase();
+      
+      console.log('Looking for verification code pattern:', `verification code: ${formattedCodeLower}`);
+      const isCodeInNotes = notesLower.includes(`verification code: ${formattedCodeLower}`);
+      
+      // Check if the phone number is in the notes (more flexible matching)
+      const phoneDigitsOnly = phone.replace(/\D/g, '');
+      console.log('Phone digits only:', phoneDigitsOnly);
+      const phonePattern = new RegExp(phoneDigitsOnly);
+      const isPhoneInNotes = phonePattern.test(notesLower);
+      
+      console.log('Verification checks:', { 
+        isCodeInNotes, 
+        isPhoneInNotes,
+        phoneDigitsOnly,
+        notesContains: notesLower
+      });
 
-      if (!isCodeValid || !isPhoneValid) {
+      if (!isCodeInNotes || !isPhoneInNotes) {
+        console.error('Invalid verification code or phone number');
         setError('Invalid verification code or phone number');
         return false;
       }
 
+      // Success - set booking data and verified state
+      console.log('Verification successful!');
       setBooking(data);
       setIsVerified(true);
       return true;
     } catch (err: any) {
+      console.error('Error verifying booking:', err);
       setError(err.message || 'Error verifying booking');
-      toast.error('Error verifying booking');
       return false;
     } finally {
       setIsLoading(false);

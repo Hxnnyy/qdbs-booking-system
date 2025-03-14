@@ -46,8 +46,12 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
                 onChange={(e) => onPhoneChange(e.target.value)}
                 placeholder="Enter the phone number used for booking"
                 className="pl-10"
+                disabled={isLoading}
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Enter the phone number you used when booking (e.g., 07123456789)
+            </p>
           </div>
           
           <div className="space-y-2">
@@ -63,12 +67,16 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
                 onChange={(e) => onCodeChange(e.target.value)}
                 placeholder="Enter your 6-digit booking code"
                 className="pl-10"
+                disabled={isLoading}
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Enter the 6-digit code sent to you in your booking confirmation
+            </p>
           </div>
           
           {error && (
-            <div className="text-sm text-red-500 mt-2">
+            <div className="text-sm text-red-500 mt-2 p-2 bg-red-50 border border-red-200 rounded">
               {error}
             </div>
           )}

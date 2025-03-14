@@ -45,13 +45,27 @@ const VerifyGuestBooking = () => {
     }
     
     try {
-      const result = await verifyBooking(phone);
+      console.log('Attempting to verify booking with:', {
+        phone,
+        code: verificationCode,
+        bookingId
+      });
+      
+      // Clean the phone number by removing spaces, dashes, etc.
+      const cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
+      
+      const result = await verifyBooking(cleanedPhone);
+      console.log('Verification result:', result);
+      
       if (!result) {
-        setError('Unable to verify booking. Please check your phone number and booking code.');
+        setError('Booking verification failed. Please check your phone number and booking code.');
         toast.error('Verification failed');
+      } else {
+        toast.success('Booking verified successfully!');
       }
     } catch (err: any) {
-      setError(err.message || 'Verification failed');
+      console.error('Verification error:', err);
+      setError(err.message || 'Verification failed. Please check your details and try again.');
       toast.error('Verification failed');
     }
   };
