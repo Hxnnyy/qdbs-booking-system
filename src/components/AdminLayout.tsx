@@ -16,7 +16,7 @@ import {
 import { Link, useLocation } from 'react-router-dom';
 import { ChartBarIcon, UsersIcon, ScissorsIcon, CalendarIcon, HomeIcon, ShieldIcon, FileUpIcon, ClipboardListIcon, BellIcon, UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import Navbar from '@/components/Navbar';
+import { Navbar } from '@/components/Navbar';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
