@@ -4,27 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
-import TimeSlot from '../TimeSlot';
-import { CalendarEvent } from '@/types/calendar';
 import { Spinner } from '@/components/ui/spinner';
-import { ExistingBooking } from '@/types/booking';
-import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
+import TimeSlotsGrid from '../TimeSlotsGrid';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
   setSelectedDate: (date: Date | undefined) => void;
   selectedTime: string | null;
   setSelectedTime: (time: string) => void;
-  isTimeSlotBooked: (time: string) => boolean;
-  allEvents?: CalendarEvent[];
-  selectedBarberId?: string | null;
-  serviceDuration?: number;
-  existingBookings?: ExistingBooking[];
   availableTimeSlots: string[];
   isLoadingTimeSlots: boolean;
   isCheckingDates: boolean;
   isDateDisabled: (date: Date) => boolean;
   timeSlotError?: string | null;
+  onRetry?: () => void;
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -32,35 +25,25 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   setSelectedDate, 
   selectedTime, 
   setSelectedTime, 
-  isTimeSlotBooked,
   onNext,
   onBack,
   availableTimeSlots,
   isLoadingTimeSlots,
   isCheckingDates,
   isDateDisabled,
-  timeSlotError
+  timeSlotError,
+  onRetry
 }) => {
   const handleRetry = () => {
     // Re-trigger the date selection to refresh time slots
-    if (selectedDate) {
+    if (onRetry) {
+      onRetry();
+    } else if (selectedDate) {
       const refreshDate = new Date(selectedDate);
       setSelectedDate(undefined);
       setTimeout(() => setSelectedDate(refreshDate), 100);
     }
   };
-
-  // Filter time slots to prevent booking in the past for today
-  const filteredTimeSlots = selectedDate ? 
-    availableTimeSlots.filter(time => !isTimeSlotInPast(selectedDate, time)) : 
-    [];
-
-  // Clear the selected time if it's now in the past
-  React.useEffect(() => {
-    if (selectedDate && selectedTime && isTimeSlotInPast(selectedDate, selectedTime)) {
-      setSelectedTime('');
-    }
-  }, [selectedDate, selectedTime, setSelectedTime]);
 
   return (
     <>
@@ -87,11 +70,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
           <div>
             <h3 className="text-xl font-bold mb-4 font-playfair">Select Time</h3>
             
-            {isLoadingTimeSlots ? (
-              <div className="flex justify-center items-center h-48">
-                <Spinner className="h-8 w-8" />
-              </div>
-            ) : timeSlotError ? (
+            {timeSlotError ? (
               <div className="text-center p-4 border rounded-md bg-muted flex flex-col items-center">
                 <p className="text-muted-foreground mb-4">{timeSlotError}</p>
                 <Button 
@@ -102,27 +81,15 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
                   <RefreshCw className="h-4 w-4" /> Retry
                 </Button>
               </div>
-            ) : filteredTimeSlots.length === 0 ? (
-              <div className="text-center p-4 border rounded-md bg-muted">
-                <p className="text-muted-foreground">
-                  {isTimeSlotInPast(selectedDate, '23:59') ? 
-                    "No more available time slots for today." : 
-                    "No available time slots for this date."}
-                </p>
-                <p className="text-sm mt-2">Please select another date or barber.</p>
-              </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {filteredTimeSlots.map((time) => (
-                  <TimeSlot 
-                    key={time} 
-                    time={time} 
-                    selected={selectedTime === time}
-                    onClick={() => setSelectedTime(time)}
-                    disabled={false} // Already filtered out unavailable slots
-                  />
-                ))}
-              </div>
+              <TimeSlotsGrid 
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                setSelectedTime={setSelectedTime}
+                availableTimeSlots={availableTimeSlots}
+                isLoading={isLoadingTimeSlots}
+                error={null}
+              />
             )}
           </div>
         )}

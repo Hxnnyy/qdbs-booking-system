@@ -1,10 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { useCalendarBookings } from './useCalendarBookings';
-import { isTimeSlotBooked, isWithinOpeningHours } from '@/utils/bookingUtils';
-import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
+import { useTimeSlots } from './useTimeSlots';
 
 export const useManageGuestBooking = (bookingId: string, verificationCode: string) => {
   const [booking, setBooking] = useState<any>(null);
@@ -13,13 +13,25 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
   const [error, setError] = useState<string | null>(null);
   const [newBookingDate, setNewBookingDate] = useState<Date | undefined>(undefined);
   const [newBookingTime, setNewBookingTime] = useState<string | null>(null);
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isModifying, setIsModifying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [existingBookings, setExistingBookings] = useState<any[]>([]);
 
   const { allEvents } = useCalendarBookings();
+
+  // Use the extracted time slots hook
+  const {
+    timeSlots: availableTimeSlots,
+    isCalculating: isLoadingTimeSlots,
+    error: timeSlotError
+  } = useTimeSlots(
+    newBookingDate,
+    booking?.barber_id || null,
+    booking?.service || null,
+    existingBookings,
+    allEvents
+  );
 
   const verifyBooking = async (phone: string) => {
     try {
@@ -118,118 +130,6 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     fetchExistingBookings();
   }, [newBookingDate, booking]);
 
-  useEffect(() => {
-    const calculateTimeSlots = async () => {
-      if (!newBookingDate || !booking || !booking.barber_id || !booking.service) {
-        setAvailableTimeSlots([]);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setAvailableTimeSlots([]);
-        
-        const isHoliday = isBarberHolidayDate(allEvents, newBookingDate, booking.barber_id);
-        
-        if (isHoliday) {
-          toast.error('Barber is on holiday on this date');
-          setAvailableTimeSlots([]);
-          return;
-        }
-        
-        const dayOfWeek = newBookingDate.getDay();
-        
-        const { data: openingHours, error: openingHoursError } = await supabase
-          .from('opening_hours')
-          .select('*')
-          .eq('barber_id', booking.barber_id)
-          .eq('day_of_week', dayOfWeek)
-          .maybeSingle();
-        
-        if (openingHoursError) throw openingHoursError;
-        
-        if (!openingHours || openingHours.is_closed) {
-          toast.error('Barber is not working on this day');
-          setAvailableTimeSlots([]);
-          return;
-        }
-        
-        const { data: lunchBreaks, error: lunchBreakError } = await supabase
-          .from('barber_lunch_breaks')
-          .select('*')
-          .eq('barber_id', booking.barber_id)
-          .eq('is_active', true);
-        
-        if (lunchBreakError) throw lunchBreakError;
-        
-        const slots = [];
-        let currentTime = openingHours.open_time;
-        const closeTime = openingHours.close_time;
-        
-        let [hours, minutes] = currentTime.split(':').map(Number);
-        const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
-        
-        const closeTimeInMinutes = closeHours * 60 + closeMinutes;
-        
-        const isLunchBreak = (time: string) => {
-          if (!lunchBreaks || lunchBreaks.length === 0) return false;
-          
-          const [h, m] = time.split(':').map(Number);
-          const timeInMinutes = h * 60 + m;
-          const serviceDuration = booking.service.duration || 30;
-          
-          return lunchBreaks.some(breakTime => {
-            const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
-            const breakStartMinutes = breakHours * 60 + breakMinutes;
-            const breakEndMinutes = breakStartMinutes + breakTime.duration;
-            
-            return (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) || 
-                   (timeInMinutes < breakStartMinutes && (timeInMinutes + serviceDuration) > breakStartMinutes);
-          });
-        };
-        
-        while (true) {
-          const timeInMinutes = hours * 60 + minutes;
-          if (timeInMinutes >= closeTimeInMinutes) {
-            break;
-          }
-          
-          const formattedHours = hours.toString().padStart(2, '0');
-          const formattedMinutes = minutes.toString().padStart(2, '0');
-          const timeSlot = `${formattedHours}:${formattedMinutes}`;
-          
-          const isBooked = isTimeSlotBooked(timeSlot, booking.service, existingBookings);
-          const withinHours = await isWithinOpeningHours(
-            booking.barber_id,
-            newBookingDate,
-            timeSlot,
-            booking.service.duration
-          );
-          const isOnLunchBreak = isLunchBreak(timeSlot);
-          
-          if (!isBooked && withinHours && !isOnLunchBreak) {
-            slots.push(timeSlot);
-          }
-          
-          minutes += 30;
-          if (minutes >= 60) {
-            hours += 1;
-            minutes -= 60;
-          }
-        }
-        
-        setAvailableTimeSlots(slots);
-      } catch (err) {
-        console.error('Error calculating time slots:', err);
-        toast.error('Failed to load available time slots');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    calculateTimeSlots();
-  }, [newBookingDate, booking, existingBookings, allEvents]);
-
   const modifyBooking = async () => {
     if (!booking || !newBookingDate || !newBookingTime) return;
     
@@ -326,5 +226,7 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     allCalendarEvents: allEvents,
     verifyBooking,
     existingBookings,
+    isLoadingTimeSlots,
+    timeSlotError
   };
 };

@@ -8,13 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
-import TimeSlot from '@/components/booking/TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { CalendarEvent } from '@/types/calendar';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
 import { toast } from 'sonner';
 import { isTimeSlotInPast, isSameDay } from '@/utils/bookingUpdateUtils';
+import TimeSlotsGrid from '../booking/TimeSlotsGrid';
 
 interface ModifyBookingDialogProps {
   isOpen: boolean;
@@ -50,12 +50,14 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
   const [isCheckingDateAvailability, setIsCheckingDateAvailability] = useState(false);
   const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
+  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
+  const [timeSlotError, setTimeSlotError] = useState<string | null>(null);
   
   useEffect(() => {
     if (isOpen && barberId && selectedBooking?.service?.duration) {
       cacheUnavailableDates();
     }
-  }, [isOpen, barberId]);
+  }, [isOpen, barberId, selectedBooking]);
   
   const cacheUnavailableDates = async () => {
     if (!barberId || !selectedBooking?.service?.duration) return;
@@ -209,28 +211,14 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
             {newBookingDate && (
               <div className="space-y-2">
                 <Label>Select New Time</Label>
-                {filteredTimeSlots.length === 0 ? (
-                  <div className="text-center p-4 border rounded-md">
-                    <p className="text-muted-foreground">
-                      {isSameDay(newBookingDate, new Date()) && isTimeSlotInPast(newBookingDate, "23:59") ? 
-                        "No more available time slots for today." : 
-                        "No available time slots for this date."}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">Please select another date.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2">
-                    {filteredTimeSlots.map((time) => (
-                      <TimeSlot
-                        key={time}
-                        time={time}
-                        selected={newBookingTime === time}
-                        onClick={() => onTimeSelection(time)}
-                        disabled={false}
-                      />
-                    ))}
-                  </div>
-                )}
+                <TimeSlotsGrid
+                  selectedDate={newBookingDate}
+                  selectedTime={newBookingTime}
+                  setSelectedTime={onTimeSelection}
+                  availableTimeSlots={availableTimeSlots}
+                  isLoading={isLoadingTimeSlots}
+                  error={timeSlotError}
+                />
               </div>
             )}
           </div>
