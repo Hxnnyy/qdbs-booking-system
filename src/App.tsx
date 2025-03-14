@@ -23,7 +23,6 @@ import ManageBarbers from "./pages/admin/ManageBarbers";
 import ManageServices from "./pages/admin/ManageServices";
 import ManageBookings from "./pages/admin/ManageBookings";
 import AssignAdmin from "./pages/admin/AssignAdmin";
-import SetupShop from './pages/admin/SetupShop';
 import ImportBookings from './pages/admin/ImportBookings';
 import CalendarView from './pages/admin/CalendarView';
 import NotificationSettings from './pages/admin/NotificationSettings';
@@ -46,7 +45,6 @@ function App() {
               <Route path="/admin/barbers" element={<AdminRoute><ManageBarbers /></AdminRoute>} />
               <Route path="/admin/services" element={<AdminRoute><ManageServices /></AdminRoute>} />
               <Route path="/admin/clients" element={<AdminRoute><ManageClients /></AdminRoute>} />
-              <Route path="/admin/setup" element={<AdminRoute><SetupShop /></AdminRoute>} />
               <Route path="/admin/import-bookings" element={<AdminRoute><ImportBookings /></AdminRoute>} />
               <Route path="/admin/assign-admin" element={<AdminRoute><AssignAdmin /></AdminRoute>} />
               <Route path="/admin/notifications" element={<AdminRoute><NotificationSettings /></AdminRoute>} />
