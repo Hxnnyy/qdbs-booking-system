@@ -1,4 +1,10 @@
 
+/**
+ * useTimeSlots Hook
+ * 
+ * Custom hook to calculate available time slots for a barber on a specific date
+ */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
@@ -8,6 +14,13 @@ import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability }
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
+ * 
+ * @param selectedDate - The selected date
+ * @param selectedBarberId - The ID of the selected barber
+ * @param selectedService - The selected service
+ * @param existingBookings - Array of existing bookings
+ * @param calendarEvents - Array of calendar events
+ * @returns Object with time slots, loading state, error, and recalculate function
  */
 export const useTimeSlots = (
   selectedDate: Date | undefined,

@@ -1,4 +1,10 @@
 
+/**
+ * Time Slot Service
+ * 
+ * Handles data fetching and processing related to barber time slots and availability
+ */
+
 import { supabase } from '@/integrations/supabase/client';
 import { generatePossibleTimeSlots, filterAvailableTimeSlots } from '@/utils/timeSlotUtils';
 import { isWithinOpeningHours } from '@/utils/bookingUtils';
@@ -8,6 +14,9 @@ import { CalendarEvent } from '@/types/calendar';
 
 /**
  * Fetch lunch breaks for a barber
+ * 
+ * @param barberId - The ID of the barber
+ * @returns Array of lunch break records
  */
 export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> => {
   try {
@@ -27,6 +36,13 @@ export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> =
 
 /**
  * Fetch available time slots for a barber on a specific date
+ * 
+ * @param barberId - The ID of the barber
+ * @param date - The date to check for availability
+ * @param serviceDuration - Duration of the service in minutes
+ * @param existingBookings - Array of existing bookings for the date
+ * @param cachedLunchBreaks - Optional pre-fetched lunch breaks to avoid redundant API calls
+ * @returns Array of available time slots in "HH:MM" format
  */
 export const fetchBarberTimeSlots = async (
   barberId: string, 
@@ -96,6 +112,11 @@ export const fetchBarberTimeSlots = async (
 
 /**
  * Check if a barber is available on a date
+ * 
+ * @param date - The date to check
+ * @param barberId - The ID of the barber
+ * @param calendarEvents - Array of calendar events to check against
+ * @returns Object with availability status and error message
  */
 export const checkBarberAvailability = (
   date: Date | undefined,
