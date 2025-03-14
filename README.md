@@ -1,8 +1,6 @@
 
 # Queens Dock Barbershop App
 
-![Queens Dock Barbershop](public/og-image.png)
-
 A comprehensive booking and management system for Queen's Dock Barbershop, allowing customers to book appointments with their preferred barbers and enabling staff to manage bookings, barbers, services, and business operations.
 
 ## Features
