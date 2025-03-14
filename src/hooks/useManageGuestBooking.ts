@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { useCalendarBookings } from './useCalendarBookings';
+import { isTimeSlotBooked, isWithinOpeningHours } from '@/utils/bookingUtils';
+import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 
 export const useManageGuestBooking = (bookingId: string, verificationCode: string) => {
   const [booking, setBooking] = useState<any>(null);
@@ -16,6 +18,7 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isModifying, setIsModifying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [existingBookings, setExistingBookings] = useState<any[]>([]);
 
   // Get calendar events for holiday checking
   const { allEvents } = useCalendarBookings(); 
@@ -92,48 +95,160 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     }
   };
 
-  // Load available time slots when a new date is selected
+  // Fetch existing bookings when date or barber changes
   useEffect(() => {
-    const loadTimeSlots = async () => {
-      if (!newBookingDate || !booking) return;
-
+    const fetchExistingBookings = async () => {
+      if (!newBookingDate || !booking?.barber_id) return;
+      
       try {
         setIsLoading(true);
         
         const formattedDate = format(newBookingDate, 'yyyy-MM-dd');
         
         // Get all bookings for this barber on the selected date
-        const { data: existingBookings, error } = await supabase
+        const { data, error } = await supabase
           .from('bookings')
-          .select('booking_time')
+          .select('*, service:service_id(duration)')
           .eq('barber_id', booking.barber_id)
           .eq('booking_date', formattedDate)
           .neq('id', booking.id)  // Exclude the current booking
-          .neq('status', 'cancelled');
+          .eq('status', 'confirmed');
 
         if (error) throw error;
         
-        // Define available time slots
-        const allTimeSlots = [
-          '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-          '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-          '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
-        ];
-        
-        // Filter out booked slots
-        const bookedTimes = existingBookings?.map(b => b.booking_time) || [];
-        const available = allTimeSlots.filter(time => !bookedTimes.includes(time));
-        
-        setAvailableTimeSlots(available);
-      } catch (err: any) {
-        toast.error('Error loading available time slots');
+        setExistingBookings(data || []);
+      } catch (err) {
+        console.error('Error fetching existing bookings:', err);
+        toast.error('Failed to load existing bookings');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadTimeSlots();
+    fetchExistingBookings();
   }, [newBookingDate, booking]);
+
+  // Calculate available time slots
+  useEffect(() => {
+    const calculateTimeSlots = async () => {
+      if (!newBookingDate || !booking || !booking.barber_id || !booking.service) {
+        setAvailableTimeSlots([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setAvailableTimeSlots([]);
+        
+        // Check if barber is on holiday
+        const isHoliday = isBarberHolidayDate(allEvents, newBookingDate, booking.barber_id);
+        
+        if (isHoliday) {
+          toast.error('Barber is on holiday on this date');
+          setAvailableTimeSlots([]);
+          return;
+        }
+        
+        // Fetch barber opening hours for this day
+        const dayOfWeek = newBookingDate.getDay();
+        
+        const { data: openingHours, error: openingHoursError } = await supabase
+          .from('opening_hours')
+          .select('*')
+          .eq('barber_id', booking.barber_id)
+          .eq('day_of_week', dayOfWeek)
+          .maybeSingle();
+        
+        if (openingHoursError) throw openingHoursError;
+        
+        if (!openingHours || openingHours.is_closed) {
+          toast.error('Barber is not working on this day');
+          setAvailableTimeSlots([]);
+          return;
+        }
+        
+        // Get lunch breaks
+        const { data: lunchBreaks, error: lunchBreakError } = await supabase
+          .from('barber_lunch_breaks')
+          .select('*')
+          .eq('barber_id', booking.barber_id)
+          .eq('is_active', true);
+        
+        if (lunchBreakError) throw lunchBreakError;
+        
+        // Create time slots based on opening hours
+        const slots = [];
+        let currentTime = openingHours.open_time;
+        const closeTime = openingHours.close_time;
+        
+        let [hours, minutes] = currentTime.split(':').map(Number);
+        const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
+        
+        const closeTimeInMinutes = closeHours * 60 + closeMinutes;
+        
+        // Function to check if a time slot overlaps with any lunch break
+        const isLunchBreak = (time: string) => {
+          if (!lunchBreaks || lunchBreaks.length === 0) return false;
+          
+          const [h, m] = time.split(':').map(Number);
+          const timeInMinutes = h * 60 + m;
+          const serviceDuration = booking.service.duration || 30;
+          
+          return lunchBreaks.some(breakTime => {
+            const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
+            const breakStartMinutes = breakHours * 60 + breakMinutes;
+            const breakEndMinutes = breakStartMinutes + breakTime.duration;
+            
+            // Check if slot starts during lunch break or if service would overlap with lunch break
+            return (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) || 
+                   (timeInMinutes < breakStartMinutes && (timeInMinutes + serviceDuration) > breakStartMinutes);
+          });
+        };
+        
+        // Generate all possible 30-minute slots within opening hours
+        while (true) {
+          const timeInMinutes = hours * 60 + minutes;
+          if (timeInMinutes >= closeTimeInMinutes) {
+            break;
+          }
+          
+          const formattedHours = hours.toString().padStart(2, '0');
+          const formattedMinutes = minutes.toString().padStart(2, '0');
+          const timeSlot = `${formattedHours}:${formattedMinutes}`;
+          
+          // Check various constraints
+          const isBooked = isTimeSlotBooked(timeSlot, booking.service, existingBookings);
+          const withinHours = await isWithinOpeningHours(
+            booking.barber_id,
+            newBookingDate,
+            timeSlot,
+            booking.service.duration
+          );
+          const isOnLunchBreak = isLunchBreak(timeSlot);
+          
+          if (!isBooked && withinHours && !isOnLunchBreak) {
+            slots.push(timeSlot);
+          }
+          
+          // Increment by 30 minutes
+          minutes += 30;
+          if (minutes >= 60) {
+            hours += 1;
+            minutes -= 60;
+          }
+        }
+        
+        setAvailableTimeSlots(slots);
+      } catch (err) {
+        console.error('Error calculating time slots:', err);
+        toast.error('Failed to load available time slots');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    calculateTimeSlots();
+  }, [newBookingDate, booking, existingBookings, allEvents]);
 
   // Function to modify booking date/time
   const modifyBooking = async () => {
@@ -141,6 +256,12 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
     
     try {
       setIsModifying(true);
+      
+      // Final validation
+      if (!availableTimeSlots.includes(newBookingTime)) {
+        toast.error('This time slot is no longer available');
+        return;
+      }
       
       const formattedDate = format(newBookingDate, 'yyyy-MM-dd');
       
@@ -169,6 +290,7 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
       toast.success('Booking updated successfully');
     } catch (err: any) {
       toast.error('Failed to update booking');
+      console.error('Error modifying booking:', err);
     } finally {
       setIsModifying(false);
     }
@@ -199,6 +321,7 @@ export const useManageGuestBooking = (bookingId: string, verificationCode: strin
       toast.success('Booking cancelled successfully');
     } catch (err: any) {
       toast.error('Failed to cancel booking');
+      console.error('Error cancelling booking:', err);
     } finally {
       setIsCancelling(false);
     }

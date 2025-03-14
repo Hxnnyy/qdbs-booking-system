@@ -44,7 +44,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
 }) => {
   // Function to check if a date should be disabled
   const shouldDisableDate = (date: Date) => {
-    // Check if date is before today or after max booking window (changed from 30 days to 6 months)
+    // Check if date is before today or after max booking window
     if (isBefore(date, addDays(new Date(), 0)) || isAfter(date, addMonths(new Date(), 6))) {
       return true;
     }
@@ -89,17 +89,24 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
             {newBookingDate && (
               <div className="space-y-2">
                 <Label>Select New Time</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {availableTimeSlots.map((time) => (
-                    <TimeSlot
-                      key={time}
-                      time={time}
-                      selected={newBookingTime || ''}
-                      onClick={() => onTimeSelection(time)}
-                      disabled={false}
-                    />
-                  ))}
-                </div>
+                {availableTimeSlots.length === 0 ? (
+                  <div className="text-center p-4 border rounded-md">
+                    <p className="text-muted-foreground">No available time slots for this date.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Please select another date.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {availableTimeSlots.map((time) => (
+                      <TimeSlot
+                        key={time}
+                        time={time}
+                        selected={newBookingTime || ''}
+                        onClick={() => onTimeSelection(time)}
+                        disabled={false}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -111,7 +118,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </Button>
           <Button 
             onClick={onModifyBooking} 
-            disabled={isModifying || !newBookingDate || !newBookingTime}
+            disabled={isModifying || !newBookingDate || !newBookingTime || availableTimeSlots.length === 0}
             className="bg-burgundy hover:bg-burgundy-light"
           >
             {isModifying ? (
