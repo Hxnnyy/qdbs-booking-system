@@ -11,15 +11,17 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60 * 5, // 5 minutes
       retry: 1,
       refetchOnWindowFocus: false,
-      // Default error handling
-      onError: (error: any) => {
-        const message = error.message || 'An error occurred';
-        const customMessage = error.meta?.errorMessage;
-        toast.error(customMessage || message);
+      // In v5, we use onError in meta instead of directly in options
+      meta: {
+        // Default error handling function that will be used by individual queries
+        onError: (error: any) => {
+          const message = error.message || 'An error occurred';
+          toast.error(message);
+        }
       }
     },
     mutations: {
-      // Default error handling
+      // For mutations, onError is still a top-level property
       onError: (error: any) => {
         const message = error.message || 'An error occurred';
         toast.error(message);

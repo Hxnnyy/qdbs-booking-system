@@ -1,4 +1,3 @@
-
 /**
  * useBookingQuery Hook
  * 
@@ -24,13 +23,17 @@ export const useBookingsQuery = (page: number = 0, pageSize: number = 10) => {
   return useQuery({
     queryKey: ['bookings', page, pageSize],
     queryFn: () => fetchPaginatedBookings(page, pageSize),
-    keepPreviousData: true,
+    // In v5, keepPreviousData is replaced with placeholderData: 'keepPrevious'
+    placeholderData: keepPreviousPageData,
     staleTime: 1000 * 60 * 5, // 5 minutes
     meta: {
       errorMessage: 'Failed to load bookings'
     }
   });
 };
+
+// Helper function to implement the keepPreviousData behavior in v5
+const keepPreviousPageData = (previousData: any) => previousData;
 
 /**
  * Hook for creating a new booking with React Query
