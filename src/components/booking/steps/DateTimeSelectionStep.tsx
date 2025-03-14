@@ -22,7 +22,6 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedBarberId?: string | null;
   serviceDuration?: number;
   existingBookings?: any[];
-  // Add the missing props that were causing the TypeScript errors
   allEvents?: CalendarEvent[];
 }
 
@@ -58,9 +57,11 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
         <div>
           <h3 className="text-xl font-bold mb-4 font-playfair">Select Date</h3>
           {isCheckingDates ? (
-            <div className="flex justify-center items-center h-48">
-              <Spinner className="h-8 w-8" />
-              <span className="ml-2">Checking availability...</span>
+            <div className="flex justify-center items-center h-72 bg-gray-50 rounded-md border">
+              <div className="flex flex-col items-center">
+                <Spinner className="h-8 w-8 mb-2" />
+                <span className="text-muted-foreground text-sm">Loading calendar availability...</span>
+              </div>
             </div>
           ) : (
             <Calendar
