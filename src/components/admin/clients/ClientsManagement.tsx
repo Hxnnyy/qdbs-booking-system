@@ -6,12 +6,13 @@ import { ClientsEmailDialog } from './ClientsEmailDialog';
 import { EditClientDialog } from './EditClientDialog';
 import { ExportClientsDialog } from './ExportClientsDialog';
 import { Button } from '@/components/ui/button';
-import { Mail, RefreshCw, Users, FileSpreadsheet } from 'lucide-react';
+import { Mail, RefreshCw, FileSpreadsheet } from 'lucide-react';
 import { useClientManagement } from '@/hooks/useClientManagement';
 import { useClients } from '@/context/ClientsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Client } from '@/types/client';
+import { motion } from 'framer-motion';
 
 export const ClientsManagement = () => {
   const { 
@@ -86,70 +87,76 @@ export const ClientsManagement = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Client List</CardTitle>
-          <div className="flex gap-2 items-center">
-            <div className="flex items-center space-x-2 mr-4">
-              <Switch 
-                id="show-guests" 
-                checked={showGuestBookings}
-                onCheckedChange={toggleShowGuestBookings}
-              />
-              <Label htmlFor="show-guests">Show Guest Bookings</Label>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.1, duration: 0.3 }}
+    >
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Client List</CardTitle>
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center space-x-2 mr-4">
+                <Switch 
+                  id="show-guests" 
+                  checked={showGuestBookings}
+                  onCheckedChange={toggleShowGuestBookings}
+                />
+                <Label htmlFor="show-guests">Show Guest Bookings</Label>
+              </div>
+              <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleExport} 
+                disabled={selectedClients.length === 0}
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button 
+                onClick={handleSendEmail} 
+                disabled={selectedClients.length === 0}
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Send Email
+              </Button>
             </div>
-            <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={handleExport} 
-              disabled={selectedClients.length === 0}
-            >
-              <FileSpreadsheet className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Button 
-              onClick={handleSendEmail} 
-              disabled={selectedClients.length === 0}
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              Send Email
-            </Button>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <ClientsTable 
-          clients={clients} 
-          isLoading={isLoading} 
-          onEditClient={handleEditClient} 
-        />
-        
-        <ClientsEmailDialog 
-          isOpen={emailDialogOpen}
-          onOpenChange={setEmailDialogOpen}
-          onSend={handleSendEmailSubmit}
-          selectedClientsCount={selectedClients.length}
-        />
+        </CardHeader>
+        <CardContent>
+          <ClientsTable 
+            clients={clients} 
+            isLoading={isLoading} 
+            onEditClient={handleEditClient} 
+          />
+          
+          <ClientsEmailDialog 
+            isOpen={emailDialogOpen}
+            onOpenChange={setEmailDialogOpen}
+            onSend={handleSendEmailSubmit}
+            selectedClientsCount={selectedClients.length}
+          />
 
-        <EditClientDialog
-          isOpen={editDialogOpen}
-          onClose={handleCloseEditDialog}
-          client={clientToEdit}
-          onSave={updateClientProfile}
-          isLoading={isLoading}
-        />
+          <EditClientDialog
+            isOpen={editDialogOpen}
+            onClose={handleCloseEditDialog}
+            client={clientToEdit}
+            onSave={updateClientProfile}
+            isLoading={isLoading}
+          />
 
-        <ExportClientsDialog
-          isOpen={exportDialogOpen}
-          onOpenChange={setExportDialogOpen}
-          onExport={handleExportSubmit}
-          selectedClientsCount={selectedClients.length}
-        />
-      </CardContent>
-    </Card>
+          <ExportClientsDialog
+            isOpen={exportDialogOpen}
+            onOpenChange={setExportDialogOpen}
+            onExport={handleExportSubmit}
+            selectedClientsCount={selectedClients.length}
+          />
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };

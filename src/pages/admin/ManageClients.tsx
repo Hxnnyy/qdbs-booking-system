@@ -4,11 +4,17 @@ import { AdminLayout } from '@/components/AdminLayout';
 import { ClientsManagement } from '@/components/admin/clients/ClientsManagement';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
 import { ClientsProvider } from '@/context/ClientsContext';
+import { motion } from "framer-motion";
 
 export default function ManageClients() {
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-6"
+      >
         <div>
           <Breadcrumb>
             <BreadcrumbItem>
@@ -27,7 +33,7 @@ export default function ManageClients() {
         <ClientsProvider>
           <ClientsManagement />
         </ClientsProvider>
-      </div>
+      </motion.div>
     </AdminLayout>
   );
 }
