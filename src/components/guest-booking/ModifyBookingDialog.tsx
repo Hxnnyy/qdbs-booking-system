@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { addDays, isAfter, isBefore, addMonths } from 'date-fns';
@@ -41,8 +42,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   allEvents = [],
   barberId
 }) => {
-  // State to manage the open state of the calendar popover separately from the dialog
-  const [calendarOpen, setCalendarOpen] = React.useState(false);
+  // Use a separate state to control the popover open state
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   
   // Function to check if a date should be disabled
   const shouldDisableDate = (date: Date) => {
@@ -55,10 +56,16 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     return isBarberHolidayDate(allEvents, date, barberId);
   };
 
-  // Handle date selection and keep popover open
+  // Function to handle date selection
   const handleDateSelect = (date: Date | undefined) => {
+    // Just update the date, don't close the popover automatically
     onDateChange(date);
-    setCalendarOpen(false); // Close the popover after selection
+  };
+
+  // We want to prevent the calendar clicks from closing the popover
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    // Prevent the click from propagating to the popover
+    e.stopPropagation();
   };
 
   return (
@@ -72,17 +79,18 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Select New Date</Label>
-              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className="w-full justify-start text-left font-normal"
+                    onClick={() => setIsCalendarOpen(true)}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {newBookingDate ? format(newBookingDate, 'PPP') : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" onClick={handleCalendarClick}>
                   <Calendar
                     mode="single"
                     selected={newBookingDate}
@@ -90,6 +98,15 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                     initialFocus
                     disabled={shouldDisableDate}
                   />
+                  <div className="flex justify-end p-2 border-t">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setIsCalendarOpen(false)}
+                    >
+                      Done
+                    </Button>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
