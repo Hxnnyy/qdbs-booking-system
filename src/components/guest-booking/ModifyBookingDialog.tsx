@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { addDays, isAfter, isBefore, addMonths } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -42,8 +41,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   allEvents = [],
   barberId
 }) => {
-  // Use a separate state to control the popover open state
-  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+  const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
   
   // Function to check if a date should be disabled
   const shouldDisableDate = (date: Date) => {
@@ -56,16 +54,19 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     return isBarberHolidayDate(allEvents, date, barberId);
   };
 
-  // Function to handle date selection
-  const handleDateSelect = (date: Date | undefined) => {
-    // Just update the date, don't close the popover automatically
+  // Prevent event propagation to keep popover open when interacting with the calendar
+  const handleCalendarContainerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  // Update calendar when date is selected
+  const handleSelectDate = (date: Date | undefined) => {
     onDateChange(date);
   };
 
-  // We want to prevent the calendar clicks from closing the popover
-  const handleCalendarClick = (e: React.MouseEvent) => {
-    // Prevent the click from propagating to the popover
-    e.stopPropagation();
+  // Close popover when done selecting
+  const handleDoneSelectingDate = () => {
+    setCalendarPopoverOpen(false);
   };
 
   return (
@@ -77,40 +78,51 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
         
         <div className="py-4">
           <div className="space-y-4">
+            {/* Date Selection */}
             <div className="space-y-2">
               <Label>Select New Date</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <Popover 
+                open={calendarPopoverOpen} 
+                onOpenChange={setCalendarPopoverOpen}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className="w-full justify-start text-left font-normal"
-                    onClick={() => setIsCalendarOpen(true)}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {newBookingDate ? format(newBookingDate, 'PPP') : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" onClick={handleCalendarClick}>
-                  <Calendar
-                    mode="single"
-                    selected={newBookingDate}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                    disabled={shouldDisableDate}
-                  />
-                  <div className="flex justify-end p-2 border-t">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setIsCalendarOpen(false)}
-                    >
-                      Done
-                    </Button>
+                <PopoverContent 
+                  className="w-auto p-0" 
+                  align="start" 
+                  onClick={handleCalendarContainerClick}
+                >
+                  <div className="p-0">
+                    <Calendar
+                      mode="single"
+                      selected={newBookingDate}
+                      onSelect={handleSelectDate}
+                      initialFocus
+                      disabled={shouldDisableDate}
+                      className="p-3 pointer-events-auto"
+                    />
+                    <div className="flex justify-end p-2 border-t">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDoneSelectingDate}
+                      >
+                        Done
+                      </Button>
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
             </div>
             
+            {/* Time Selection */}
             {newBookingDate && (
               <div className="space-y-2">
                 <Label>Select New Time</Label>
@@ -125,7 +137,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                       <TimeSlot
                         key={time}
                         time={time}
-                        selected={newBookingTime || ''}
+                        selected={newBookingTime === time}
                         onClick={() => onTimeSelection(time)}
                         disabled={false}
                       />
