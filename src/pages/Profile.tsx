@@ -12,19 +12,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isPast, isToday, parseISO } from 'date-fns';
-import { Booking } from '@/supabase-types';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, ShieldAlert, Key, UserX } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+
 const Profile = () => {
   const {
     user,
     profile,
-    refreshProfile
+    refreshProfile,
+    signOut
   } = useAuth();
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isAccountDeleteDialogOpen, setIsAccountDeleteDialogOpen] = useState(false);
 
   // Bookings state
   const {
@@ -44,10 +64,10 @@ const Profile = () => {
     queryKey: ['userBookings', user?.id],
     queryFn: getUserBookings,
     enabled: !!user,
-    staleTime: 1000 * 60 * 5,
-    // 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: true
   });
+
   useEffect(() => {
     if (profile) {
       setFirstName(profile.first_name || '');
@@ -55,6 +75,26 @@ const Profile = () => {
       setPhone(profile.phone || '');
     }
   }, [profile]);
+
+  // Password change form schema
+  const passwordFormSchema = z.object({
+    currentPassword: z.string().min(6, "Current password is required"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(6, "Confirm password is required")
+  }).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"]
+  });
+
+  const passwordForm = useForm<z.infer<typeof passwordFormSchema>>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    }
+  });
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -68,7 +108,9 @@ const Profile = () => {
         last_name: lastName,
         phone: phone
       }).eq('id', user?.id);
+      
       if (error) throw error;
+      
       toast.success('Profile updated successfully');
       await refreshProfile();
     } catch (error: any) {
@@ -77,6 +119,81 @@ const Profile = () => {
       setIsSubmitting(false);
     }
   };
+
+  const handleChangePassword = async (values: z.infer<typeof passwordFormSchema>) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: values.newPassword
+      }, {
+        emailRedirectTo: window.location.origin
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Password updated successfully');
+      passwordForm.reset();
+      setIsPasswordDialogOpen(false);
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    
+    try {
+      setIsResettingPassword(true);
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Password reset link sent to your email');
+      setResetEmail('');
+      setIsResetPasswordDialogOpen(false);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      // First delete user profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user?.id);
+        
+      if (profileError) throw profileError;
+      
+      // Then delete the user from auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        user?.id as string
+      );
+      
+      if (authError) throw authError;
+      
+      await signOut();
+      toast.success('Your account has been deleted');
+    } catch (error: any) {
+      // If the error is related to permissions, give a more specific message
+      if (error.message.includes('permission') || error.code === 'PGRST301') {
+        toast.error('Unable to delete account. Please contact support for assistance.');
+      } else {
+        toast.error(error.message);
+      }
+    }
+  };
+
   const handleCancelBooking = async (bookingId: string) => {
     try {
       setIsCancelling(true);
@@ -91,6 +208,7 @@ const Profile = () => {
       setIsCancelling(false);
     }
   };
+
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -105,6 +223,7 @@ const Profile = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
   const renderBookings = () => {
     if (bookingsLoading && !isRefetching) {
       return <div className="space-y-4">
@@ -185,6 +304,7 @@ const Profile = () => {
           </div>}
       </div>;
   };
+
   return <Layout>
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
@@ -193,6 +313,7 @@ const Profile = () => {
           <TabsList className="mb-8">
             <TabsTrigger value="bookings">Your Bookings</TabsTrigger>
             <TabsTrigger value="profile">Profile Information</TabsTrigger>
+            <TabsTrigger value="security">Security & Privacy</TabsTrigger>
           </TabsList>
           
           <TabsContent value="bookings" className="mt-0">
@@ -232,8 +353,167 @@ const Profile = () => {
               </div>
             </form>
           </TabsContent>
+
+          <TabsContent value="security" className="mt-0">
+            <div className="max-w-md mx-auto space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Key className="h-5 w-5" /> Password Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-col gap-3">
+                    <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          <ShieldAlert className="mr-2 h-4 w-4" />
+                          Change Password
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Change Your Password</DialogTitle>
+                          <DialogDescription>
+                            Enter your current password and a new password to update your credentials.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <Form {...passwordForm}>
+                          <form onSubmit={passwordForm.handleSubmit(handleChangePassword)} className="space-y-4">
+                            <FormField
+                              control={passwordForm.control}
+                              name="currentPassword"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Current Password</FormLabel>
+                                  <FormControl>
+                                    <Input type="password" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={passwordForm.control}
+                              name="newPassword"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>New Password</FormLabel>
+                                  <FormControl>
+                                    <Input type="password" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={passwordForm.control}
+                              name="confirmPassword"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Confirm New Password</FormLabel>
+                                  <FormControl>
+                                    <Input type="password" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <DialogFooter>
+                              <Button type="submit" disabled={passwordForm.formState.isSubmitting}>
+                                {passwordForm.formState.isSubmitting ? 
+                                  <><Spinner className="mr-2 h-4 w-4" /> Updating...</> : 
+                                  'Update Password'}
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                    </Dialog>
+                    
+                    <Dialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+                          Forgot Password?
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Reset Your Password</DialogTitle>
+                          <DialogDescription>
+                            Enter your email address and we'll send you a link to reset your password.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <form onSubmit={handleResetPassword} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="reset-email">Email Address</Label>
+                            <Input 
+                              id="reset-email" 
+                              type="email" 
+                              value={resetEmail} 
+                              onChange={(e) => setResetEmail(e.target.value)}
+                              placeholder="Enter your email address"
+                            />
+                          </div>
+                          
+                          <DialogFooter>
+                            <Button type="submit" disabled={isResettingPassword}>
+                              {isResettingPassword ? 
+                                <><Spinner className="mr-2 h-4 w-4" /> Sending...</> : 
+                                'Send Reset Link'}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-destructive/20">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                    <UserX className="h-5 w-5" /> Delete Account
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Permanently delete your account and all associated data. This action cannot be undone.
+                  </p>
+                  
+                  <AlertDialog open={isAccountDeleteDialogOpen} onOpenChange={setIsAccountDeleteDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full">
+                        Delete Account
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete your account and all of your data. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground">
+                          Delete Account
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </Layout>;
 };
+
 export default Profile;
