@@ -41,7 +41,8 @@ const MakeJosephAdmin = () => {
             .insert({
               id: userId,
               email: 'josephdraper@hotmail.com',
-              is_admin: true
+              is_admin: true,
+              is_super_admin: true
             });
           
           if (insertError) {
@@ -52,7 +53,10 @@ const MakeJosephAdmin = () => {
           setStatus('Updating profile...');
           const { error: updateError } = await supabase
             .from('profiles')
-            .update({ is_admin: true })
+            .update({ 
+              is_admin: true,
+              is_super_admin: true 
+            })
             .eq('id', userId);
           
           if (updateError) {
@@ -61,7 +65,7 @@ const MakeJosephAdmin = () => {
         }
         
         setStatus('Admin privileges granted successfully!');
-        toast.success('Admin privileges granted to josephdraper@hotmail.com');
+        toast.success('SuperAdmin privileges granted to josephdraper@hotmail.com');
       } catch (error: any) {
         console.error('Error:', error);
         setStatus(`Error: ${error.message}`);
@@ -88,7 +92,7 @@ const MakeJosephAdmin = () => {
           
           {!loading && status.includes('success') ? (
             <p className="mt-4 text-green-600 font-medium">
-              josephdraper@hotmail.com now has admin privileges!
+              josephdraper@hotmail.com now has SuperAdmin privileges!
             </p>
           ) : null}
         </div>
