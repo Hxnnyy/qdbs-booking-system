@@ -142,13 +142,17 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      setCalendarEvents(prev => 
-        prev.map(event => 
-          event.id === eventId 
-            ? { ...event, start: newStart, end: newEnd }
-            : event
-        )
-      );
+      // Fix: Filter out the event being updated to avoid duplication
+      const updatedEvents = calendarEvents.filter(event => event.id !== eventId);
+      
+      // Then add the updated event
+      const updatedEvent = {
+        ...calendarEvents.find(event => event.id === eventId)!,
+        start: newStart,
+        end: newEnd
+      };
+      
+      setCalendarEvents([...updatedEvents, updatedEvent]);
       
       setBookings(prev => 
         prev.map(booking => 
