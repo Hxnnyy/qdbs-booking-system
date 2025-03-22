@@ -38,7 +38,7 @@ export const useTimeSlots = (
   const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
   const lunchBreakTimestampRef = useRef<number>(Date.now());
   
-  // Clear lunch breaks cache when barber changes
+  // Load lunch breaks when barber changes
   useEffect(() => {
     if (!selectedBarberId) {
       setCachedLunchBreaks(null);
@@ -58,7 +58,7 @@ export const useTimeSlots = (
     loadLunchBreaks();
   }, [selectedBarberId]);
 
-  // The main calculation function, optimized
+  // Calculate available time slots
   const calculateAvailableTimeSlots = useCallback(async () => {
     if (!selectedDate || !selectedBarberId || !selectedService) {
       console.log('Missing required data for time slot calculation');
@@ -70,13 +70,12 @@ export const useTimeSlots = (
     setIsCalculating(true);
     setError(null);
     
-    // Create a cache key based on the date, barber, service, lunch break data, and timestamp
-    // Include lunch break timestamp to ensure recalculation if lunch breaks change
-    const lunchBreakKey = cachedLunchBreaks ? 
-      `${lunchBreakTimestampRef.current}_${cachedLunchBreaks.filter(b => b.is_active).length}` : 
-      'no-breaks';
+    // Create a detailed cache key that includes lunch break information
+    const activeLunchBreaks = cachedLunchBreaks 
+      ? cachedLunchBreaks.filter(b => b.is_active).map(b => `${b.start_time}_${b.duration}`).join('|')
+      : 'no-breaks';
     
-    const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}_${lunchBreakKey}`;
+    const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}_${lunchBreakTimestampRef.current}_${activeLunchBreaks}`;
     
     // Check if we have cached results
     if (calculationCache.has(cacheKey)) {
@@ -103,10 +102,13 @@ export const useTimeSlots = (
         return;
       }
       
-      console.log('Fetching time slots with cached lunch breaks:', cachedLunchBreaks);
+      console.log('Fetching time slots with lunch breaks:', {
+        lunchBreakCount: cachedLunchBreaks?.length || 0,
+        activeLunchBreaks: cachedLunchBreaks?.filter(b => b.is_active).length || 0
+      });
       
-      // Fetch time slots, passing cached lunch breaks if available
-      const slots = await fetchBarberTimeSlots(
+      // Use the improved fetchBarberTimeSlots with lunch break filtering
+      const availableSlots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
         selectedService.duration,
@@ -114,17 +116,11 @@ export const useTimeSlots = (
         cachedLunchBreaks || []
       );
       
-      // Filter out time slots that are in the past (for today only)
-      const filteredSlots = slots.filter(
-        timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
-      );
-      
-      console.log(`After all filtering: ${filteredSlots.length} slots available`);
-      
       // Cache the result
-      calculationCache.set(cacheKey, filteredSlots);
+      calculationCache.set(cacheKey, availableSlots);
       
-      setTimeSlots(filteredSlots);
+      console.log(`Final time slots after all filtering: ${availableSlots.length}`);
+      setTimeSlots(availableSlots);
     } catch (err) {
       console.error('Error calculating time slots:', err);
       setError('Failed to load available time slots');
@@ -134,11 +130,12 @@ export const useTimeSlots = (
     }
   }, [selectedDate, selectedBarberId, selectedService, existingBookings, calendarEvents, cachedLunchBreaks]);
 
+  // Calculate slots whenever dependencies change
   useEffect(() => {
     calculateAvailableTimeSlots();
   }, [calculateAvailableTimeSlots]);
 
-  // Method to clear the cache when needed (like after booking)
+  // Method to clear the cache when needed
   const clearCache = useCallback(() => {
     console.log('Clearing time slot calculation cache');
     calculationCache.clear();
@@ -167,5 +164,5 @@ export const useTimeSlots = (
   };
 };
 
-// Export for compatibility with existing code
+// Re-export for compatibility
 export { fetchBarberTimeSlots } from '@/services/timeSlotService';

@@ -31,6 +31,12 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
       
       console.log(`Fetching lunch break for barber ${barberId}`);
       
+      if (!barberId) {
+        console.error('No barber ID provided');
+        setIsLoading(false);
+        return;
+      }
+      
       // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('barber_lunch_breaks')
@@ -63,11 +69,18 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
     try {
       setIsSaving(true);
       
-      // Convert duration to number to ensure correct data type
+      // Validate input data
       const durationNum = Number(duration);
       
       if (isNaN(durationNum) || durationNum <= 0) {
         toast.error('Please enter a valid duration');
+        setIsSaving(false);
+        return;
+      }
+      
+      if (!startTime || !startTime.includes(':')) {
+        toast.error('Please enter a valid start time');
+        setIsSaving(false);
         return;
       }
       
@@ -89,6 +102,8 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
           console.error('Error updating lunch break:', error);
           throw error;
         }
+        
+        console.log('Successfully updated lunch break');
       } else {
         // Create a new lunch break
         const newBreak: InsertableLunchBreak = {
@@ -109,11 +124,16 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
           console.error('Error creating lunch break:', error);
           throw error;
         }
+        
+        console.log('Successfully created new lunch break');
       }
       
       toast.success('Lunch break settings saved');
-      await fetchLunchBreak(); // Reload to get the updated data
       
+      // Reload data to ensure we have the latest
+      await fetchLunchBreak();
+      
+      // Notify parent component if needed
       if (onSaved) {
         onSaved();
       }
