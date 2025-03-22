@@ -116,18 +116,20 @@ function isTimeSlotBooked(timeSlot, serviceDuration, existingBookings) {
     const [bookingHours, bookingMinutes] = booking.booking_time.split(':').map(Number);
     const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
     
-    // Get booking service duration
-    const bookingServiceLength = booking.services ? booking.services.duration : 60; // Default to 60 if unknown
+    // Get booking service duration - ensure we get the correct duration
+    const bookingServiceLength = booking.service_duration;
     
     // Calculate the end time of the existing booking
     const bookingEndTimeInMinutes = bookingTimeInMinutes + bookingServiceLength;
     
-    // Check if there's an overlap
+    // Check if there's an overlap - using the proper logic for time ranges
+    // An overlap occurs if:
+    // 1. New appointment starts during an existing booking
+    // 2. New appointment ends during an existing booking
+    // 3. New appointment completely contains an existing booking
+    // 4. New appointment is completely contained by an existing booking
     return (
-      (timeInMinutes >= bookingTimeInMinutes && timeInMinutes < bookingEndTimeInMinutes) ||
-      (appointmentEndTimeInMinutes > bookingTimeInMinutes && appointmentEndTimeInMinutes <= bookingEndTimeInMinutes) ||
-      (timeInMinutes <= bookingTimeInMinutes && appointmentEndTimeInMinutes >= bookingEndTimeInMinutes) ||
-      (timeInMinutes >= bookingTimeInMinutes && appointmentEndTimeInMinutes <= bookingEndTimeInMinutes)
+      (timeInMinutes < bookingEndTimeInMinutes && appointmentEndTimeInMinutes > bookingTimeInMinutes)
     );
   });
 }
@@ -243,14 +245,16 @@ Deno.serve(async (req) => {
     
     console.log('Fetched lunch breaks:', lunchBreaks);
     
-    // 4. Get existing bookings for this barber and date
+    // 4. Get existing bookings for this barber and date with service durations
     const formattedDate = requestDate.toISOString().split('T')[0];
     
+    // Get bookings with their service durations
     const { data: existingBookings, error: bookingsError } = await supabase
       .from('bookings')
       .select(`
         booking_time,
-        services:service_id (
+        service_id,
+        services (
           duration
         )
       `)
@@ -263,7 +267,13 @@ Deno.serve(async (req) => {
       // Continue without bookings
     }
     
-    console.log('Fetched existing bookings:', existingBookings);
+    // Transform bookings to include service duration directly
+    const bookingsWithDuration = existingBookings ? existingBookings.map(booking => ({
+      booking_time: booking.booking_time,
+      service_duration: booking.services ? booking.services.duration : 60 // Default to 60 if not found
+    })) : [];
+    
+    console.log('Fetched existing bookings with durations:', bookingsWithDuration);
     
     // 5. Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(
@@ -286,13 +296,13 @@ Deno.serve(async (req) => {
       }
       
       // Filter out booked slots
-      if (existingBookings && isTimeSlotBooked(slot.time, serviceDuration, existingBookings)) {
-        console.log(`Slot ${slot.time} is already booked, skipping`);
+      if (isTimeSlotBooked(slot.time, serviceDuration, bookingsWithDuration)) {
+        console.log(`Slot ${slot.time} is already booked or overlaps with existing booking, skipping`);
         return false;
       }
       
       // Filter out lunch break slots
-      if (lunchBreaks && hasLunchBreakConflict(slot.time, lunchBreaks, serviceDuration)) {
+      if (hasLunchBreakConflict(slot.time, lunchBreaks, serviceDuration)) {
         console.log(`Slot ${slot.time} is during lunch break, skipping`);
         return false;
       }
