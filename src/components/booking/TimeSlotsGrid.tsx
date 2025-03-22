@@ -11,8 +11,6 @@ interface TimeSlotsGridProps {
   availableTimeSlots: string[];
   isLoading: boolean;
   error: string | null;
-  selectedBarberId?: string | null;
-  serviceDuration?: number;
   onRetry?: () => void;
 }
 
@@ -70,8 +68,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
           time={time} 
           selected={selectedTime === time}
           onClick={() => setSelectedTime(time)}
-          disabled={false} // Already filtered by edge function
-          data-edge-filtered="true" // For debugging
+          disabled={false}
         />
       ))}
     </div>

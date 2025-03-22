@@ -137,10 +137,6 @@ const Book = () => {
                 setSelectedTime={setSelectedTime}
                 onNext={handleDateTimeComplete}
                 onBack={handleBackToServices}
-                allEvents={allEvents}
-                selectedBarberId={selectedBarber}
-                serviceDuration={selectedServiceDetails?.duration}
-                existingBookings={existingBookings}
                 availableTimeSlots={availableTimeSlots}
                 isLoadingTimeSlots={isLoadingTimeSlots}
                 isCheckingDates={isCheckingDates}

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 import { Spinner } from '@/components/ui/spinner';
 import TimeSlotsGrid from '../TimeSlotsGrid';
@@ -19,10 +19,6 @@ interface DateTimeSelectionStepProps extends BookingStepProps {
   isDateDisabled: (date: Date) => boolean;
   timeSlotError?: string | null;
   onRetry?: () => void;
-  selectedBarberId?: string | null;
-  serviceDuration?: number;
-  existingBookings?: any[];
-  allEvents?: CalendarEvent[];
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -37,21 +33,8 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   isCheckingDates,
   isDateDisabled,
   timeSlotError,
-  onRetry,
-  selectedBarberId,
-  serviceDuration
+  onRetry
 }) => {
-  const handleRetry = () => {
-    // Re-trigger the date selection to refresh time slots
-    if (onRetry) {
-      onRetry();
-    } else if (selectedDate) {
-      const refreshDate = new Date(selectedDate);
-      setSelectedDate(undefined);
-      setTimeout(() => setSelectedDate(refreshDate), 100);
-    }
-  };
-
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -86,9 +69,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
               availableTimeSlots={availableTimeSlots}
               isLoading={isLoadingTimeSlots}
               error={timeSlotError || null}
-              onRetry={handleRetry}
-              selectedBarberId={selectedBarberId}
-              serviceDuration={serviceDuration}
+              onRetry={onRetry}
             />
           </div>
         )}

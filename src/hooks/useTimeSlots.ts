@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
 import { supabase } from '@/integrations/supabase/client';
@@ -147,5 +146,5 @@ export const useTimeSlots = (
   };
 };
 
-// Re-export needed functions for compatibility
-export { fetchBarberTimeSlots } from '@/services/timeSlotService';
+// Only export the needed function for compatibility
+export { checkBarberAvailability } from '@/services/timeSlotService';
