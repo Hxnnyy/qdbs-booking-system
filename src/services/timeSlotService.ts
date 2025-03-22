@@ -140,18 +140,18 @@ export const fetchBarberTimeSlots = async (
     );
     console.log(`After lunch break filtering: ${noLunchSlots.length} slots available`);
     
-    // Step 4: Final verification - double-check each slot one-by-one to catch any edge cases
-    const finalAvailableSlots = [];
+    // Step 4: Final verification - ensure slots fit within opening hours
+    const finalAvailableSlots: string[] = [];
     
     for (const slot of noLunchSlots) {
-      // First verify against lunch breaks again (redundant but thorough)
+      // Double-check lunch breaks
       const overlapsLunch = doesAppointmentOverlapLunchBreak(slot, serviceDuration, lunchBreaks);
       if (overlapsLunch) {
         console.log(`EXCLUDED: Time slot ${slot} overlaps with a lunch break`);
         continue;
       }
       
-      // Then check opening hours
+      // Check opening hours
       const withinHours = await isWithinOpeningHours(
         barberId,
         date,
@@ -167,6 +167,9 @@ export const fetchBarberTimeSlots = async (
     }
     
     console.log(`Final available slots: ${finalAvailableSlots.length}`);
+    if (finalAvailableSlots.length > 0) {
+      console.log(`Available slots: ${finalAvailableSlots.join(', ')}`);
+    }
     console.log(`===== END FETCHING TIME SLOTS =====`);
     
     return finalAvailableSlots;

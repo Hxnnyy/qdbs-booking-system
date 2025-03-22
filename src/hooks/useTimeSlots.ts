@@ -15,6 +15,19 @@ import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability }
 // Create a module-level cache to persist data across renders
 const calculationCache = new Map<string, string[]>();
 
+// Create a timestamp to track the "freshness" of the cache
+let globalCacheTimestamp = Date.now();
+
+// Global function to clear the cache - used by other components
+if (typeof window !== 'undefined') {
+  (window as any).__clearTimeSlotCache = () => {
+    console.log('Clearing time slot cache from global function');
+    calculationCache.clear();
+    globalCacheTimestamp = Date.now();
+    return true;
+  };
+}
+
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
  * 
@@ -37,8 +50,8 @@ export const useTimeSlots = (
   const [error, setError] = useState<string | null>(null);
   const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
   
-  // Timestamp to track changes to lunch breaks
-  const lunchBreakTimestampRef = useRef<number>(Date.now());
+  // Local timestamp to track cache freshness for this hook instance
+  const localCacheTimestampRef = useRef<number>(globalCacheTimestamp);
   
   // Load lunch breaks when barber changes
   useEffect(() => {
@@ -64,7 +77,9 @@ export const useTimeSlots = (
         });
         
         setCachedLunchBreaks(lunchBreaks);
-        lunchBreakTimestampRef.current = Date.now(); // Update timestamp on refresh
+        
+        // Update our local timestamp to invalidate cache
+        localCacheTimestampRef.current = Date.now();
         
         // Force clear cache when lunch breaks are loaded/changed
         calculationCache.clear();
@@ -100,8 +115,8 @@ export const useTimeSlots = (
           .join('|') 
       : 'no-breaks';
     
-    // Create a highly specific cache key that accounts for all relevant factors
-    const cacheKey = `${formattedDate}_${selectedBarberId}_${selectedService.id}_${lunchBreakTimestampRef.current}_${activeBreaksString}`;
+    // Include timestamps in the cache key to ensure freshness
+    const cacheKey = `${formattedDate}_${selectedBarberId}_${selectedService.id}_${localCacheTimestampRef.current}_${activeBreaksString}_${globalCacheTimestamp}`;
     
     console.log(`Cache key for time slots: ${cacheKey}`);
     
@@ -147,6 +162,9 @@ export const useTimeSlots = (
       calculationCache.set(cacheKey, availableSlots);
       
       console.log(`Final time slots: ${availableSlots.length}`);
+      if (availableSlots.length > 0) {
+        console.log(`Available slots: ${availableSlots.join(', ')}`);
+      }
       setTimeSlots(availableSlots);
     } catch (err) {
       console.error('Error calculating time slots:', err);
@@ -166,6 +184,8 @@ export const useTimeSlots = (
   const clearCache = useCallback(() => {
     console.log('Clearing time slot calculation cache');
     calculationCache.clear();
+    localCacheTimestampRef.current = Date.now();
+    globalCacheTimestamp = Date.now();
   }, []);
 
   // Method to force reload lunch breaks data
@@ -180,7 +200,10 @@ export const useTimeSlots = (
       console.log(`Reloaded ${lunchBreaks.length} lunch breaks`);
       
       setCachedLunchBreaks(lunchBreaks);
-      lunchBreakTimestampRef.current = Date.now(); // Update timestamp
+      
+      // Update timestamps to invalidate cache
+      localCacheTimestampRef.current = Date.now();
+      globalCacheTimestamp = Date.now();
       
       clearCache(); // Clear the entire cache to ensure fresh data
       calculationCache.clear(); // Make doubly sure the cache is cleared

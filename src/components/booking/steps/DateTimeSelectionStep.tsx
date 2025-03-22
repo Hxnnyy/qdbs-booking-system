@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
@@ -47,6 +47,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
       const clearCacheFn = (window as any).__clearTimeSlotCache;
       if (typeof clearCacheFn === 'function') {
         clearCacheFn();
+        console.log('Time slot cache cleared successfully');
       }
     } catch (e) {
       console.log('Cache clearing not available');
@@ -54,9 +55,11 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
     
     // Re-trigger the date selection to refresh time slots
     if (onRetry) {
+      console.log('Calling onRetry to refresh time slots');
       onRetry();
     } else if (selectedDate) {
       // Force a refresh by briefly clearing and resetting the date
+      console.log('Forcing refresh by resetting date temporarily');
       const refreshDate = new Date(selectedDate);
       setSelectedDate(undefined);
       setTimeout(() => setSelectedDate(refreshDate), 100);
@@ -64,11 +67,12 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   };
 
   // Clear selected time when date changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedDate && selectedTime) {
+      console.log('Date changed, clearing selected time');
       setSelectedTime('');
     }
-  }, [selectedDate, setSelectedTime]);
+  }, [selectedDate, selectedTime, setSelectedTime]);
 
   return (
     <>
@@ -86,7 +90,10 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
             <Calendar
               mode="single"
               selected={selectedDate}
-              onSelect={setSelectedDate}
+              onSelect={(date) => {
+                console.log('New date selected:', date);
+                setSelectedDate(date);
+              }}
               disabled={isDateDisabled}
               className="rounded-md border"
             />
@@ -112,7 +119,10 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
               <TimeSlotsGrid 
                 selectedDate={selectedDate}
                 selectedTime={selectedTime}
-                setSelectedTime={setSelectedTime}
+                setSelectedTime={(time) => {
+                  console.log('Time selected:', time);
+                  setSelectedTime(time);
+                }}
                 availableTimeSlots={availableTimeSlots}
                 isLoading={isLoadingTimeSlots}
                 error={null}

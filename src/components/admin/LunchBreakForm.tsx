@@ -71,6 +71,29 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
     }
   };
 
+  const clearAllTimeslotCaches = () => {
+    try {
+      // Clear the global cache
+      if (typeof window !== 'undefined' && (window as any).__clearTimeSlotCache) {
+        const clearResult = (window as any).__clearTimeSlotCache();
+        console.log('Global time slot cache cleared:', clearResult);
+      } else {
+        console.log('Global cache clearing function not available');
+      }
+      
+      // Immediately broadcast a custom event that hooks can listen for
+      if (typeof window !== 'undefined') {
+        const cacheInvalidationEvent = new CustomEvent('timeslot-cache-invalidated', {
+          detail: { timestamp: Date.now(), barberId }
+        });
+        window.dispatchEvent(cacheInvalidationEvent);
+        console.log('Cache invalidation event dispatched');
+      }
+    } catch (err) {
+      console.error('Error clearing caches:', err);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -136,18 +159,8 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         console.log('Successfully created new lunch break');
       }
       
-      // Clear any module-level caches that might be using old lunch break data
-      // This is important to make sure new bookings use the updated lunch break settings
-      try {
-        // We need to access the module-level cache from useTimeSlots
-        const calculationCache = (window as any).__clearTimeSlotCache;
-        if (typeof calculationCache === 'function') {
-          calculationCache();
-          console.log('Successfully cleared time slot cache');
-        }
-      } catch (e) {
-        console.log('Note: Cache clearing helper not available, but that\'s okay');
-      }
+      // Clear all caches to ensure new bookings use the updated lunch break settings
+      clearAllTimeslotCaches();
       
       toast.success('Lunch break settings saved');
       
