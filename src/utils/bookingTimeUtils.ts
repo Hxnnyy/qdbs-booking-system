@@ -71,8 +71,6 @@ export const hasLunchBreakConflict = (
   const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
   if (activeLunchBreaks.length === 0) return false;
   
-  console.log(`Checking ${timeSlot} against ${activeLunchBreaks.length} active lunch breaks`);
-  
   // Convert time slot to minutes for easier comparison
   const [hours, minutes] = timeSlot.split(':').map(Number);
   const timeInMinutes = hours * 60 + minutes;
@@ -87,14 +85,10 @@ export const hasLunchBreakConflict = (
     const lunchStartMinutes = lunchHours * 60 + lunchMinutes;
     const lunchEndMinutes = lunchStartMinutes + lunch.duration;
     
-    console.log(`Lunch break: ${lunch.start_time} for ${lunch.duration} minutes (${lunchStartMinutes}-${lunchEndMinutes})`);
-    console.log(`Appointment: ${timeSlot} for ${serviceDuration} minutes (${timeInMinutes}-${endTimeInMinutes})`);
-    
-    // Check for overlap using the simplest logic:
+    // Check for overlap:
     // If the appointment starts before lunch ends AND appointment ends after lunch starts,
     // then there's an overlap
     if (timeInMinutes < lunchEndMinutes && endTimeInMinutes > lunchStartMinutes) {
-      console.log(`CONFLICT DETECTED: Appointment overlaps with lunch break`);
       return true;
     }
   }

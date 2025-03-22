@@ -4,8 +4,8 @@ import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isSameDay } from 'date-fns';
-import { getNoTimeSlotsMessage } from '@/utils/bookingTimeUtils';
-import { hasLunchBreakConflict } from '@/utils/bookingTimeUtils';
+import { getNoTimeSlotsMessage, hasLunchBreakConflict } from '@/utils/bookingTimeUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TimeSlotsGridProps {
   selectedDate: Date | undefined;
@@ -28,23 +28,32 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   selectedBarberId,
   serviceDuration = 60
 }) => {
-  // Use the filtered time slots directly from the hook
   const [lunchBreaks, setLunchBreaks] = useState<any[]>([]);
   const [displayTimeSlots, setDisplayTimeSlots] = useState<string[]>([]);
+  const [isLoadingLunchBreaks, setIsLoadingLunchBreaks] = useState(false);
   const timeSlots = availableTimeSlots || [];
 
-  // Fetch lunch breaks on component mount
+  // Fetch lunch breaks on component mount or when barber changes
   useEffect(() => {
     if (selectedBarberId) {
+      setIsLoadingLunchBreaks(true);
+      
       const fetchLunchBreaks = async () => {
         try {
-          const { data, error } = await fetch(`/api/lunch-breaks/${selectedBarberId}`).then(res => res.json());
+          const { data, error } = await supabase
+            .from('barber_lunch_breaks')
+            .select('*')
+            .eq('barber_id', selectedBarberId)
+            .eq('is_active', true);
+            
           if (error) throw error;
-          setLunchBreaks(data || []);
           console.log('Lunch breaks fetched in TimeSlotsGrid:', data);
+          setLunchBreaks(data || []);
         } catch (err) {
           console.error('Error fetching lunch breaks:', err);
           setLunchBreaks([]);
+        } finally {
+          setIsLoadingLunchBreaks(false);
         }
       };
       
@@ -52,29 +61,32 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     }
   }, [selectedBarberId]);
 
-  // Filter time slots by lunch breaks locally for double verification
+  // Filter time slots by lunch breaks locally
   useEffect(() => {
-    if (lunchBreaks.length > 0 && timeSlots.length > 0 && serviceDuration) {
-      console.log(`Double-checking ${timeSlots.length} time slots against ${lunchBreaks.length} lunch breaks`);
+    if (timeSlots.length > 0) {
+      // Filter out time slots that conflict with lunch breaks
+      let filteredSlots = [...timeSlots];
       
-      const filteredSlots = timeSlots.filter(slot => {
-        // Verify this slot doesn't conflict with lunch breaks
-        const hasLunchConflict = lunchBreaks.some(lunch => 
-          lunch.is_active && hasLunchBreakConflict(slot, [lunch], serviceDuration)
-        );
+      if (lunchBreaks && lunchBreaks.length > 0 && serviceDuration) {
+        console.log(`Filtering ${timeSlots.length} time slots against ${lunchBreaks.length} lunch breaks`);
         
-        if (hasLunchConflict) {
-          console.log(`Slot ${slot} conflicts with lunch break, filtering out`);
-          return false;
-        }
+        filteredSlots = timeSlots.filter(slot => {
+          const hasLunchConflict = hasLunchBreakConflict(slot, lunchBreaks, serviceDuration);
+          
+          if (hasLunchConflict) {
+            console.log(`Slot ${slot} conflicts with lunch break, filtering out`);
+            return false;
+          }
+          
+          return true;
+        });
         
-        return true;
-      });
+        console.log(`After lunch break filtering: ${filteredSlots.length} slots remain`);
+      }
       
-      console.log(`After lunch break filtering: ${filteredSlots.length} slots remain`);
       setDisplayTimeSlots(filteredSlots);
     } else {
-      setDisplayTimeSlots(timeSlots);
+      setDisplayTimeSlots([]);
     }
   }, [timeSlots, lunchBreaks, serviceDuration]);
 
@@ -94,18 +106,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     }
   }, [selectedDate, selectedTime, displayTimeSlots, setSelectedTime]);
 
-  // Log slots for debugging
-  useEffect(() => {
-    if (timeSlots.length > 0) {
-      console.log('Time slots received in TimeSlotsGrid:', timeSlots);
-    }
-    
-    if (displayTimeSlots.length > 0) {
-      console.log('Display time slots after filtering:', displayTimeSlots);
-    }
-  }, [timeSlots, displayTimeSlots]);
-
-  if (isLoading) {
+  if (isLoading || isLoadingLunchBreaks) {
     return (
       <div className="flex justify-center items-center h-48">
         <Spinner className="h-8 w-8" />
