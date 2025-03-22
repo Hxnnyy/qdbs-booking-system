@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,21 +35,24 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   selectedBarberId,
   allEvents = [],
   serviceDuration = 60,
-  onRetry
+  onRetry,
+  availableTimeSlots: providedTimeSlots,
+  isLoadingTimeSlots: providedIsLoading,
+  isCheckingDates: providedIsChecking,
+  isDateDisabled: providedIsDateDisabled,
+  timeSlotError: providedTimeSlotError
 }) => {
-  // Get the selected service
   const selectedServiceDetails = {
     duration: serviceDuration,
     id: 'temp-id'
   };
 
-  // Use our new availability hook
   const {
-    availableTimeSlots,
-    isLoadingTimeSlots,
-    timeSlotError,
-    isCheckingDates,
-    isDateDisabled,
+    availableTimeSlots: hookTimeSlots,
+    isLoadingTimeSlots: hookIsLoading,
+    timeSlotError: hookTimeSlotError,
+    isCheckingDates: hookIsChecking,
+    isDateDisabled: hookIsDateDisabled,
     refreshAvailability,
     clearCache
   } = useAvailability(
@@ -60,18 +62,21 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
     allEvents
   );
 
+  const availableTimeSlots = providedTimeSlots !== undefined ? providedTimeSlots : hookTimeSlots;
+  const isLoadingTimeSlots = providedIsLoading !== undefined ? providedIsLoading : hookIsLoading;
+  const timeSlotError = providedTimeSlotError !== undefined ? providedTimeSlotError : hookTimeSlotError;
+  const isCheckingDates = providedIsChecking !== undefined ? providedIsChecking : hookIsChecking;
+  const isDateDisabled = providedIsDateDisabled !== undefined ? providedIsDateDisabled : hookIsDateDisabled;
+
   const handleRetry = () => {
-    // Clear cache and refresh availability
-    clearCache();
-    refreshAvailability();
-    
-    // Call onRetry if provided
     if (onRetry) {
       onRetry();
+    } else {
+      clearCache();
+      refreshAvailability();
     }
   };
 
-  // Clear selected time when date changes
   useEffect(() => {
     if (selectedDate && selectedTime) {
       console.log('Date changed, clearing selected time');
