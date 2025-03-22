@@ -112,37 +112,62 @@ export const createBooking = async (
   try {
     const isGuest = !userId;
     
-    // Create a booking object - specifically overriding with the guest_booking flag to work around triggers
-    const insertData = {
-      barber_id: bookingData.barber_id,
-      service_id: bookingData.service_id,
-      booking_date: bookingData.booking_date,
-      booking_time: bookingData.booking_time,
-      status: 'confirmed',
-      notes: bookingData.notes || null,
-      // This is the critical change - explicitly set guest_booking based on whether userId exists
-      guest_booking: isGuest,
-      // Use the user's ID if available, otherwise placeholder for guests
-      user_id: userId,
-      guest_email: bookingData.guest_email || null
-    };
-    
-    // Log the data we're about to insert
-    console.log('Creating booking with insert data:', JSON.stringify(insertData));
-    
-    const { data, error } = await supabase
-      .from('bookings')
-      .insert(insertData)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error inserting booking:', error);
-      throw error;
+    // Instead of using RPC or direct insert that might trigger the problematic function,
+    // we'll use a different approach for registered users vs guests
+    if (isGuest) {
+      // For guest bookings - continue with normal insert
+      const insertData = {
+        barber_id: bookingData.barber_id,
+        service_id: bookingData.service_id,
+        booking_date: bookingData.booking_date,
+        booking_time: bookingData.booking_time,
+        status: 'confirmed',
+        notes: bookingData.notes || null,
+        guest_booking: true,
+        user_id: userId,
+        guest_email: bookingData.guest_email || null
+      };
+      
+      console.log('Creating guest booking with data:', JSON.stringify(insertData));
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert(insertData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error inserting guest booking:', error);
+        throw error;
+      }
+      
+      return data;
+    } else {
+      // For logged-in users - use RPC to bypass the trigger function
+      // Use a special edge function to create the booking securely
+      console.log('Creating user booking via edge function');
+      
+      const { data, error } = await supabase.functions.invoke('create-user-booking', {
+        body: {
+          booking: {
+            barber_id: bookingData.barber_id,
+            service_id: bookingData.service_id,
+            booking_date: bookingData.booking_date,
+            booking_time: bookingData.booking_time,
+            status: 'confirmed',
+            notes: bookingData.notes || null,
+            user_id: userId
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('Error creating booking via edge function:', error);
+        throw new Error(error.message || 'Failed to create booking');
+      }
+      
+      return data;
     }
-    
-    console.log('Booking created successfully:', data);
-    return data;
   } catch (error) {
     console.error('Error creating booking:', error);
     throw error;
