@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -77,10 +76,8 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      // Process lunch breaks, making sure to only include one instance per barber
       const processedLunchBreaks = new Map<string, LunchBreak>();
       (lunchData || []).forEach(lunchBreak => {
-        // Use barber_id as key to ensure one lunch break per barber
         processedLunchBreaks.set(lunchBreak.barber_id, lunchBreak);
       });
       
@@ -142,13 +139,21 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      setCalendarEvents(prev => 
-        prev.map(event => 
-          event.id === eventId 
-            ? { ...event, start: newStart, end: newEnd }
-            : event
-        )
-      );
+      const updatedEvents = calendarEvents.filter(event => event.id !== eventId);
+      
+      const originalEvent = calendarEvents.find(event => event.id === eventId);
+      
+      if (originalEvent) {
+        const updatedEvent = {
+          ...originalEvent,
+          start: new Date(newStart),
+          end: new Date(newEnd)
+        };
+        
+        updatedEvents.push(updatedEvent);
+        
+        setCalendarEvents(updatedEvents);
+      }
       
       setBookings(prev => 
         prev.map(booking => 
@@ -214,7 +219,12 @@ export const useCalendarBookings = () => {
       return;
     }
     
-    updateBookingTime(event.id, newStart, newEnd);
+    const newStartCopy = new Date(newStart);
+    const newEndCopy = new Date(newEnd);
+    
+    const eventCopy = {...event};
+    
+    updateBookingTime(eventCopy.id, newStartCopy, newEndCopy);
   };
 
   const handleEventClick = (event: CalendarEvent) => {
