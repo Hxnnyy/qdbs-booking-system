@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -76,8 +77,10 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
+      // Process lunch breaks, making sure to only include one instance per barber
       const processedLunchBreaks = new Map<string, LunchBreak>();
       (lunchData || []).forEach(lunchBreak => {
+        // Use barber_id as key to ensure one lunch break per barber
         processedLunchBreaks.set(lunchBreak.barber_id, lunchBreak);
       });
       
@@ -129,20 +132,6 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       
-      const filteredEvents = calendarEvents.filter(event => event.id !== eventId);
-      
-      const originalEvent = calendarEvents.find(event => event.id === eventId);
-      
-      if (originalEvent) {
-        const updatedEvent = {
-          ...originalEvent,
-          start: new Date(newStart),
-          end: new Date(newEnd)
-        };
-        
-        setCalendarEvents([...filteredEvents, updatedEvent]);
-      }
-      
       const { error } = await supabase
         .from('bookings')
         .update({
@@ -152,6 +141,14 @@ export const useCalendarBookings = () => {
         .eq('id', eventId);
       
       if (error) throw error;
+      
+      setCalendarEvents(prev => 
+        prev.map(event => 
+          event.id === eventId 
+            ? { ...event, start: newStart, end: newEnd }
+            : event
+        )
+      );
       
       setBookings(prev => 
         prev.map(booking => 
@@ -170,8 +167,6 @@ export const useCalendarBookings = () => {
       console.error('Error updating booking time:', err);
       setError(err.message);
       toast.error('Failed to update booking time');
-      
-      fetchData();
     } finally {
       setIsLoading(false);
     }
@@ -219,14 +214,7 @@ export const useCalendarBookings = () => {
       return;
     }
     
-    const newStartCopy = new Date(newStart);
-    const newEndCopy = new Date(newEnd);
-    
-    const eventCopy = {...event};
-    
-    setCalendarEvents(prev => prev.filter(e => e.id !== event.id));
-    
-    updateBookingTime(eventCopy.id, newStartCopy, newEndCopy);
+    updateBookingTime(event.id, newStart, newEnd);
   };
 
   const handleEventClick = (event: CalendarEvent) => {
