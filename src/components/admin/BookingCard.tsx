@@ -81,6 +81,15 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
   const clientName = getClientName(booking);
   const clientPhone = getClientPhone(booking);
   
+  console.log('Rendering booking card with data:', {
+    id: booking.id,
+    clientName,
+    clientPhone,
+    isGuest: booking.guest_booking,
+    hasProfile: !!booking.profile,
+    profileData: booking.profile
+  });
+  
   return (
     <Card>
       <CardContent className="p-6">

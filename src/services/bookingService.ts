@@ -1,3 +1,4 @@
+
 /**
  * Booking Service
  * 
@@ -241,13 +242,15 @@ export const fetchPaginatedBookings = async (
     const from = page * pageSize;
     const to = from + pageSize - 1;
     
+    console.log('Fetching paginated bookings with profile data...');
+    
     const { data, error } = await supabase
       .from('bookings')
       .select(`
         *,
-        barber:barber_id(name),
+        barber:barber_id(name, color),
         service:service_id(name, price, duration),
-        profile:user_id(first_name, last_name, email, phone)
+        profile:user_id(first_name, last_name, email, phone, is_admin, is_super_admin)
       `)
       .order('booking_date', { ascending: false })
       .order('booking_time', { ascending: true })
@@ -256,6 +259,8 @@ export const fetchPaginatedBookings = async (
     if (error) {
       throw error;
     }
+    
+    console.log('Retrieved bookings data:', data && data.length ? data[0] : 'No data');
     
     return {
       bookings: data || [],

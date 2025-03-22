@@ -38,6 +38,13 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       }
     }
     
+    console.log('Creating calendar event from booking:', {
+      id: booking.id,
+      isGuest: booking.guest_booking,
+      hasProfile: !!booking.profile,
+      profileData: booking.profile
+    });
+    
     // For registered users, try to get their name from the user_profiles or create a title
     let clientName = '';
     if (booking.guest_booking) {
