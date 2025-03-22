@@ -79,29 +79,17 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
           <div>
             <h3 className="text-xl font-bold mb-4 font-playfair">Select Time</h3>
             
-            {timeSlotError ? (
-              <div className="text-center p-4 border rounded-md bg-muted flex flex-col items-center">
-                <p className="text-muted-foreground mb-4">{timeSlotError}</p>
-                <Button 
-                  variant="secondary" 
-                  onClick={handleRetry}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" /> Retry
-                </Button>
-              </div>
-            ) : (
-              <TimeSlotsGrid 
-                selectedDate={selectedDate}
-                selectedTime={selectedTime}
-                setSelectedTime={setSelectedTime}
-                availableTimeSlots={availableTimeSlots}
-                isLoading={isLoadingTimeSlots}
-                error={null}
-                selectedBarberId={selectedBarberId}
-                serviceDuration={serviceDuration}
-              />
-            )}
+            <TimeSlotsGrid 
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              setSelectedTime={setSelectedTime}
+              availableTimeSlots={availableTimeSlots}
+              isLoading={isLoadingTimeSlots}
+              error={timeSlotError || null}
+              onRetry={handleRetry}
+              selectedBarberId={selectedBarberId}
+              serviceDuration={serviceDuration}
+            />
           </div>
         )}
       </div>

@@ -11,6 +11,7 @@ import BarberSelectionStep from '@/components/booking/steps/BarberSelectionStep'
 import ServiceSelectionStep from '@/components/booking/steps/ServiceSelectionStep';
 import DateTimeSelectionStep from '@/components/booking/steps/DateTimeSelectionStep';
 import NotesStep from '@/components/booking/steps/NotesStep';
+import { useTimeSlots } from '@/hooks/useTimeSlots';
 
 const Book = () => {
   const { barbers, isLoading: barbersLoading } = useBarbers();
@@ -30,8 +31,6 @@ const Book = () => {
     existingBookings,
     isLoadingBookings,
     selectedServiceDetails,
-    availableTimeSlots,
-    isLoadingTimeSlots,
     disabledDates,
     isCheckingDates,
     bookingLoading,
@@ -50,6 +49,19 @@ const Book = () => {
     handleDateTimeComplete,
     handleSubmit
   } = useBookingFlow(barbers, services, allEvents);
+
+  // Use the updated hook directly
+  const {
+    timeSlots: availableTimeSlots,
+    isCalculating: isLoadingTimeSlots,
+    error: timeSlotError
+  } = useTimeSlots(
+    selectedDate,
+    selectedBarber,
+    selectedServiceDetails,
+    existingBookings,
+    allEvents
+  );
 
   const isLoading = barbersLoading || servicesLoading || isLoadingBarberServices || isLoadingBookings || calendarLoading;
 
@@ -133,6 +145,8 @@ const Book = () => {
                 isLoadingTimeSlots={isLoadingTimeSlots}
                 isCheckingDates={isCheckingDates}
                 isDateDisabled={isDateDisabled}
+                timeSlotError={timeSlotError}
+                onRetry={() => {}} // No need for retry with edge function
               />
             )}
             

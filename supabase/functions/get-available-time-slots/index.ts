@@ -241,6 +241,8 @@ Deno.serve(async (req) => {
       // Continue without lunch breaks
     }
     
+    console.log('Fetched lunch breaks:', lunchBreaks);
+    
     // 4. Get existing bookings for this barber and date
     const formattedDate = requestDate.toISOString().split('T')[0];
     
@@ -261,6 +263,8 @@ Deno.serve(async (req) => {
       // Continue without bookings
     }
     
+    console.log('Fetched existing bookings:', existingBookings);
+    
     // 5. Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(
       openingHours.open_time, 
@@ -277,16 +281,19 @@ Deno.serve(async (req) => {
         requestDate.getFullYear() === today.getFullYear() &&
         isTimeSlotInPast(requestDate, slot.time)
       ) {
+        console.log(`Slot ${slot.time} is in the past, skipping`);
         return false;
       }
       
       // Filter out booked slots
       if (existingBookings && isTimeSlotBooked(slot.time, serviceDuration, existingBookings)) {
+        console.log(`Slot ${slot.time} is already booked, skipping`);
         return false;
       }
       
       // Filter out lunch break slots
       if (lunchBreaks && hasLunchBreakConflict(slot.time, lunchBreaks, serviceDuration)) {
+        console.log(`Slot ${slot.time} is during lunch break, skipping`);
         return false;
       }
       

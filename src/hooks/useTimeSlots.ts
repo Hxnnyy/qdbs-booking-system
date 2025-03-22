@@ -83,7 +83,7 @@ export const useTimeSlots = (
         return;
       }
       
-      // Call our new edge function to get available time slots
+      // Call our edge function to get available time slots
       const { data, error } = await supabase.functions.invoke('get-available-time-slots', {
         body: {
           barberId: selectedBarberId,

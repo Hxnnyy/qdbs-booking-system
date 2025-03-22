@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { getNoTimeSlotsMessage } from '@/utils/bookingTimeUtils';
@@ -13,6 +13,7 @@ interface TimeSlotsGridProps {
   error: string | null;
   selectedBarberId?: string | null;
   serviceDuration?: number;
+  onRetry?: () => void;
 }
 
 const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
@@ -21,7 +22,8 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   setSelectedTime,
   availableTimeSlots,
   isLoading,
-  error
+  error,
+  onRetry
 }) => {
   if (isLoading) {
     return (
@@ -37,6 +39,14 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
       <div className="text-center p-4 border rounded-md bg-muted">
         <p className="text-muted-foreground">{error}</p>
         <p className="text-sm mt-2">Please select another date or barber.</p>
+        {onRetry && (
+          <button 
+            className="mt-4 px-4 py-2 text-sm bg-burgundy text-white rounded-md hover:bg-burgundy-light flex items-center justify-center mx-auto"
+            onClick={onRetry}
+          >
+            Retry
+          </button>
+        )}
       </div>
     );
   }
