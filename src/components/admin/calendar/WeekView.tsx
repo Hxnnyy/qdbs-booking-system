@@ -57,8 +57,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
-    
-    setDraggingEvent({...event});
+    setDraggingEvent(event);
   };
 
   const handleDragOver = (e: React.DragEvent, dayIndex: number) => {
@@ -98,21 +97,17 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
     const newEnd = new Date(newStart.getTime() + duration);
 
-    console.log('Week view drop event:', {
+    console.log('Drop event:', {
       event: draggingEvent.title,
-      oldDate: draggingEvent.start.toLocaleDateString(),
-      newDate: selectedDate.toLocaleDateString(),
       oldStart: draggingEvent.start.toISOString(),
       newStart: newStart.toISOString(),
       dayIndex,
       selectedDate: selectedDate.toISOString()
     });
 
-    const eventToUpdate = {...draggingEvent};
+    onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
     setDragPreview(null);
-    
-    onEventDrop(eventToUpdate, newStart, newEnd);
   };
 
   const processedEvents = processOverlappingEvents(displayEvents);

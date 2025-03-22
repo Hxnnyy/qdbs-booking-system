@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -51,7 +52,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
-    setDraggingEvent({...event});
+    setDraggingEvent(event);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -91,11 +92,9 @@ export const DayView: React.FC<CalendarViewProps> = ({
       newStart: newStart.toISOString()
     });
 
-    const eventToUpdate = {...draggingEvent};
+    onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
     setDragPreview(null);
-    
-    onEventDrop(eventToUpdate, newStart, newEnd);
   };
 
   const processedEvents = processOverlappingEvents(displayEvents);
@@ -107,6 +106,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
         <DayHeader date={date} holidayEvents={[]} />
       </div>
       
+      {/* Holiday indicator row - separate from the header */}
       {holidayEvents.length > 0 && (
         <div className="grid grid-cols-[4rem_1fr] border-b border-border bg-background">
           <div className="border-r border-border"></div>
