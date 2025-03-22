@@ -1,3 +1,4 @@
+
 /**
  * useBookingQuery Hook
  * 
@@ -57,6 +58,7 @@ export const useCreateBookingMutation = () => {
       toast.success('Booking created successfully!');
     },
     onError: (error: any) => {
+      console.error('Error creating booking:', error);
       toast.error(error.message || 'Failed to create booking');
     }
   });
@@ -84,6 +86,7 @@ export const useUpdateBookingMutation = () => {
       toast.success('Booking updated successfully!');
     },
     onError: (error: any) => {
+      console.error('Error updating booking:', error);
       toast.error(error.message || 'Failed to update booking');
     }
   });

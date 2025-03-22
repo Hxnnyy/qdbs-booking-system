@@ -368,6 +368,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_valid_user_id: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

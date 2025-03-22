@@ -76,12 +76,31 @@ serve(async (req) => {
       );
     }
     
+    // Verify the user exists using our new secure function
+    console.log("Verifying user_id is valid:", booking.user_id);
+    const { data: userIsValid, error: userCheckError } = await supabase.rpc(
+      'is_valid_user_id',
+      { user_id: booking.user_id }
+    );
+    
+    if (userCheckError) {
+      console.error("Error checking user validity:", userCheckError.message);
+      return new Response(
+        JSON.stringify({ error: "Error validating user", details: userCheckError.message }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
+    if (!userIsValid) {
+      console.error("Invalid user_id provided:", booking.user_id);
+      return new Response(
+        JSON.stringify({ error: "Invalid user ID provided" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
     console.log("Creating booking with service role:", JSON.stringify(booking));
     
-    // IMPORTANT: Bypass the auth.users query that was causing the permission error
-    // Instead of checking auth.users directly, we trust the user_id passed from the client
-    // This is secure because we validate JWT server-side before accepting the booking request
-
     // Create the booking with service role privileges (bypassing RLS)
     const { data, error } = await supabase
       .from("bookings")
@@ -117,8 +136,7 @@ serve(async (req) => {
     
     console.log("Booking created successfully:", JSON.stringify(data));
     
-    // Get profile information from the profiles table instead of auth.users
-    // This avoids the permission issue we were experiencing
+    // Get profile information from profiles table
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("email, first_name, last_name")
