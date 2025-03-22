@@ -42,6 +42,10 @@ const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
                   src={barber.image_url} 
                   alt={barber.name} 
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://via.placeholder.com/150?text=No+Image';
+                  }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">

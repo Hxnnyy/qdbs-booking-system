@@ -42,7 +42,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       // Create a unique file name using barber ID and timestamp
       const fileExt = file.name.split('.').pop();
       const fileName = `${barberId}-${Date.now()}.${fileExt}`;
-      const filePath = `barbers/${fileName}`;
+      const filePath = `${fileName}`;
       
       // Upload file to Supabase Storage
       const { error: uploadError, data } = await supabase.storage

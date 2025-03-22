@@ -32,7 +32,7 @@ export const AddBarberDialog: React.FC<AddBarberDialogProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Barber</DialogTitle>
         </DialogHeader>

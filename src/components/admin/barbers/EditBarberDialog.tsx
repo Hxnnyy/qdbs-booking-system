@@ -34,7 +34,7 @@ export const EditBarberDialog: React.FC<EditBarberDialogProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Barber</DialogTitle>
         </DialogHeader>
