@@ -10,8 +10,8 @@ import { toast } from 'sonner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
-import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
-import { hasLunchBreakConflict } from '@/utils/bookingTimeUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { checkBarberAvailability } from '@/services/timeSlotService';
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
@@ -33,7 +33,6 @@ export const useTimeSlots = (
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
   
   // Cache to avoid recalculation
   const calculationCache = useRef<Map<string, string[]>>(new Map());
@@ -41,27 +40,7 @@ export const useTimeSlots = (
   // Clear cache when barber or service changes
   useEffect(() => {
     calculationCache.current.clear();
-    setCachedLunchBreaks(null);
   }, [selectedBarberId, selectedService?.id]);
-  
-  // Pre-fetch lunch breaks for this barber
-  useEffect(() => {
-    if (!selectedBarberId) return;
-    
-    const loadLunchBreaks = async () => {
-      console.log(`Fetching lunch breaks for barber ${selectedBarberId}`);
-      try {
-        const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-        console.log(`Lunch breaks fetched for barber ${selectedBarberId}:`, lunchBreaks);
-        setCachedLunchBreaks(lunchBreaks);
-      } catch (err) {
-        console.error("Error fetching lunch breaks:", err);
-        setCachedLunchBreaks([]);
-      }
-    };
-    
-    loadLunchBreaks();
-  }, [selectedBarberId]);
 
   // The main calculation function
   const calculateAvailableTimeSlots = useCallback(async () => {
@@ -104,75 +83,38 @@ export const useTimeSlots = (
         return;
       }
       
-      // Ensure we have lunch breaks loaded
-      let lunchBreaks = cachedLunchBreaks;
-      if (!lunchBreaks) {
-        console.log("No cached lunch breaks, fetching them...");
-        try {
-          lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-          setCachedLunchBreaks(lunchBreaks);
-          console.log("Lunch breaks fetched during calculation:", lunchBreaks);
-        } catch (err) {
-          console.error("Error fetching lunch breaks:", err);
-          lunchBreaks = [];
+      // Call our new edge function to get available time slots
+      const { data, error } = await supabase.functions.invoke('get-available-time-slots', {
+        body: {
+          barberId: selectedBarberId,
+          date: selectedDate.toISOString(),
+          serviceDuration: selectedService.duration
         }
-      }
-      
-      // Log lunch break details to help debugging
-      if (lunchBreaks && lunchBreaks.length > 0) {
-        console.log("Detailed lunch break information:");
-        lunchBreaks.forEach((lb, index) => {
-          console.log(`Lunch break #${index + 1}: starts at ${lb.start_time}, duration: ${lb.duration} minutes, is_active: ${lb.is_active}`);
-        });
-      } else {
-        console.log("No lunch breaks found for this barber");
-      }
-      
-      // Check if any lunch breaks are active
-      const activeLunchBreaks = lunchBreaks?.filter(lb => lb.is_active) || [];
-      console.log(`Active lunch breaks: ${activeLunchBreaks.length}`);
-      
-      // Fetch time slots
-      const fetchedTimeSlots = await fetchBarberTimeSlots(
-        selectedBarberId, 
-        selectedDate, 
-        selectedService.duration,
-        existingBookings,
-        lunchBreaks
-      );
-      
-      console.log(`Initial time slots (${fetchedTimeSlots.length}):`, fetchedTimeSlots);
-      
-      // Filter out time slots that are in the past (for today only)
-      const pastFilteredSlots = fetchedTimeSlots.filter(
-        timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
-      );
-      
-      console.log(`After filtering past slots: ${pastFilteredSlots.length} slots remain`);
-      
-      // Additional filter for lunch breaks, as a safety measure
-      const finalSlots = pastFilteredSlots.filter(timeSlot => {
-        // Double-check for lunch break conflicts
-        const hasLunchConflict = hasLunchBreakConflict(
-          timeSlot, 
-          activeLunchBreaks, 
-          selectedService.duration
-        );
-        
-        if (hasLunchConflict) {
-          console.log(`Secondary filter: Slot ${timeSlot} conflicts with lunch break, filtering out`);
-          return false;
-        }
-        
-        return true;
       });
       
-      console.log(`Final available time slots (${finalSlots.length}):`, finalSlots);
+      if (error) {
+        console.error('Error calling get-available-time-slots function:', error);
+        setError('Failed to load available time slots');
+        setTimeSlots([]);
+        setIsCalculating(false);
+        return;
+      }
       
-      // Cache the result
-      calculationCache.current.set(cacheKey, finalSlots);
+      console.log('Edge function response:', data);
       
-      setTimeSlots(finalSlots);
+      // Data should contain the timeSlots array
+      if (data && Array.isArray(data.timeSlots)) {
+        const availableSlots = data.timeSlots;
+        console.log(`Received ${availableSlots.length} time slots from edge function`);
+        
+        // Cache the result
+        calculationCache.current.set(cacheKey, availableSlots);
+        setTimeSlots(availableSlots);
+      } else {
+        console.error('Invalid response from edge function:', data);
+        setError('Failed to load available time slots');
+        setTimeSlots([]);
+      }
     } catch (err) {
       console.error('Error calculating time slots:', err);
       setError('Failed to load available time slots');
@@ -180,7 +122,7 @@ export const useTimeSlots = (
     } finally {
       setIsCalculating(false);
     }
-  }, [selectedDate, selectedBarberId, selectedService, existingBookings, calendarEvents, cachedLunchBreaks]);
+  }, [selectedDate, selectedBarberId, selectedService, calendarEvents]);
 
   // Recalculate when dependencies change
   useEffect(() => {
@@ -205,5 +147,5 @@ export const useTimeSlots = (
   };
 };
 
-// Export for compatibility with existing code
+// Re-export needed functions for compatibility
 export { fetchBarberTimeSlots } from '@/services/timeSlotService';
