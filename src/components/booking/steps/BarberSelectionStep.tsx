@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Scissors, ImageOff } from 'lucide-react';
+import { Scissors } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 import { Barber } from '@/hooks/useBarbers';
 
@@ -42,14 +42,10 @@ const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
                   src={barber.image_url} 
                   alt={barber.name} 
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = 'https://via.placeholder.com/150?text=No+Image';
-                  }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <ImageOff className="w-8 h-8 text-gray-400" />
+                  <Scissors className="w-8 h-8 text-gray-400" />
                 </div>
               )}
             </div>

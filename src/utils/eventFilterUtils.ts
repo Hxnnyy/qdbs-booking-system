@@ -1,11 +1,11 @@
 
-import { isSameDay, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { CalendarEvent } from '@/types/calendar';
 
 // Filter events for calendar view based on date
 export const filterEventsByDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
   // Create lunch break events for this specific date
-  const eventsForDate = events.flatMap(event => {
+  const eventsForDate = events.map(event => {
     // If it's a lunch break, adjust the date to match the target date
     if (event.status === 'lunch-break') {
       const newStart = new Date(date);
@@ -16,17 +16,15 @@ export const filterEventsByDate = (events: CalendarEvent[], date: Date): Calenda
       
       return {
         ...event,
-        id: `${event.id}-${date.toISOString().split('T')[0]}`, // Make ID unique for this day
         start: newStart,
         end: newEnd
       };
     }
     
-    // For regular events, include if they're on this day
-    return isSameDay(event.start, date) ? [event] : [];
+    return event;
   });
   
-  return eventsForDate;
+  return eventsForDate.filter(event => isSameDay(event.start, date));
 };
 
 // Filter events for a week view
@@ -41,7 +39,8 @@ export const filterEventsByWeek = (events: CalendarEvent[], date: Date): Calenda
     if (event.status === 'lunch-break') {
       // For lunch breaks, create an event for each day of the week
       for (let day = 0; day < 7; day++) {
-        const dayDate = addDays(weekStart, day);
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(weekStart.getDate() + day);
         
         const newStart = new Date(dayDate);
         newStart.setHours(event.start.getHours(), event.start.getMinutes(), 0, 0);
@@ -51,19 +50,19 @@ export const filterEventsByWeek = (events: CalendarEvent[], date: Date): Calenda
         
         allEvents.push({
           ...event,
-          id: `${event.id}-${dayDate.toISOString().split('T')[0]}`, // Make ID unique for each day
+          id: `${event.id}-${day}`, // Make ID unique for each day
           start: newStart,
           end: newEnd
         });
       }
     } else {
-      // Regular bookings - only include if they're within the week
-      const eventDate = event.start;
-      if (eventDate >= weekStart && eventDate <= weekEnd) {
-        allEvents.push(event);
-      }
+      // Regular bookings
+      allEvents.push(event);
     }
   });
   
-  return allEvents;
+  return allEvents.filter(event => {
+    const eventDate = event.start;
+    return eventDate >= weekStart && eventDate <= weekEnd;
+  });
 };

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepTitle } from '@/utils/bookingUtils';
 import { BookingFormState } from '@/types/booking';
@@ -23,12 +23,6 @@ interface GuestBookingWorkflowProps {
   calendarEvents?: CalendarEvent[];
 }
 
-/**
- * GuestBookingWorkflow Component
- * 
- * Manages the guest booking flow including barber selection, service selection,
- * date and time selection, guest information, and confirmation
- */
 const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   barbers,
   services,
@@ -58,7 +52,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleSubmit
   } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services);
 
-  // Use the time slots hook
+  // Use the extracted time slots hook
   const {
     timeSlots: calculatedTimeSlots,
     isCalculating: isCalculatingTimeSlots,
@@ -71,7 +65,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     calendarEvents
   );
 
-  // Use the date availability hook
+  // Use the extracted date availability hook
   const {
     isCheckingDates,
     isDateDisabled

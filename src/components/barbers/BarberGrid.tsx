@@ -3,7 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Scissors, ImageOff } from 'lucide-react';
+import { Scissors } from 'lucide-react';
 import { useBarbers } from '@/hooks/useBarbers';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -51,21 +51,15 @@ const BarberGrid: React.FC = () => {
           className="glass rounded-none shadow-subtle border border-white/5 overflow-hidden transition-all duration-300 hover:shadow-elevated"
         >
           <div className="relative aspect-[3/2]">
-            {barber.image_url ? (
-              <img 
-                src={barber.image_url} 
-                alt={barber.name} 
-                className="object-cover w-full h-full"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'https://images.unsplash.com/photo-1612837017391-4b6b7b0f0b0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80';
-                }}
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <ImageOff className="w-12 h-12 text-gray-400" />
-              </div>
-            )}
+            <img 
+              src={barber.image_url || 'https://images.unsplash.com/photo-1612837017391-4b6b7b0f0b0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80'} 
+              alt={barber.name} 
+              className="object-cover w-full h-full"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://images.unsplash.com/photo-1612837017391-4b6b7b0f0b0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80';
+              }}
+            />
           </div>
           <div className="p-6">
             <div className="mb-3">

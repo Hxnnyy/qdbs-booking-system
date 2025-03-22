@@ -1,10 +1,4 @@
 
-/**
- * useDateAvailability Hook
- * 
- * Custom hook to manage date availability and caching
- */
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { addDays, addMonths, format, isSameDay } from 'date-fns';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
@@ -15,12 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Custom hook to manage date availability and caching
- * 
- * @param barberId - The ID of the barber
- * @param serviceDuration - The duration of the service in minutes
- * @param calendarEvents - Array of calendar events
- * @param existingBookings - Array of existing bookings
- * @returns Object with date availability functions and state
  */
 export const useDateAvailability = (
   barberId: string | null,

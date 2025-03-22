@@ -32,10 +32,6 @@ export const useBarberManagement = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleImageUploaded = (url: string) => {
-    setFormData(prev => ({ ...prev, image_url: url }));
-  };
-  
   const resetForm = () => {
     setFormData({
       name: '',
@@ -248,7 +244,6 @@ export const useBarberManagement = () => {
     setIsColorDialogOpen,
     setIsHolidayDialogOpen,
     handleInputChange,
-    handleImageUploaded,
     resetForm,
     handleAddBarber,
     handleEditBarber,

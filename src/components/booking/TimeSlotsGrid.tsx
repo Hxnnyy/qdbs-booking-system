@@ -1,10 +1,9 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isSameDay } from 'date-fns';
-import { toast } from 'sonner';
 
 interface TimeSlotsGridProps {
   selectedDate: Date | undefined;
@@ -13,8 +12,6 @@ interface TimeSlotsGridProps {
   availableTimeSlots: string[];
   isLoading: boolean;
   error: string | null;
-  selectedBarberId?: string | null;
-  serviceDuration?: number;
 }
 
 const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
@@ -23,41 +20,24 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   setSelectedTime,
   availableTimeSlots,
   isLoading,
-  error,
-  selectedBarberId,
-  serviceDuration = 60
+  error
 }) => {
-  // These are already filtered time slots from the hook
-  const timeSlots = availableTimeSlots || [];
+  // Filter time slots to prevent booking in the past for today
+  const filteredTimeSlots = selectedDate ? 
+    availableTimeSlots.filter(time => !isTimeSlotInPast(selectedDate, time)) : 
+    [];
 
-  // Clear the selected time if it's now in the past or no longer available
+  // Clear the selected time if it's now in the past
   useEffect(() => {
-    if (selectedDate && selectedTime) {
-      // Clear if time slot is in the past
-      if (isTimeSlotInPast(selectedDate, selectedTime)) {
-        setSelectedTime('');
-        return;
-      }
-      
-      // Clear if time slot is no longer in the available list
-      if (timeSlots.length > 0 && !timeSlots.includes(selectedTime)) {
-        setSelectedTime('');
-      }
+    if (selectedDate && selectedTime && isTimeSlotInPast(selectedDate, selectedTime)) {
+      setSelectedTime('');
     }
-  }, [selectedDate, selectedTime, timeSlots, setSelectedTime]);
-
-  // Debug logging - monitor available time slots
-  useEffect(() => {
-    if (timeSlots.length > 0) {
-      console.log('Time slots received in TimeSlotsGrid:', timeSlots);
-    }
-  }, [timeSlots]);
+  }, [selectedDate, selectedTime, setSelectedTime]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
         <Spinner className="h-8 w-8" />
-        <span className="ml-2 text-muted-foreground">Loading available times...</span>
       </div>
     );
   }
@@ -71,7 +51,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     );
   }
 
-  if (timeSlots.length === 0) {
+  if (filteredTimeSlots.length === 0) {
     return (
       <div className="text-center p-4 border rounded-md bg-muted">
         <p className="text-muted-foreground">
@@ -84,22 +64,15 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     );
   }
 
-  // Record click handler for additional validation
-  const handleTimeSlotClick = (time: string) => {
-    // Just a final protection - should never be needed as these time slots are already filtered
-    setSelectedTime(time);
-  };
-
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-      {timeSlots.map((time) => (
+      {filteredTimeSlots.map((time) => (
         <TimeSlot 
           key={time} 
           time={time} 
           selected={selectedTime === time}
-          onClick={() => handleTimeSlotClick(time)}
+          onClick={() => setSelectedTime(time)}
           disabled={false} // Already filtered out unavailable slots
-          data-available="true"
         />
       ))}
     </div>

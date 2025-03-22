@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
@@ -7,7 +7,6 @@ import { BookingStepProps } from '@/types/booking';
 import { Spinner } from '@/components/ui/spinner';
 import TimeSlotsGrid from '../TimeSlotsGrid';
 import { CalendarEvent } from '@/types/calendar';
-import { fetchBarberLunchBreaks } from '@/services/timeSlotService';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -39,18 +38,8 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   isDateDisabled,
   timeSlotError,
   onRetry,
-  selectedBarberId,
-  serviceDuration
+  // We don't need to destructure allEvents since it's not directly used in this component
 }) => {
-  const [loadingLunchBreaks, setLoadingLunchBreaks] = useState(false);
-
-  // Debug log the time slots coming in
-  useEffect(() => {
-    if (availableTimeSlots?.length > 0) {
-      console.log('DateTimeSelectionStep received time slots:', availableTimeSlots);
-    }
-  }, [availableTimeSlots]);
-
   const handleRetry = () => {
     // Re-trigger the date selection to refresh time slots
     if (onRetry) {
@@ -61,10 +50,6 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
       setTimeout(() => setSelectedDate(refreshDate), 100);
     }
   };
-
-  // Debug logging for monitoring
-  console.log('DateTimeSelectionStep rendering with timeslots:', availableTimeSlots?.length);
-  console.log('Service duration passed to TimeSlotsGrid:', serviceDuration);
 
   return (
     <>
@@ -110,10 +95,8 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
                 selectedTime={selectedTime}
                 setSelectedTime={setSelectedTime}
                 availableTimeSlots={availableTimeSlots}
-                isLoading={isLoadingTimeSlots || loadingLunchBreaks}
+                isLoading={isLoadingTimeSlots}
                 error={null}
-                selectedBarberId={selectedBarberId}
-                serviceDuration={serviceDuration}
               />
             )}
           </div>

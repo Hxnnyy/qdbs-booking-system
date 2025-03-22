@@ -40,7 +40,6 @@ const ManageBarbers = () => {
     setIsColorDialogOpen,
     setIsHolidayDialogOpen,
     handleInputChange,
-    handleImageUploaded,
     resetForm,
     handleAddBarber,
     handleEditBarber,
@@ -117,7 +116,6 @@ const ManageBarbers = () => {
           onOpenChange={setIsAddDialogOpen}
           formData={formData}
           onInputChange={handleInputChange}
-          onImageUploaded={handleImageUploaded}
           onSubmit={handleAddBarber}
         />
         
@@ -125,9 +123,7 @@ const ManageBarbers = () => {
           isOpen={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           formData={formData}
-          barberId={currentBarber?.id || ''}
           onInputChange={handleInputChange}
-          onImageUploaded={handleImageUploaded}
           onSubmit={handleEditBarber}
         />
         

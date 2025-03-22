@@ -1,33 +1,12 @@
 
-/**
- * useTimeSlots Hook
- * 
- * Custom hook to calculate available time slots for a barber on a specific date
- */
-
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { isTimeSlotBooked, isWithinOpeningHours } from '@/utils/bookingUtils';
+import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
-import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
-import { isLunchBreak } from '@/utils/timeSlotUtils';
-
-/**
- * Create a "fake booking" from a lunch break to use with existing booking filtering logic
- */
-const createFakeLunchBooking = (lunchBreak: any) => {
-  if (!lunchBreak.is_active) {
-    return null;
-  }
-  
-  return {
-    booking_time: lunchBreak.start_time,
-    services: {
-      duration: lunchBreak.duration
-    }
-  };
-};
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
@@ -47,38 +26,34 @@ export const useTimeSlots = (
   // Cache to avoid recalculation
   const calculationCache = useRef<Map<string, string[]>>(new Map());
   
-  // Clear cache when barber or service changes
-  useEffect(() => {
-    calculationCache.current.clear();
-    setCachedLunchBreaks(null);
-  }, [selectedBarberId, selectedService?.id]);
-  
   // Pre-fetch lunch breaks for this barber
   useEffect(() => {
-    if (!selectedBarberId) return;
+    if (!selectedBarberId || cachedLunchBreaks !== null) return;
     
-    const loadLunchBreaks = async () => {
-      console.log(`Fetching lunch breaks for barber ${selectedBarberId}`);
+    const fetchLunchBreaks = async () => {
       try {
-        const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-        console.log(`LUNCH BREAKS FETCHED:`, lunchBreaks);
-        setCachedLunchBreaks(lunchBreaks);
+        const { data, error } = await supabase
+          .from('barber_lunch_breaks')
+          .select('*')
+          .eq('barber_id', selectedBarberId)
+          .eq('is_active', true);
+          
+        if (error) throw error;
+        setCachedLunchBreaks(data || []);
       } catch (err) {
-        console.error("Error fetching lunch breaks:", err);
-        // Don't block the flow on lunch break fetch errors
+        console.error('Error fetching lunch breaks:', err);
         setCachedLunchBreaks([]);
       }
     };
     
-    loadLunchBreaks();
-  }, [selectedBarberId]);
+    fetchLunchBreaks();
+  }, [selectedBarberId, cachedLunchBreaks]);
 
-  // The main calculation function
+  // The main calculation function, optimized
   const calculateAvailableTimeSlots = useCallback(async () => {
     if (!selectedDate || !selectedBarberId || !selectedService) {
       setTimeSlots([]);
       setError(null);
-      setIsCalculating(false);
       return;
     }
     
@@ -91,92 +66,38 @@ export const useTimeSlots = (
     // Check if we have cached results
     if (calculationCache.current.has(cacheKey)) {
       const cachedResult = calculationCache.current.get(cacheKey) || [];
-      console.log(`Using cached time slots: ${cachedResult.length} slots`);
       setTimeSlots(cachedResult);
       setIsCalculating(false);
       return;
     }
     
     try {
-      console.log(`Calculating time slots for date: ${selectedDate.toISOString()}, barber: ${selectedBarberId}, service: ${selectedService.name}, duration: ${selectedService.duration}min`);
+      // Check if the barber is on holiday
+      const isHoliday = isBarberHolidayDate(calendarEvents, selectedDate, selectedBarberId);
       
-      // Check barber availability for the selected date
-      const { isAvailable, errorMessage } = checkBarberAvailability(
-        selectedDate, 
-        selectedBarberId, 
-        calendarEvents
-      );
-      
-      if (!isAvailable) {
-        setError(errorMessage);
+      if (isHoliday) {
+        setError('Barber is on holiday on this date.');
         setTimeSlots([]);
-        setIsCalculating(false);
         return;
       }
       
-      // Ensure we have lunch breaks loaded
-      let lunchBreaks = cachedLunchBreaks;
-      if (!lunchBreaks) {
-        console.log("No cached lunch breaks, fetching them...");
-        try {
-          lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-          setCachedLunchBreaks(lunchBreaks);
-          console.log("LUNCH BREAKS FETCHED IN CALCULATION:", lunchBreaks);
-        } catch (err) {
-          console.error("Error fetching lunch breaks:", err);
-          // Don't block on lunch break fetch errors
-          lunchBreaks = [];
-        }
-      }
-      
-      // Only consider active lunch breaks
-      const activeLunchBreaks = lunchBreaks?.filter(lb => lb.is_active) || [];
-      console.log(`Found ${activeLunchBreaks.length} active lunch breaks for barber ${selectedBarberId}`);
-      
-      // Create combined bookings by treating lunch breaks as bookings
-      const combinedBookings = [...existingBookings];
-      
-      // Add active lunch breaks as fake bookings
-      activeLunchBreaks.forEach(lunchBreak => {
-        const fakeBooking = createFakeLunchBooking(lunchBreak);
-        if (fakeBooking) {
-          combinedBookings.push(fakeBooking);
-          console.log(`Added lunch break at ${lunchBreak.start_time} for ${lunchBreak.duration}min as a booking`);
-        }
-      });
-      
-      // Fetch all possible time slots, passing the combined bookings list
-      console.log(`Fetching time slots with service duration: ${selectedService.duration}`);
-      const fetchedTimeSlots = await fetchBarberTimeSlots(
+      const slots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
         selectedService.duration,
-        combinedBookings, 
-        [] // Empty lunch breaks since we're treating them as bookings already
+        existingBookings,
+        cachedLunchBreaks || []
       );
       
-      console.log(`Initial time slots (${fetchedTimeSlots.length}):`, fetchedTimeSlots);
-      
-      // Final filter: remove time slots in the past
-      const finalSlots = fetchedTimeSlots.filter(
+      // Filter out time slots that are in the past (for today only)
+      const filteredSlots = slots.filter(
         timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
       );
       
-      // Extra verification step - double check for lunch break overlaps
-      const verifiedSlots = finalSlots.filter(timeSlot => {
-        const overlapsLunch = isLunchBreak(timeSlot, activeLunchBreaks, selectedService.duration);
-        if (overlapsLunch) {
-          console.log(`VERIFICATION REMOVED: ${timeSlot} overlaps with lunch break`);
-        }
-        return !overlapsLunch;
-      });
-      
-      console.log(`Final available time slots (${verifiedSlots.length}):`, verifiedSlots);
-      
       // Cache the result
-      calculationCache.current.set(cacheKey, verifiedSlots);
+      calculationCache.current.set(cacheKey, filteredSlots);
       
-      setTimeSlots(verifiedSlots);
+      setTimeSlots(filteredSlots);
     } catch (err) {
       console.error('Error calculating time slots:', err);
       setError('Failed to load available time slots');
@@ -186,28 +107,140 @@ export const useTimeSlots = (
     }
   }, [selectedDate, selectedBarberId, selectedService, existingBookings, calendarEvents, cachedLunchBreaks]);
 
-  // Recalculate when dependencies change
   useEffect(() => {
     calculateAvailableTimeSlots();
   }, [calculateAvailableTimeSlots]);
-
-  // Provide a method to force recalculation
-  const recalculate = useCallback(() => {
-    // Clear the cache for the current parameters
-    if (selectedDate && selectedBarberId && selectedService) {
-      const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}`;
-      calculationCache.current.delete(cacheKey);
-    }
-    calculateAvailableTimeSlots();
-  }, [selectedDate, selectedBarberId, selectedService, calculateAvailableTimeSlots]);
 
   return {
     timeSlots,
     isCalculating,
     error,
-    recalculate
+    recalculate: calculateAvailableTimeSlots
   };
 };
 
-// Export for compatibility with existing code
-export { fetchBarberTimeSlots } from '@/services/timeSlotService';
+/**
+ * Fetch available time slots for a barber on a specific date
+ */
+export const fetchBarberTimeSlots = async (
+  barberId: string, 
+  date: Date, 
+  serviceDuration: number,
+  existingBookings: any[] = [],
+  cachedLunchBreaks: any[] = []
+): Promise<string[]> => {
+  try {
+    const dayOfWeek = date.getDay();
+    
+    const { data, error } = await supabase
+      .from('opening_hours')
+      .select('*')
+      .eq('barber_id', barberId)
+      .eq('day_of_week', dayOfWeek)
+      .maybeSingle();
+    
+    if (error) {
+      throw error;
+    }
+    
+    if (!data || data.is_closed) {
+      return [];
+    }
+    
+    const slots = [];
+    let currentTime = data.open_time;
+    const closeTime = data.close_time;
+    
+    let [openHours, openMinutes] = currentTime.split(':').map(Number);
+    const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
+    
+    const closeTimeInMinutes = closeHours * 60 + closeMinutes;
+    
+    // Use cached lunch breaks if available, otherwise fetch them
+    let lunchBreaks = cachedLunchBreaks;
+    
+    if (!lunchBreaks || lunchBreaks.length === 0) {
+      const { data: fetchedLunchBreaks, error: lunchError } = await supabase
+        .from('barber_lunch_breaks')
+        .select('*')
+        .eq('barber_id', barberId)
+        .eq('is_active', true);
+      
+      if (lunchError) {
+        console.error('Error fetching lunch breaks:', lunchError);
+      } else {
+        lunchBreaks = fetchedLunchBreaks || [];
+      }
+    }
+    
+    // Create a function to check if a time slot overlaps with a lunch break
+    const isLunchBreak = (timeSlot: string) => {
+      if (!lunchBreaks || lunchBreaks.length === 0) return false;
+      
+      const [hours, minutes] = timeSlot.split(':').map(Number);
+      const timeInMinutes = hours * 60 + minutes;
+      
+      return lunchBreaks.some(breakTime => {
+        const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
+        const breakStartMinutes = breakHours * 60 + breakMinutes;
+        const breakEndMinutes = breakStartMinutes + breakTime.duration;
+        
+        // Check if slot starts during lunch break or if service would overlap with lunch break
+        return (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) || 
+               (timeInMinutes < breakStartMinutes && (timeInMinutes + serviceDuration) > breakStartMinutes);
+      });
+    };
+    
+    // Build all possible slots in one go for better performance
+    const possibleSlots: {time: string, minutes: number}[] = [];
+    
+    while (true) {
+      const timeInMinutes = openHours * 60 + openMinutes;
+      if (timeInMinutes >= closeTimeInMinutes) {
+        break;
+      }
+      
+      const formattedHours = openHours.toString().padStart(2, '0');
+      const formattedMinutes = openMinutes.toString().padStart(2, '0');
+      const timeSlot = `${formattedHours}:${formattedMinutes}`;
+      
+      possibleSlots.push({
+        time: timeSlot,
+        minutes: timeInMinutes
+      });
+      
+      openMinutes += 30;
+      if (openMinutes >= 60) {
+        openHours += 1;
+        openMinutes -= 60;
+      }
+    }
+    
+    // Process each time slot in batches for faster computation
+    for (const slot of possibleSlots) {
+      const isBooked = isTimeSlotBooked(
+        slot.time, 
+        { duration: serviceDuration } as any, 
+        existingBookings
+      );
+      
+      const withinHours = await isWithinOpeningHours(
+        barberId,
+        date,
+        slot.time,
+        serviceDuration
+      );
+      
+      const isOnLunchBreak = isLunchBreak(slot.time);
+      
+      if (!isBooked && withinHours && !isOnLunchBreak) {
+        slots.push(slot.time);
+      }
+    }
+    
+    return slots;
+  } catch (error) {
+    console.error('Error fetching barber time slots:', error);
+    return [];
+  }
+};

@@ -1,76 +1,97 @@
 
-import { CalendarEvent } from "@/types/calendar";
+import { CalendarEvent } from '@/types/calendar';
 
-// Process events to handle overlapping time slots
+// Helper function to check if two time ranges overlap
+const doEventsOverlap = (event1: CalendarEvent, event2: CalendarEvent) => {
+  return event1.start < event2.end && event2.start < event1.end;
+};
+
+// Function to generate a unique key for each time slot
+const generateGroupKey = (event: CalendarEvent) => {
+  return `${event.start.getTime()}-${event.end.getTime()}`;
+};
+
 export const processOverlappingEvents = (events: CalendarEvent[]) => {
-  if (!events.length) return [];
+  // Separate holidays from other events
+  const holidays = events.filter(event => event.status === 'holiday');
+  const nonHolidayEvents = events.filter(event => event.status !== 'holiday');
   
-  // First separate day's events (hours:minutes) into timeslots
-  const timeslots: Record<string, CalendarEvent[]> = {};
+  // Sort events by start time to ensure consistent processing
+  nonHolidayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
   
-  events.forEach(event => {
-    // Skip events with invalid dates
-    if (isNaN(event.start.getTime()) || isNaN(event.end.getTime())) {
-      console.warn('Event with invalid date found:', event);
-      return;
-    }
-
-    // Create a date-specific key so events on different days don't overlap
-    const date = event.start.toISOString().split('T')[0]; // YYYY-MM-DD
+  // Create a map to track overlapping events
+  const overlappingGroups: Map<string, { appointments: CalendarEvent[], lunchBreaks: CalendarEvent[] }> = new Map();
+  
+  // Group overlapping events
+  nonHolidayEvents.forEach(event => {
+    let foundGroup = false;
     
-    // For each hour slot that this event covers, add it to that slot
-    const startHour = event.start.getHours();
-    const endHour = event.end.getHours() + (event.end.getMinutes() > 0 ? 1 : 0);
-    
-    for (let hour = startHour; hour < endHour; hour++) {
-      const key = `${date}-${hour}`;
+    // Check existing groups for overlap
+    for (const [groupKey, group] of overlappingGroups.entries()) {
+      // Check if this event overlaps with any event in the existing group
+      const hasOverlap = [...group.appointments, ...group.lunchBreaks].some(
+        existingEvent => doEventsOverlap(event, existingEvent)
+      );
       
-      if (!timeslots[key]) {
-        timeslots[key] = [];
-      }
-      
-      // Avoid duplicate lunch breaks in the same slot (might happen due to filterEventsByWeek)
-      if (event.status === 'lunch-break') {
-        const existingLunchBreak = timeslots[key].find(
-          e => e.status === 'lunch-break' && e.barberId === event.barberId
-        );
-        
-        if (!existingLunchBreak) {
-          timeslots[key].push(event);
+      if (hasOverlap) {
+        // Add to existing group based on event type
+        if (event.status === 'lunch-break') {
+          group.lunchBreaks.push(event);
+        } else {
+          group.appointments.push(event);
         }
-      } else {
-        timeslots[key].push(event);
+        foundGroup = true;
+        break;
       }
+    }
+    
+    // If no overlap found, create new group
+    if (!foundGroup) {
+      const groupKey = generateGroupKey(event);
+      overlappingGroups.set(groupKey, {
+        appointments: event.status === 'lunch-break' ? [] : [event],
+        lunchBreaks: event.status === 'lunch-break' ? [event] : []
+      });
     }
   });
   
-  // Now calculate slot indexes for each event
-  const result: { event: CalendarEvent; slotIndex: number; totalSlots: number }[] = [];
+  const results: Array<{event: CalendarEvent, slotIndex: number, totalSlots: number}> = [];
   
-  Object.values(timeslots).forEach(slotEvents => {
-    // Sort events by start time
-    const sorted = [...slotEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
+  // Process each group
+  overlappingGroups.forEach(group => {
+    // Sort lunch breaks by start time for consistent display
+    group.lunchBreaks.sort((a, b) => a.start.getTime() - b.start.getTime());
     
-    // Find slots for each event
-    const usedSlots: boolean[] = [];
+    const totalSlots = Math.max(1, group.appointments.length + group.lunchBreaks.length);
     
-    sorted.forEach(event => {
-      // Find first available slot index
-      let slotIndex = 0;
-      while (usedSlots[slotIndex]) {
-        slotIndex++;
-      }
-      
-      // Mark this slot as used
-      usedSlots[slotIndex] = true;
-      
-      result.push({
+    // Add appointments first (they'll be on the left)
+    group.appointments.forEach((event, index) => {
+      results.push({
         event,
-        slotIndex,
-        totalSlots: sorted.length
+        slotIndex: index,
+        totalSlots
+      });
+    });
+    
+    // Add lunch breaks right after appointments with contiguous slot indices
+    const appointmentCount = group.appointments.length;
+    group.lunchBreaks.forEach((event, index) => {
+      results.push({
+        event,
+        slotIndex: appointmentCount + index,
+        totalSlots
       });
     });
   });
   
-  return result;
+  // Add holidays (full width)
+  holidays.forEach(holidayEvent => {
+    results.push({
+      event: holidayEvent,
+      slotIndex: 0,
+      totalSlots: 1
+    });
+  });
+  
+  return results;
 };
