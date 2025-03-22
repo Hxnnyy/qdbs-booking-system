@@ -12,6 +12,7 @@ import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
 import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
 import { supabase } from '@/integrations/supabase/client';
+import { isLunchBreak } from '@/utils/timeSlotUtils';
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
@@ -93,18 +94,18 @@ export const useTimeSlots = (
 
   // Calculate time slots for multiple barbers
   const calculateSlotsForMultipleBarbers = async (
-    barbersIds: string[],
+    barberIds: string[],
     date: Date,
     service: Service
   ): Promise<{timeSlots: string[], selectedBarber: string | null}> => {
-    if (!barbersIds.length) {
+    if (!barberIds.length) {
       return { timeSlots: [], selectedBarber: null };
     }
     
     // For each barber, calculate available slots
     const barberSlots: {barberId: string, slots: string[]}[] = [];
     
-    for (const barberId of barbersIds) {
+    for (const barberId of barberIds) {
       try {
         // Check if barber is on holiday
         const { isAvailable } = checkBarberAvailability(date, barberId, calendarEvents);
@@ -171,14 +172,19 @@ export const useTimeSlots = (
     setError(null);
     
     try {
+      console.log(`Calculating time slots for date: ${selectedDate}, barber: ${selectedBarberId}, service: ${selectedService.id}`);
+      
       // Handle "any barber" selection
       if (selectedBarberId === 'any') {
         // Get all barbers who can perform this service
         const eligibleBarbers = await fetchBarbersForService(selectedService.id);
         
+        console.log(`Eligible barbers for service ${selectedService.id}:`, eligibleBarbers);
+        
         if (eligibleBarbers.length === 0) {
           setError('No barbers available for this service.');
           setTimeSlots([]);
+          setIsCalculating(false);
           return;
         }
         
@@ -189,12 +195,16 @@ export const useTimeSlots = (
           selectedService
         );
         
+        console.log(`Selected barber from multiple options: ${selectedBarber}`);
+        console.log(`Available slots: ${availableSlots.length}`);
+        
         // Store the selected barber for later use
         setSelectedBarberForBooking(selectedBarber);
         
         if (availableSlots.length === 0) {
           setError('No available time slots for any barber on this date.');
           setTimeSlots([]);
+          setIsCalculating(false);
           return;
         }
         
@@ -209,6 +219,7 @@ export const useTimeSlots = (
           const cachedResult = calculationCache.current.get(cacheKey) || [];
           setTimeSlots(cachedResult);
           setSelectedBarberForBooking(selectedBarberId);
+          setIsCalculating(false);
           return;
         }
         
@@ -222,6 +233,7 @@ export const useTimeSlots = (
         if (!isAvailable) {
           setError(errorMessage);
           setTimeSlots([]);
+          setIsCalculating(false);
           return;
         }
         
@@ -237,6 +249,8 @@ export const useTimeSlots = (
         const filteredSlots = slots.filter(
           timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
         );
+        
+        console.log(`Filtered slots: ${filteredSlots.length}`);
         
         // Cache the result
         calculationCache.current.set(cacheKey, filteredSlots);

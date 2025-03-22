@@ -6,7 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { generatePossibleTimeSlots, filterAvailableTimeSlots } from '@/utils/timeSlotUtils';
+import { generatePossibleTimeSlots, filterAvailableTimeSlots, isLunchBreak } from '@/utils/timeSlotUtils';
 import { isWithinOpeningHours } from '@/utils/bookingUtils';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
@@ -54,6 +54,11 @@ export const fetchBarberTimeSlots = async (
   try {
     const dayOfWeek = date.getDay();
     
+    // Filter existing bookings to only include this barber's bookings
+    const barberBookings = existingBookings.filter(booking => 
+      booking.barber_id === barberId || !booking.barber_id
+    );
+    
     const { data, error } = await supabase
       .from('opening_hours')
       .select('*')
@@ -83,7 +88,7 @@ export const fetchBarberTimeSlots = async (
     const availableSlots = filterAvailableTimeSlots(
       possibleSlots,
       serviceDuration,
-      existingBookings,
+      barberBookings,
       lunchBreaks
     );
     
@@ -103,7 +108,9 @@ export const fetchBarberTimeSlots = async (
       }
     }
     
-    return withinOpeningHoursSlots;
+    // Filter out slots that are in the past
+    return withinOpeningHoursSlots.filter(slot => !isTimeSlotInPast(date, slot));
+    
   } catch (error) {
     console.error('Error fetching barber time slots:', error);
     return [];
@@ -124,6 +131,11 @@ export const checkBarberAvailability = (
   calendarEvents: CalendarEvent[]
 ): { isAvailable: boolean, errorMessage: string | null } => {
   if (!date || !barberId) {
+    return { isAvailable: true, errorMessage: null };
+  }
+  
+  // Handle "any barber" case differently
+  if (barberId === 'any') {
     return { isAvailable: true, errorMessage: null };
   }
   

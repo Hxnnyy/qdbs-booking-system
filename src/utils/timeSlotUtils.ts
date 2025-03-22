@@ -26,16 +26,28 @@ export const isLunchBreak = (
   if (!lunchBreaks || lunchBreaks.length === 0) return false;
   
   const [hours, minutes] = timeSlot.split(':').map(Number);
-  const timeInMinutes = hours * 60 + minutes;
+  const slotStartMinutes = hours * 60 + minutes;
+  const slotEndMinutes = slotStartMinutes + serviceDuration;
   
   return lunchBreaks.some(breakTime => {
+    // Get lunch break start time in minutes
     const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
     const breakStartMinutes = breakHours * 60 + breakMinutes;
+    
+    // Calculate lunch break end time in minutes
     const breakEndMinutes = breakStartMinutes + breakTime.duration;
     
-    // Check if slot starts during lunch break or if service would overlap with lunch break
-    return (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) || 
-           (timeInMinutes < breakStartMinutes && (timeInMinutes + serviceDuration) > breakStartMinutes);
+    // Check various overlap scenarios
+    // 1. Service starts during lunch break
+    // 2. Service ends during lunch break
+    // 3. Service completely contains lunch break
+    // 4. Service is completely within lunch break
+    return (
+      (slotStartMinutes >= breakStartMinutes && slotStartMinutes < breakEndMinutes) || // Start during break
+      (slotEndMinutes > breakStartMinutes && slotEndMinutes <= breakEndMinutes) || // End during break
+      (slotStartMinutes <= breakStartMinutes && slotEndMinutes >= breakEndMinutes) || // Contains break
+      (slotStartMinutes >= breakStartMinutes && slotEndMinutes <= breakEndMinutes) // Within break
+    );
   });
 };
 

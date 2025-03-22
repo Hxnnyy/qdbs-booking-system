@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepTitle } from '@/utils/bookingUtils';
 import { BookingFormState } from '@/types/booking';
@@ -58,11 +58,12 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleSubmit
   } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services);
 
-  // Use the time slots hook
+  // Use the time slots hook with memoized dependencies
   const {
     timeSlots: calculatedTimeSlots,
     isCalculating: isCalculatingTimeSlots,
-    error: timeSlotError
+    error: timeSlotError,
+    recalculate: recalculateTimeSlots
   } = useTimeSlots(
     formState.selectedDate,
     formState.selectedBarber,
@@ -81,6 +82,16 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     calendarEvents,
     existingBookings
   );
+
+  // When barber changes, reset date and time
+  useEffect(() => {
+    if (formState.selectedDate && formState.selectedTime && calculatedTimeSlots.length > 0) {
+      // Check if the currently selected time is still available
+      if (!calculatedTimeSlots.includes(formState.selectedTime)) {
+        updateFormState({ selectedTime: null });
+      }
+    }
+  }, [calculatedTimeSlots, formState.selectedDate, formState.selectedTime, updateFormState]);
 
   const handlers = {
     handleSelectBarber,
@@ -126,6 +137,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         isCheckingDates={isCheckingDates}
         isDateDisabled={isDateDisabled}
         timeSlotError={timeSlotError}
+        onRetryTimeSlots={recalculateTimeSlots}
         showAnyBarberOption={true} // Enable the "any barber" option for guest booking
       />
     </div>

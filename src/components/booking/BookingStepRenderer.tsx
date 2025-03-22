@@ -29,6 +29,7 @@ interface BookingStepRendererProps {
   isCheckingDates: boolean;
   isDateDisabled: (date: Date) => boolean;
   timeSlotError?: string | null;
+  onRetryTimeSlots?: () => void;
   showAnyBarberOption?: boolean;
 }
 
@@ -50,6 +51,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   isCheckingDates = false,
   isDateDisabled = () => false,
   timeSlotError = null,
+  onRetryTimeSlots,
   showAnyBarberOption = false
 }) => {
   // Get the selected service duration
@@ -103,6 +105,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           isCheckingDates={isCheckingDates}
           isDateDisabled={isDateDisabled}
           timeSlotError={timeSlotError}
+          onRetry={onRetryTimeSlots}
         />
       );
     case 'guest-info':
