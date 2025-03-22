@@ -44,17 +44,22 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       const fileName = `${barberId}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
       
+      console.log("Attempting to upload file:", filePath);
+      
       // Upload file to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('barber_images')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
       
       if (uploadError) {
+        console.error("Upload error:", uploadError);
         throw uploadError;
       }
+      
+      console.log("File uploaded successfully:", data);
       
       // Get the public URL
       const { data: { publicUrl } } = supabase.storage
@@ -97,12 +102,17 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       </div>
       
       <div className="flex justify-center">
-        <label className="relative cursor-pointer">
+        <div className="relative">
           <Button 
             type="button" 
             variant="outline" 
             className="relative"
             disabled={isUploading}
+            onClick={() => {
+              // Trigger file input click when button is clicked
+              const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+              if (fileInput) fileInput.click();
+            }}
           >
             {isUploading ? (
               <>
@@ -117,13 +127,14 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             )}
           </Button>
           <input
+            id="file-upload"
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            className="sr-only"
+            className="hidden"
             disabled={isUploading}
           />
-        </label>
+        </div>
       </div>
     </div>
   );
