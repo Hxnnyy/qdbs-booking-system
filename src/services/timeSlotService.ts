@@ -1,3 +1,4 @@
+
 /**
  * Time Slot Service
  * 
@@ -70,14 +71,14 @@ export const fetchBarberTimeSlots = async (
     }
     
     // Use cached lunch breaks if available, otherwise fetch them
-    let lunchBreaks = cachedLunchBreaks && cachedLunchBreaks.length > 0 
+    const lunchBreaks = cachedLunchBreaks && cachedLunchBreaks.length > 0 
       ? cachedLunchBreaks 
       : await fetchBarberLunchBreaks(barberId);
     
     // Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);
     
-    // Filter slots based on availability
+    // Filter slots based on availability and lunch breaks
     const availableSlots = filterAvailableTimeSlots(
       possibleSlots,
       serviceDuration,
