@@ -112,6 +112,7 @@ export const createBooking = async (
   try {
     const isGuest = !userId;
     
+    // Create a simplified booking object without any user checks
     const insertData = {
       barber_id: bookingData.barber_id,
       service_id: bookingData.service_id,
