@@ -41,15 +41,34 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   // We don't need to destructure allEvents since it's not directly used in this component
 }) => {
   const handleRetry = () => {
+    // Force clear any cached time slots to ensure fresh data
+    try {
+      // Access any global cache clearing functions
+      const clearCacheFn = (window as any).__clearTimeSlotCache;
+      if (typeof clearCacheFn === 'function') {
+        clearCacheFn();
+      }
+    } catch (e) {
+      console.log('Cache clearing not available');
+    }
+    
     // Re-trigger the date selection to refresh time slots
     if (onRetry) {
       onRetry();
     } else if (selectedDate) {
+      // Force a refresh by briefly clearing and resetting the date
       const refreshDate = new Date(selectedDate);
       setSelectedDate(undefined);
       setTimeout(() => setSelectedDate(refreshDate), 100);
     }
   };
+
+  // Clear selected time when date changes
+  React.useEffect(() => {
+    if (selectedDate && selectedTime) {
+      setSelectedTime('');
+    }
+  }, [selectedDate, setSelectedTime]);
 
   return (
     <>

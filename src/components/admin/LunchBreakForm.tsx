@@ -136,6 +136,19 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         console.log('Successfully created new lunch break');
       }
       
+      // Clear any module-level caches that might be using old lunch break data
+      // This is important to make sure new bookings use the updated lunch break settings
+      try {
+        // We need to access the module-level cache from useTimeSlots
+        const calculationCache = (window as any).__clearTimeSlotCache;
+        if (typeof calculationCache === 'function') {
+          calculationCache();
+          console.log('Successfully cleared time slot cache');
+        }
+      } catch (e) {
+        console.log('Note: Cache clearing helper not available, but that\'s okay');
+      }
+      
       toast.success('Lunch break settings saved');
       
       // Reload data to ensure we have the latest

@@ -37,7 +37,7 @@ export const useTimeSlots = (
   const [error, setError] = useState<string | null>(null);
   const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
   
-  // Use a lunchBreakTimestamp to track changes to lunch breaks
+  // Timestamp to track changes to lunch breaks
   const lunchBreakTimestampRef = useRef<number>(Date.now());
   
   // Load lunch breaks when barber changes
@@ -65,6 +65,9 @@ export const useTimeSlots = (
         
         setCachedLunchBreaks(lunchBreaks);
         lunchBreakTimestampRef.current = Date.now(); // Update timestamp on refresh
+        
+        // Force clear cache when lunch breaks are loaded/changed
+        calculationCache.clear();
       } catch (err) {
         console.error('Error loading lunch breaks:', err);
         toast.error('Failed to load lunch break settings');
@@ -89,7 +92,6 @@ export const useTimeSlots = (
     setError(null);
     
     // Create a detailed cache key that includes lunch break information
-    // Include full details of active lunch breaks in the cache key to ensure uniqueness
     const formattedDate = selectedDate.toISOString().split('T')[0];
     const activeBreaksString = cachedLunchBreaks 
       ? cachedLunchBreaks
@@ -181,6 +183,7 @@ export const useTimeSlots = (
       lunchBreakTimestampRef.current = Date.now(); // Update timestamp
       
       clearCache(); // Clear the entire cache to ensure fresh data
+      calculationCache.clear(); // Make doubly sure the cache is cleared
       calculateAvailableTimeSlots(); // Recalculate with fresh data
     } catch (error) {
       console.error('Error reloading lunch breaks:', error);

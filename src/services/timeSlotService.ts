@@ -7,7 +7,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { generatePossibleTimeSlots } from '@/utils/timeSlotUtils';
-import { filterOutLunchBreakOverlaps } from '@/utils/lunchBreakUtils';
+import { filterOutLunchBreakOverlaps, doesAppointmentOverlapLunchBreak } from '@/utils/lunchBreakUtils';
 import { isWithinOpeningHours } from '@/utils/bookingUtils';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
@@ -132,7 +132,7 @@ export const fetchBarberTimeSlots = async (
     });
     console.log(`After filtering existing bookings: ${noBookingSlots.length} slots available`);
     
-    // Step 3: Apply lunch break filtering using our consolidated utility
+    // Step 3: Apply lunch break filtering with our consolidated utility
     const noLunchSlots = filterOutLunchBreakOverlaps(
       noBookingSlots,
       serviceDuration,
@@ -140,10 +140,18 @@ export const fetchBarberTimeSlots = async (
     );
     console.log(`After lunch break filtering: ${noLunchSlots.length} slots available`);
     
-    // Step 4: Final check to ensure slots are within opening hours
+    // Step 4: Final verification - double-check each slot one-by-one to catch any edge cases
     const finalAvailableSlots = [];
     
     for (const slot of noLunchSlots) {
+      // First verify against lunch breaks again (redundant but thorough)
+      const overlapsLunch = doesAppointmentOverlapLunchBreak(slot, serviceDuration, lunchBreaks);
+      if (overlapsLunch) {
+        console.log(`EXCLUDED: Time slot ${slot} overlaps with a lunch break`);
+        continue;
+      }
+      
+      // Then check opening hours
       const withinHours = await isWithinOpeningHours(
         barberId,
         date,
@@ -154,7 +162,7 @@ export const fetchBarberTimeSlots = async (
       if (withinHours) {
         finalAvailableSlots.push(slot);
       } else {
-        console.log(`Skipping slot ${slot} as it's not within opening hours`);
+        console.log(`EXCLUDED: Time slot ${slot} is not within opening hours`);
       }
     }
     

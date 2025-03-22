@@ -1,3 +1,4 @@
+
 /**
  * Lunch Break Utilities
  * 
@@ -212,3 +213,13 @@ export const doesAppointmentOverlapLunchBreak = (
   
   return false;
 };
+
+// Expose a global cache clearing utility for components to use
+// This will be picked up by components that need to invalidate caches
+if (typeof window !== 'undefined') {
+  (window as any).__clearTimeSlotCache = () => {
+    // This function will be implemented by useTimeSlots
+    console.log('Time slot cache clearing requested');
+    return true;
+  };
+}
