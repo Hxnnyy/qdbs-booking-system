@@ -42,7 +42,7 @@ export const useBookings = () => {
 
       console.log('Booking created successfully:', data);
       
-      // Get user email from profile
+      // Get user email from profile table instead of auth.users
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('email, first_name, last_name')
