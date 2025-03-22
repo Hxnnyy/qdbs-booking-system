@@ -81,6 +81,10 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     }
   }, [date, weekDays, startHour, endHour, autoScrollToCurrentTime]);
 
+  const roundToNearestFifteenMinutes = (minutes: number): number => {
+    return Math.round(minutes / 15) * 15;
+  };
+
   const handleDragOver = (e: React.DragEvent, dayIndex: number) => {
     e.preventDefault();
     
@@ -90,8 +94,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     const rect = dayColumnRefs.current[dayIndex]!.getBoundingClientRect();
     const y = e.clientY - rect.top;
     
-    // Calculate time based on position
-    const minutes = Math.floor(y);
+    // Calculate time based on position, rounded to 15 minute intervals
+    const minutes = roundToNearestFifteenMinutes(Math.floor(y));
     const hours = startHour + Math.floor(minutes / 60);
     const mins = minutes % 60;
     
@@ -292,23 +296,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 </div>
               ))}
               
-              {/* Ghost element to show where the event will be dropped */}
-              {dragState.ghostPosition && dragState.ghostPosition.dayIndex === dayIndex && (
-                <div 
-                  className="absolute w-full bg-primary/30 border-l-4 border-primary z-50 pointer-events-none rounded-sm"
-                  style={{ 
-                    top: `${dragState.ghostPosition.top}px`, 
-                    height: `${dragState.ghostPosition.height}px`,
-                    left: 0,
-                    right: 0
-                  }}
-                >
-                  <div className="px-2 py-1 text-xs font-medium">
-                    Drop to reschedule: {format(day, 'MMM d')} {dragState.currentTime}
-                  </div>
-                </div>
-              )}
-              
               {isCurrentDay && (() => {
                 const now = new Date();
                 const hours = now.getHours();
@@ -373,6 +360,21 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           );
         })}
       </div>
+      
+      {/* Fixed positioning drop indicator at bottom center of screen */}
+      {dragState.isActive && dragState.currentDate && (
+        <div 
+          className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-secondary text-secondary-foreground px-4 py-2 rounded-md shadow-lg z-50 font-medium"
+        >
+          {dragState.currentDate && dragState.currentTime ? (
+            <>
+              Drop to reschedule: {format(dragState.currentDate, 'EEE, MMM d')} at {dragState.currentTime}
+            </>
+          ) : (
+            <>Drag to reschedule appointment</>
+          )}
+        </div>
+      )}
     </div>
   );
 };
