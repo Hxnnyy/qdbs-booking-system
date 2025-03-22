@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
-import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
+import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability, isLunchBreakOverlap } from '@/services/timeSlotService';
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
@@ -92,16 +92,27 @@ export const useTimeSlots = (
         existingBookings,
         cachedLunchBreaks || []
       );
+
+      // Filter out slots that overlap with lunch breaks
+      const filteredSlots = slots.filter(timeSlot => {
+        const hasLunchBreakOverlap = isLunchBreakOverlap(
+          timeSlot,
+          selectedDate,
+          cachedLunchBreaks || [],
+          selectedService.duration
+        );
+        return !hasLunchBreakOverlap;
+      });
       
       // Filter out time slots that are in the past (for today only)
-      const filteredSlots = slots.filter(
+      const finalSlots = filteredSlots.filter(
         timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
       );
       
       // Cache the result
-      calculationCache.current.set(cacheKey, filteredSlots);
+      calculationCache.current.set(cacheKey, finalSlots);
       
-      setTimeSlots(filteredSlots);
+      setTimeSlots(finalSlots);
     } catch (err) {
       console.error('Error calculating time slots:', err);
       setError('Failed to load available time slots');
@@ -125,3 +136,4 @@ export const useTimeSlots = (
 
 // Export for compatibility with existing code
 export { fetchBarberTimeSlots } from '@/services/timeSlotService';
+
