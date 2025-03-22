@@ -1,4 +1,3 @@
-
 /**
  * Time Slot Utilities
  * 
@@ -30,7 +29,7 @@ export const isLunchBreak = (
   const serviceEndMinutes = timeInMinutes + serviceDuration;
   
   // Log for debugging
-  console.log(`Checking lunch break: Slot starts at ${timeInMinutes} minutes (${timeSlot}), ends at ${serviceEndMinutes} minutes, service duration: ${serviceDuration}min`);
+  console.log(`LUNCH CHECK: Slot starts at ${timeInMinutes} minutes (${timeSlot}), ends at ${serviceEndMinutes} minutes, service duration: ${serviceDuration}min`);
   
   for (const breakTime of lunchBreaks) {
     if (!breakTime.is_active) continue;
@@ -39,23 +38,20 @@ export const isLunchBreak = (
     const breakStartMinutes = breakHours * 60 + breakMinutes;
     const breakEndMinutes = breakStartMinutes + breakTime.duration;
     
-    // Improved overlap check
-    const hasOverlap = (
-      // Service starts during lunch break
-      (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) ||
-      // Service ends during lunch break
-      (serviceEndMinutes > breakStartMinutes && serviceEndMinutes <= breakEndMinutes) ||
-      // Service completely contains lunch break
-      (timeInMinutes < breakStartMinutes && serviceEndMinutes > breakEndMinutes) ||
-      // Service is completely contained by lunch break
-      (timeInMinutes >= breakStartMinutes && serviceEndMinutes <= breakEndMinutes)
-    );
+    console.log(`LUNCH DATA: ${breakTime.start_time} (${breakStartMinutes} mins) to ${breakEndMinutes} mins, duration: ${breakTime.duration}min, active: ${breakTime.is_active}`);
+    
+    // Improved overlap check with explicit conditions
+    const slotStartsDuringBreak = timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes;
+    const slotEndsDuringBreak = serviceEndMinutes > breakStartMinutes && serviceEndMinutes <= breakEndMinutes;
+    const slotContainsBreak = timeInMinutes < breakStartMinutes && serviceEndMinutes > breakEndMinutes;
+    const breakContainsSlot = timeInMinutes >= breakStartMinutes && serviceEndMinutes <= breakEndMinutes;
+    
+    const hasOverlap = slotStartsDuringBreak || slotEndsDuringBreak || slotContainsBreak || breakContainsSlot;
     
     // Log for debugging
-    console.log(`Lunch break: ${breakTime.start_time} (${breakStartMinutes} mins) to ${breakEndMinutes} mins, duration: ${breakTime.duration}min`);
-    console.log(`Overlap check result: ${hasOverlap ? 'OVERLAPS' : 'No overlap'}`);
-    
     if (hasOverlap) {
+      console.log(`⛔ OVERLAP DETECTED: ${timeSlot} with service duration ${serviceDuration}min overlaps with lunch break at ${breakTime.start_time} for ${breakTime.duration}min`);
+      console.log(`Overlap reasons: StartsDuring=${slotStartsDuringBreak}, EndsDuring=${slotEndsDuringBreak}, Contains=${slotContainsBreak}, ContainedBy=${breakContainsSlot}`);
       return true;
     }
   }

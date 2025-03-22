@@ -52,6 +52,9 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
     }
   };
 
+  console.log('DateTimeSelectionStep rendering with timeslots:', availableTimeSlots?.length);
+  console.log('Service duration passed to TimeSlotsGrid:', serviceDuration);
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

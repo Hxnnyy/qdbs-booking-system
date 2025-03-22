@@ -46,6 +46,13 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     }
   }, [selectedDate, selectedTime, timeSlots, setSelectedTime]);
 
+  // Log slots for debugging
+  useEffect(() => {
+    if (timeSlots.length > 0) {
+      console.log('Time slots received in TimeSlotsGrid:', timeSlots);
+    }
+  }, [timeSlots]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">

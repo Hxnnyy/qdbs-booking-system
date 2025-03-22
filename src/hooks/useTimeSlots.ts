@@ -52,7 +52,7 @@ export const useTimeSlots = (
       console.log(`Fetching lunch breaks for barber ${selectedBarberId}`);
       try {
         const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-        console.log(`Fetched lunch breaks:`, lunchBreaks);
+        console.log(`LUNCH BREAKS FETCHED:`, lunchBreaks);
         setCachedLunchBreaks(lunchBreaks);
       } catch (err) {
         console.error("Error fetching lunch breaks:", err);
@@ -112,6 +112,7 @@ export const useTimeSlots = (
         try {
           lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
           setCachedLunchBreaks(lunchBreaks);
+          console.log("LUNCH BREAKS FETCHED IN CALCULATION:", lunchBreaks);
         } catch (err) {
           console.error("Error fetching lunch breaks:", err);
           // Don't block on lunch break fetch errors
@@ -121,7 +122,7 @@ export const useTimeSlots = (
       
       // Fetch all possible time slots
       console.log(`Fetching time slots from service with duration: ${selectedService.duration}`);
-      const slots = await fetchBarberTimeSlots(
+      const fetchedTimeSlots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
         selectedService.duration,
@@ -129,10 +130,11 @@ export const useTimeSlots = (
         lunchBreaks || []
       );
       
-      console.log(`Initial time slots (${slots.length}):`, slots);
+      console.log(`Initial time slots (${fetchedTimeSlots.length}):`, fetchedTimeSlots);
       
-      // Additional manual filtering for lunch breaks - this is a critical second check
-      const filteredSlots = slots.filter(timeSlot => {
+      // Critical: Additional manual filtering for lunch breaks directly in the hook
+      // This is a redundant check to ensure no lunch break slots slip through
+      const manuallyFilteredSlots = fetchedTimeSlots.filter(timeSlot => {
         // Check if the time slot is during a lunch break
         const hasLunchBreak = isLunchBreak(
           timeSlot,
@@ -141,17 +143,17 @@ export const useTimeSlots = (
         );
         
         if (hasLunchBreak) {
-          console.log(`Filtering out ${timeSlot} due to lunch break overlap in useTimeSlots hook`);
+          console.log(`FINAL FILTER: Removing ${timeSlot} due to lunch break overlap in useTimeSlots hook`);
           return false;
         }
         
         return true;
       });
       
-      console.log(`After lunch break filtering (${filteredSlots.length}):`, filteredSlots);
+      console.log(`After lunch break filtering (${manuallyFilteredSlots.length}):`, manuallyFilteredSlots);
       
       // Filter out time slots that are in the past (for today only)
-      const finalSlots = filteredSlots.filter(
+      const finalSlots = manuallyFilteredSlots.filter(
         timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
       );
       
