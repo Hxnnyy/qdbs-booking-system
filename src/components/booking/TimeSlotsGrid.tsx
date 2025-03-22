@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isSameDay } from 'date-fns';
 import { getNoTimeSlotsMessage } from '@/utils/bookingTimeUtils';
+import { hasLunchBreakConflict } from '@/utils/bookingTimeUtils';
 
 interface TimeSlotsGridProps {
   selectedDate: Date | undefined;
@@ -28,7 +29,54 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   serviceDuration = 60
 }) => {
   // Use the filtered time slots directly from the hook
+  const [lunchBreaks, setLunchBreaks] = useState<any[]>([]);
+  const [displayTimeSlots, setDisplayTimeSlots] = useState<string[]>([]);
   const timeSlots = availableTimeSlots || [];
+
+  // Fetch lunch breaks on component mount
+  useEffect(() => {
+    if (selectedBarberId) {
+      const fetchLunchBreaks = async () => {
+        try {
+          const { data, error } = await fetch(`/api/lunch-breaks/${selectedBarberId}`).then(res => res.json());
+          if (error) throw error;
+          setLunchBreaks(data || []);
+          console.log('Lunch breaks fetched in TimeSlotsGrid:', data);
+        } catch (err) {
+          console.error('Error fetching lunch breaks:', err);
+          setLunchBreaks([]);
+        }
+      };
+      
+      fetchLunchBreaks();
+    }
+  }, [selectedBarberId]);
+
+  // Filter time slots by lunch breaks locally for double verification
+  useEffect(() => {
+    if (lunchBreaks.length > 0 && timeSlots.length > 0 && serviceDuration) {
+      console.log(`Double-checking ${timeSlots.length} time slots against ${lunchBreaks.length} lunch breaks`);
+      
+      const filteredSlots = timeSlots.filter(slot => {
+        // Verify this slot doesn't conflict with lunch breaks
+        const hasLunchConflict = lunchBreaks.some(lunch => 
+          lunch.is_active && hasLunchBreakConflict(slot, [lunch], serviceDuration)
+        );
+        
+        if (hasLunchConflict) {
+          console.log(`Slot ${slot} conflicts with lunch break, filtering out`);
+          return false;
+        }
+        
+        return true;
+      });
+      
+      console.log(`After lunch break filtering: ${filteredSlots.length} slots remain`);
+      setDisplayTimeSlots(filteredSlots);
+    } else {
+      setDisplayTimeSlots(timeSlots);
+    }
+  }, [timeSlots, lunchBreaks, serviceDuration]);
 
   // Clear the selected time if it's now in the past or no longer available
   useEffect(() => {
@@ -40,18 +88,22 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
       }
       
       // Clear if time slot is no longer in the available list
-      if (timeSlots.length > 0 && !timeSlots.includes(selectedTime)) {
+      if (displayTimeSlots.length > 0 && !displayTimeSlots.includes(selectedTime)) {
         setSelectedTime('');
       }
     }
-  }, [selectedDate, selectedTime, timeSlots, setSelectedTime]);
+  }, [selectedDate, selectedTime, displayTimeSlots, setSelectedTime]);
 
   // Log slots for debugging
   useEffect(() => {
     if (timeSlots.length > 0) {
       console.log('Time slots received in TimeSlotsGrid:', timeSlots);
     }
-  }, [timeSlots]);
+    
+    if (displayTimeSlots.length > 0) {
+      console.log('Display time slots after filtering:', displayTimeSlots);
+    }
+  }, [timeSlots, displayTimeSlots]);
 
   if (isLoading) {
     return (
@@ -71,7 +123,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     );
   }
 
-  if (timeSlots.length === 0) {
+  if (displayTimeSlots.length === 0) {
     return (
       <div className="text-center p-4 border rounded-md bg-muted">
         <p className="text-muted-foreground">
@@ -84,7 +136,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
 
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-      {timeSlots.map((time) => (
+      {displayTimeSlots.map((time) => (
         <TimeSlot 
           key={time} 
           time={time} 

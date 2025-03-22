@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner';
 import TimeSlotsGrid from '../TimeSlotsGrid';
 import { CalendarEvent } from '@/types/calendar';
 import { fetchBarberLunchBreaks } from '@/services/timeSlotService';
+import { toast } from 'sonner';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -56,6 +57,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
         })
         .catch(err => {
           console.error('Error loading lunch breaks:', err);
+          toast.error('Failed to load lunch breaks. Some time slots might not be accurate.');
         })
         .finally(() => {
           setLoadingLunchBreaks(false);
