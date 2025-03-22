@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -22,7 +21,7 @@ function generatePossibleTimeSlots(openTime, closeTime) {
   
   // Safety counter to prevent infinite loops
   let counter = 0;
-  const maxIterations = 100;
+  const maxIterations = 200; // Increased to accommodate more 15-min slots
   
   while (counter < maxIterations) {
     const timeInMinutes = openHours * 60 + openMinutes;
@@ -39,7 +38,7 @@ function generatePossibleTimeSlots(openTime, closeTime) {
       minutes: timeInMinutes
     });
     
-    openMinutes += 30; // 30-minute increments
+    openMinutes += 15; // Changed to 15-minute increments
     if (openMinutes >= 60) {
       openHours += 1;
       openMinutes -= 60;
@@ -317,7 +316,7 @@ Deno.serve(async (req) => {
     // Return only the time strings
     const finalTimeSlots = availableSlots.map(slot => slot.time);
     
-    console.log(`Found ${finalTimeSlots.length} available time slots`);
+    console.log(`Found ${finalTimeSlots.length} available time slots using 15-minute intervals`);
     
     return new Response(JSON.stringify({ timeSlots: finalTimeSlots }), {
       status: 200,

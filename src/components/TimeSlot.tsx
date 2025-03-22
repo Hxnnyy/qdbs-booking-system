@@ -10,7 +10,7 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ time, selected, onClick, disabled =
   return (
     <button
       className={cn(
-        "p-2 rounded border transition-colors w-full text-center",
+        "p-2 rounded border transition-colors w-full text-center text-sm", // Added text-sm to make 15-min slots fit better
         isSelected
           ? "bg-burgundy text-white border-burgundy hover:bg-burgundy-light" 
           : "bg-secondary text-foreground border-input hover:bg-secondary/80",

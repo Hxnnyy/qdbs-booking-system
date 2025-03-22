@@ -61,7 +61,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+    <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 max-h-[320px] overflow-y-auto p-1"> {/* Updated grid to show more time slots */}
       {availableTimeSlots.map((time) => (
         <TimeSlot 
           key={time} 

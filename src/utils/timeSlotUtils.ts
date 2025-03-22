@@ -48,7 +48,7 @@ export const generatePossibleTimeSlots = (
   
   // Safeguard against infinite loops
   let safetyCounter = 0;
-  const maxIterations = 100; // Reasonable limit for a day's worth of 30-min slots
+  const maxIterations = 200; // Increased to accommodate more 15-min slots
   
   while (safetyCounter < maxIterations) {
     const timeInMinutes = openHours * 60 + openMinutes;
@@ -65,7 +65,7 @@ export const generatePossibleTimeSlots = (
       minutes: timeInMinutes
     });
     
-    openMinutes += 30; // 30-minute increments
+    openMinutes += 15; // Changed to 15-minute increments
     if (openMinutes >= 60) {
       openHours += 1;
       openMinutes -= 60;
