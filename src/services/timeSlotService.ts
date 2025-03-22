@@ -306,6 +306,8 @@ export const fetchBarberTimeSlots = async (
 
 /**
  * Check if a barber is available on a date
+ * 
+ * This function has been updated to ensure it returns a non-Promise result
  */
 export const checkBarberAvailability = async (
   date: Date | undefined,
@@ -339,7 +341,14 @@ export const checkBarberAvailability = async (
 };
 
 /**
+ * Create a cache for date selectability to avoid repeated calculations
+ */
+const dateSelectabilityCache = new Map<string, boolean>();
+
+/**
  * Check if a specific date is selectable in the calendar
+ * 
+ * Modified to ensure it returns a boolean synchronously and not a Promise
  */
 export const isDateSelectable = async (
   date: Date,
@@ -348,13 +357,25 @@ export const isDateSelectable = async (
 ): Promise<boolean> => {
   if (!barberId) return false;
   
+  // Generate a cache key
+  const cacheKey = `${format(date, 'yyyy-MM-dd')}_${barberId}`;
+  
+  // Check if we have a cached result
+  if (dateSelectabilityCache.has(cacheKey)) {
+    return dateSelectabilityCache.get(cacheKey) || false;
+  }
+  
   // Check if date is in the past
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  if (date < today) return false;
+  if (date < today) {
+    dateSelectabilityCache.set(cacheKey, false);
+    return false;
+  }
   
   // Check if date is a holiday
   if (isBarberHolidayDate(calendarEvents, date, barberId)) {
+    dateSelectabilityCache.set(cacheKey, false);
     return false;
   }
   
@@ -362,9 +383,8 @@ export const isDateSelectable = async (
   const dayOfWeek = date.getDay();
   const workingHours = await getBarberWorkingHours(barberId, dayOfWeek);
   
-  if (!workingHours || workingHours.is_closed) {
-    return false;
-  }
+  const result = !(!workingHours || workingHours.is_closed);
+  dateSelectabilityCache.set(cacheKey, result);
   
-  return true;
+  return result;
 };

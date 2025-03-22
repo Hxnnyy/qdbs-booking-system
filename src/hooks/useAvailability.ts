@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 // Create a cache for API results to reduce unnecessary calls
 const timeSlotCache = new Map<string, string[]>();
 const dateSelectionCache = new Map<string, boolean>();
+// Cache for already-checked dates to avoid repeated async checks
+const checkedDatesCache = new Map<string, boolean>();
 
 /**
  * Custom hook to manage barber availability
@@ -29,6 +31,8 @@ export const useAvailability = (
   const [existingBookings, setExistingBookings] = useState<any[]>([]);
   const [lunchBreaks, setLunchBreaks] = useState<any[]>([]);
   const [isCheckingDates, setIsCheckingDates] = useState<boolean>(false);
+  // Add state to track unavailable dates
+  const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
 
   // Generate a cache key for time slots
   const getTimeSlotCacheKey = useCallback(() => {
@@ -52,6 +56,7 @@ export const useAvailability = (
     console.log('Clearing all availability caches');
     timeSlotCache.clear();
     dateSelectionCache.clear();
+    checkedDatesCache.clear();
   }, []);
 
   // Fetch existing bookings for the selected date and barber
@@ -169,41 +174,83 @@ export const useAvailability = (
     fetchExistingBookings
   ]);
 
-  // Check if a date is selectable in the calendar
-  const checkDateSelectable = useCallback(async (date: Date) => {
-    if (!selectedBarberId) return false;
+  // Prefetch and cache date availability information
+  const prefetchDateAvailability = useCallback(async () => {
+    if (!selectedBarberId || !selectedService) return;
+    
+    setIsCheckingDates(true);
+    
+    try {
+      // Prepare a batch of dates to check (next 30 days)
+      const today = new Date();
+      const datesToCheck = [];
+      
+      for (let i = 0; i < 30; i++) {
+        const date = new Date();
+        date.setDate(today.getDate() + i);
+        datesToCheck.push(date);
+      }
+      
+      // Check dates in parallel
+      const results = await Promise.all(
+        datesToCheck.map(async (date) => {
+          const dateStr = format(date, 'yyyy-MM-dd');
+          const cacheKey = `${dateStr}_${selectedBarberId}`;
+          
+          // If already in cache, use cached result
+          if (dateSelectionCache.has(cacheKey)) {
+            return { 
+              date, 
+              available: dateSelectionCache.get(cacheKey) || false 
+            };
+          }
+          
+          // Otherwise check availability
+          const available = await isDateSelectable(date, selectedBarberId, calendarEvents);
+          
+          // Cache the result
+          dateSelectionCache.set(cacheKey, available);
+          
+          return { date, available };
+        })
+      );
+      
+      // Build unavailable dates array
+      const newUnavailableDates = results
+        .filter(result => !result.available)
+        .map(result => result.date);
+      
+      setUnavailableDates(newUnavailableDates);
+    } catch (err) {
+      console.error('Error prefetching date availability:', err);
+    } finally {
+      setIsCheckingDates(false);
+    }
+  }, [selectedBarberId, selectedService, calendarEvents]);
+
+  // Call prefetch on initial load and when dependencies change
+  useEffect(() => {
+    prefetchDateAvailability();
+  }, [prefetchDateAvailability]);
+
+  // Check if a date is selectable in the calendar - SYNCHRONOUS VERSION
+  // This uses the prefetched data instead of making an async call each time
+  const isDateDisabled = useCallback((date: Date): boolean => {
+    if (!selectedBarberId) return true;
     
     const dateStr = format(date, 'yyyy-MM-dd');
     const cacheKey = `${dateStr}_${selectedBarberId}`;
     
-    // Check cache first
+    // Check if we have a cached result
     if (dateSelectionCache.has(cacheKey)) {
-      return dateSelectionCache.get(cacheKey) || false;
+      // Return the opposite of availability (true if date should be disabled)
+      return !dateSelectionCache.get(cacheKey);
     }
     
-    // Otherwise check availability
-    const selectable = await isDateSelectable(date, selectedBarberId, calendarEvents);
-    
-    // Cache the result
-    dateSelectionCache.set(cacheKey, selectable);
-    
-    return selectable;
-  }, [selectedBarberId, calendarEvents]);
-
-  // Function to check if a date is disabled in the calendar
-  const isDateDisabled = useCallback(async (date: Date) => {
-    setIsCheckingDates(true);
-    
-    try {
-      const selectable = await checkDateSelectable(date);
-      return !selectable;
-    } catch (err) {
-      console.error('Error checking date selectability:', err);
-      return true; // Disable by default on error
-    } finally {
-      setIsCheckingDates(false);
-    }
-  }, [checkDateSelectable]);
+    // For dates we haven't checked yet, default to enabled
+    // They'll be updated once the prefetch completes
+    return false;
+  }, [selectedBarberId]);
 
   // Load lunch breaks when barber changes
   useEffect(() => {

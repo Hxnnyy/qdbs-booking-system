@@ -131,15 +131,16 @@ export const useTimeSlots = (
     
     try {
       // Check barber availability for the selected date
-      const { isAvailable, errorMessage } = checkBarberAvailability(
+      const availabilityResult = await checkBarberAvailability(
         selectedDate, 
         selectedBarberId, 
         calendarEvents
       );
       
-      if (!isAvailable) {
-        console.log('Barber not available:', errorMessage);
-        setError(errorMessage);
+      // Fixed: Properly handling the promise result
+      if (!availabilityResult.isAvailable) {
+        console.log('Barber not available:', availabilityResult.errorMessage);
+        setError(availabilityResult.errorMessage);
         setTimeSlots([]);
         setIsCalculating(false);
         return;
