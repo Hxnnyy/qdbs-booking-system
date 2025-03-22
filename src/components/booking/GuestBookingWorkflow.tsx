@@ -126,6 +126,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         isCheckingDates={isCheckingDates}
         isDateDisabled={isDateDisabled}
         timeSlotError={timeSlotError}
+        showAnyBarberOption={true} // Enable the "any barber" option for guest booking
       />
     </div>
   );

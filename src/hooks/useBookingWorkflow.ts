@@ -6,6 +6,7 @@ import { BookingStep, BookingFormState } from '@/types/booking';
 import { useGuestBookings } from '@/hooks/useGuestBookings';
 import { Service } from '@/supabase-types';
 import { supabase } from '@/integrations/supabase/client';
+import { useTimeSlots } from '@/hooks/useTimeSlots';
 
 export const useBookingWorkflow = (
   formState: BookingFormState,
@@ -27,6 +28,15 @@ export const useBookingWorkflow = (
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
   const { createGuestBooking, isLoading: bookingLoading } = useGuestBookings();
+  
+  // Use timeslots hook to get the selected barber when "any barber" is chosen
+  const { selectedBarberForBooking } = useTimeSlots(
+    formState.selectedDate,
+    formState.selectedBarber,
+    formState.selectedServiceDetails,
+    [], // Empty array as we don't need to calculate slots here
+    []
+  );
 
   // Update step when form state changes
   useEffect(() => {
@@ -181,8 +191,18 @@ export const useBookingWorkflow = (
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
+      // Use the selected barber from timeslots hook if "any barber" was chosen
+      const effectiveBarber = selectedBarber === 'any' && selectedBarberForBooking 
+        ? selectedBarberForBooking 
+        : selectedBarber;
+        
+      if (selectedBarber === 'any' && !selectedBarberForBooking) {
+        toast.error('Unable to find an available barber. Please try another date or time.');
+        return;
+      }
+      
       const result = await createGuestBooking({
-        barber_id: selectedBarber,
+        barber_id: effectiveBarber,
         service_id: selectedService,
         booking_date: formattedDate,
         booking_time: selectedTime,
@@ -199,7 +219,7 @@ export const useBookingWorkflow = (
         const { data: barberData } = await supabase
           .from('barbers')
           .select('name')
-          .eq('id', selectedBarber)
+          .eq('id', effectiveBarber)
           .single();
           
         const { data: serviceData } = await supabase

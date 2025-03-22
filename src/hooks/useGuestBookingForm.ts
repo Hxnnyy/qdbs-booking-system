@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { format, addDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +27,7 @@ export const useGuestBookingForm = () => {
   const [isLoadingBarberServices, setIsLoadingBarberServices] = useState<boolean>(false);
   const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState<boolean>(false);
+  const [availableBarbers, setAvailableBarbers] = useState<string[]>([]);
 
   // Update form state helper
   const updateFormState = (updates: Partial<BookingFormState>) => {
@@ -36,6 +38,20 @@ export const useGuestBookingForm = () => {
     try {
       setIsLoadingBarberServices(true);
       
+      // Special case for "any barber" - fetch all active services
+      if (barberId === 'any') {
+        const { data: allServices, error } = await supabase
+          .from('services')
+          .select('*')
+          .eq('active', true)
+          .order('name');
+          
+        if (error) throw error;
+        setBarberServices(allServices || []);
+        return;
+      }
+      
+      // Regular case - fetch services for specific barber
       const { data: barberServiceLinks, error: barberServicesError } = await supabase
         .from('barber_services')
         .select('service_id')
@@ -93,6 +109,37 @@ export const useGuestBookingForm = () => {
   
       const formattedDate = format(date, 'yyyy-MM-dd');
       
+      // If "any barber" is selected, we don't need to check holidays
+      // Instead, we'll fetch all barbers and check availability later
+      if (barberId === 'any') {
+        // Fetch all active barbers
+        const { data: activeBarbers, error: barbersError } = await supabase
+          .from('barbers')
+          .select('id')
+          .eq('active', true);
+          
+        if (barbersError) throw barbersError;
+        
+        // Fetch bookings for all barbers on this date
+        const { data: allBookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('booking_time, service_id, services(duration), barber_id')
+          .eq('booking_date', formattedDate)
+          .eq('status', 'confirmed');
+          
+        if (bookingsError) throw bookingsError;
+        
+        setExistingBookings(allBookings || []);
+        
+        // Store the list of active barber IDs for later use
+        if (activeBarbers) {
+          setAvailableBarbers(activeBarbers.map(b => b.id));
+        }
+        
+        return;
+      }
+      
+      // Regular flow for a specific barber
       // Check if barber is on holiday for this date
       const isHoliday = await isBarberOnHoliday(barberId, date);
       
@@ -139,6 +186,7 @@ export const useGuestBookingForm = () => {
     isLoadingBarberServices,
     existingBookings,
     isLoadingBookings,
-    fetchBarberServices
+    fetchBarberServices,
+    availableBarbers
   };
 };
