@@ -30,7 +30,7 @@ export const isLunchBreak = (
   const serviceEndMinutes = timeInMinutes + serviceDuration;
   
   // Log for debugging
-  console.log(`Checking lunch break: Slot starts at ${timeInMinutes} minutes, ends at ${serviceEndMinutes} minutes`);
+  console.log(`Checking lunch break: Slot starts at ${timeInMinutes} minutes (${timeSlot}), ends at ${serviceEndMinutes} minutes, service duration: ${serviceDuration}min`);
   
   for (const breakTime of lunchBreaks) {
     if (!breakTime.is_active) continue;
@@ -50,8 +50,8 @@ export const isLunchBreak = (
     );
     
     // Log for debugging
-    console.log(`Lunch break: ${breakTime.start_time} (${breakStartMinutes} mins) to ${breakEndMinutes} mins`);
-    console.log(`Overlap check result: ${hasOverlap}`);
+    console.log(`Lunch break: ${breakTime.start_time} (${breakStartMinutes} mins) to ${breakEndMinutes} mins, duration: ${breakTime.duration}min`);
+    console.log(`Overlap check result: ${hasOverlap ? 'OVERLAPS' : 'No overlap'}`);
     
     if (hasOverlap) {
       return true;
@@ -122,6 +122,14 @@ export const filterAvailableTimeSlots = (
   const availableSlots: string[] = [];
   
   console.log(`Filtering ${possibleSlots.length} possible time slots with ${lunchBreaks?.length || 0} lunch breaks`);
+  console.log(`Service duration: ${serviceDuration} minutes`);
+  
+  if (lunchBreaks && lunchBreaks.length > 0) {
+    console.log("Active lunch breaks:");
+    lunchBreaks.filter(b => b.is_active).forEach(b => {
+      console.log(`- ${b.start_time} for ${b.duration} minutes`);
+    });
+  }
   
   for (const slot of possibleSlots) {
     const isBooked = isTimeSlotBooked(
@@ -133,7 +141,7 @@ export const filterAvailableTimeSlots = (
     const isOnLunchBreak = isLunchBreak(slot.time, lunchBreaks, serviceDuration);
     
     if (isOnLunchBreak) {
-      console.log(`Slot ${slot.time} is during lunch break, skipping`);
+      console.log(`❌ Slot ${slot.time} is during lunch break, skipping`);
     }
     
     if (!isBooked && !isOnLunchBreak) {

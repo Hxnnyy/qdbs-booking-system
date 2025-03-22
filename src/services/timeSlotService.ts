@@ -1,3 +1,4 @@
+
 /**
  * Time Slot Service
  * 
@@ -5,7 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { generatePossibleTimeSlots, filterAvailableTimeSlots } from '@/utils/timeSlotUtils';
+import { generatePossibleTimeSlots, filterAvailableTimeSlots, isLunchBreak } from '@/utils/timeSlotUtils';
 import { isWithinOpeningHours } from '@/utils/bookingUtils';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
@@ -62,6 +63,10 @@ export const isLunchBreakOverlap = (
   const slotEnd = new Date(slotStart);
   slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
   
+  // Calculate start and end in minutes for easier comparison
+  const slotStartMinutes = hours * 60 + minutes;
+  const slotEndMinutes = slotStartMinutes + serviceDuration;
+  
   // Log the active lunch breaks for debugging
   const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
   console.log(`Active lunch breaks:`, activeLunchBreaks);
@@ -70,23 +75,27 @@ export const isLunchBreakOverlap = (
     if (!lunch.is_active) continue;
     
     const [lunchHours, lunchMinutes] = lunch.start_time.split(':').map(Number);
-    const lunchStart = new Date(date);
-    lunchStart.setHours(lunchHours, lunchMinutes, 0, 0);
+    const lunchStartMinutes = lunchHours * 60 + lunchMinutes;
+    const lunchEndMinutes = lunchStartMinutes + lunch.duration;
     
-    const lunchEnd = new Date(lunchStart);
-    lunchEnd.setMinutes(lunchEnd.getMinutes() + lunch.duration);
+    // Enhanced overlap check with detailed logging
+    // A time slot overlaps with a lunch break if:
+    // 1. Time slot starts during lunch break
+    // 2. Time slot ends during lunch break
+    // 3. Time slot completely contains lunch break
+    // 4. Lunch break completely contains time slot
+    const condition1 = slotStartMinutes >= lunchStartMinutes && slotStartMinutes < lunchEndMinutes;
+    const condition2 = slotEndMinutes > lunchStartMinutes && slotEndMinutes <= lunchEndMinutes;
+    const condition3 = slotStartMinutes <= lunchStartMinutes && slotEndMinutes >= lunchEndMinutes;
+    const condition4 = slotStartMinutes >= lunchStartMinutes && slotEndMinutes <= lunchEndMinutes;
     
-    // Check for any overlap between the service time slot and the lunch break
-    const hasOverlap = (
-      (slotStart < lunchEnd && slotEnd > lunchStart)
-    );
+    const hasOverlap = condition1 || condition2 || condition3 || condition4;
     
     // Log the calculation for debugging
-    console.log(`Lunch break: ${lunch.start_time} for ${lunch.duration}min`);
-    console.log(`Service: ${timeSlot} for ${serviceDuration}min`);
-    console.log(`Service slot: ${slotStart.toTimeString()} - ${slotEnd.toTimeString()}`);
-    console.log(`Lunch break: ${lunchStart.toTimeString()} - ${lunchEnd.toTimeString()}`);
-    console.log(`Overlap: ${hasOverlap ? 'YES' : 'NO'}`);
+    console.log(`Lunch break: ${lunch.start_time} for ${lunch.duration}min (${lunchStartMinutes}-${lunchEndMinutes})`);
+    console.log(`Service slot: ${timeSlot} for ${serviceDuration}min (${slotStartMinutes}-${slotEndMinutes})`);
+    console.log(`Overlap conditions: Start during break: ${condition1}, End during break: ${condition2}, Contains break: ${condition3}, Inside break: ${condition4}`);
+    console.log(`Overall overlap: ${hasOverlap ? 'YES' : 'NO'}`);
     
     if (hasOverlap) {
       return true;
@@ -139,6 +148,8 @@ export const fetchBarberTimeSlots = async (
       lunchBreaks = await fetchBarberLunchBreaks(barberId);
     }
     
+    console.log(`Processing time slots with ${lunchBreaks.length} lunch breaks for service duration ${serviceDuration}min`);
+    
     // Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);
     
@@ -161,14 +172,27 @@ export const fetchBarberTimeSlots = async (
         serviceDuration
       );
       
-      const lunchOverlap = isLunchBreakOverlap(
+      // Use both lunch break checking methods to be thorough
+      const directLunchOverlap = isLunchBreak(
+        slot,
+        lunchBreaks,
+        serviceDuration
+      );
+      
+      const contextualLunchOverlap = isLunchBreakOverlap(
         slot,
         date,
         lunchBreaks,
         serviceDuration
       );
       
-      if (withinHours && !lunchOverlap) {
+      const hasLunchOverlap = directLunchOverlap || contextualLunchOverlap;
+      
+      if (hasLunchOverlap) {
+        console.log(`⛔ Filtering out time slot ${slot} due to lunch break overlap`);
+      }
+      
+      if (withinHours && !hasLunchOverlap) {
         filteredSlots.push(slot);
       }
     }

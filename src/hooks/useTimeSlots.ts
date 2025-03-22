@@ -11,6 +11,7 @@ import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
 import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability, isLunchBreakOverlap } from '@/services/timeSlotService';
+import { isLunchBreak } from '@/utils/timeSlotUtils';
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
@@ -81,7 +82,7 @@ export const useTimeSlots = (
     }
     
     try {
-      console.log(`Calculating time slots for date: ${selectedDate.toISOString()}, barber: ${selectedBarberId}, service: ${selectedService.name}`);
+      console.log(`Calculating time slots for date: ${selectedDate.toISOString()}, barber: ${selectedBarberId}, service: ${selectedService.name}, duration: ${selectedService.duration}min`);
       
       // Check barber availability for the selected date
       const { isAvailable, errorMessage } = checkBarberAvailability(
@@ -96,6 +97,14 @@ export const useTimeSlots = (
         return;
       }
       
+      // Ensure we have lunch breaks loaded
+      let lunchBreaks = cachedLunchBreaks;
+      if (!lunchBreaks || lunchBreaks.length === 0) {
+        console.log("No cached lunch breaks, fetching them...");
+        lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+        setCachedLunchBreaks(lunchBreaks);
+      }
+      
       // Fetch all possible time slots
       console.log(`Fetching time slots from service with duration: ${selectedService.duration}`);
       const slots = await fetchBarberTimeSlots(
@@ -103,26 +112,26 @@ export const useTimeSlots = (
         selectedDate, 
         selectedService.duration,
         existingBookings,
-        cachedLunchBreaks || []
+        lunchBreaks || []
       );
       
       console.log(`Initial time slots (${slots.length}):`, slots);
       
-      // Filter out slots that overlap with lunch breaks
+      // Additional manual filtering for lunch breaks
       const filteredSlots = slots.filter(timeSlot => {
-        // Check if this time slot overlaps with any lunch break
-        const hasLunchBreakOverlap = isLunchBreakOverlap(
+        // Check if the time slot is during a lunch break
+        const hasLunchBreak = isLunchBreak(
           timeSlot,
-          selectedDate,
-          cachedLunchBreaks || [],
+          lunchBreaks || [],
           selectedService.duration
         );
         
-        if (hasLunchBreakOverlap) {
-          console.log(`Filtering out time slot ${timeSlot} due to lunch break overlap`);
+        if (hasLunchBreak) {
+          console.log(`Filtering out ${timeSlot} due to lunch break overlap`);
+          return false;
         }
         
-        return !hasLunchBreakOverlap;
+        return true;
       });
       
       console.log(`After lunch break filtering (${filteredSlots.length}):`, filteredSlots);
