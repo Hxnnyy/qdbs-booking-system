@@ -42,14 +42,17 @@ export const useBookings = () => {
 
       console.log('Booking created successfully:', data);
       
-      // Get user email from profile table instead of auth.users
+      // Get user email and details directly from profile table only
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('email, first_name, last_name')
         .eq('id', user.id)
         .single();
         
-      if (!profileError && profileData && profileData.email) {
+      if (profileError) {
+        console.error('Error fetching profile data:', profileError);
+        // Continue with booking process even if email retrieval fails
+      } else if (profileData && profileData.email) {
         // Get barber and service names for the confirmation email
         const { data: barberData } = await supabase
           .from('barbers')
@@ -81,6 +84,7 @@ export const useBookings = () => {
           console.log('Confirmation email sent to registered user');
         } catch (emailError) {
           console.error('Error sending confirmation email:', emailError);
+          // Don't fail the booking if email sending fails
         }
       }
       
