@@ -27,11 +27,5 @@ export interface CalendarViewProps {
   onEventClick: (event: CalendarEvent) => void;
 }
 
-export interface DragPreview {
-  time: string;
-  top: number;
-  columnIndex?: number;
-}
-
 // Add the missing ViewMode type
 export type ViewMode = 'day' | 'week';

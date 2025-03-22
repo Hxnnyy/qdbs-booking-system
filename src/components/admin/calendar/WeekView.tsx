@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
-import { CalendarEvent, CalendarViewProps, DragPreview } from '@/types/calendar';
+import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
 import { filterEventsByWeek } from '@/utils/eventFilterUtils';
 import { getHolidayEventsForDate } from '@/utils/holidayIndicatorUtils';
@@ -19,9 +19,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   onEventClick
 }) => {
   const { startHour, endHour, autoScrollToCurrentTime } = useCalendarSettings();
-  const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
-  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const totalHours = endHour - startHour;
@@ -56,75 +54,10 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     }
   }, [date, weekDays, startHour, endHour, autoScrollToCurrentTime]);
 
-  const handleDragStart = (event: CalendarEvent, e: React.DragEvent) => {
-    e.stopPropagation();
-    if (event.status === 'lunch-break' || event.status === 'holiday') return;
-    setDraggingEvent(event);
-  };
-
-  const handleDragOver = (e: React.DragEvent, dayIndex: number) => {
-    e.preventDefault();
-    if (!draggingEvent) return;
-    
-    const container = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - container.top;
-    
-    const totalMinutes = Math.floor(y);
-    const hours = Math.floor(totalMinutes / 60) + startHour;
-    const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
-    
-    const previewTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'pm' : 'am'}`;
-    setDragPreview({ 
-      time: previewTime, 
-      top: Math.floor(totalMinutes / 15) * 15,
-      columnIndex: dayIndex
-    });
-  };
-
-  const handleDragEnd = (e: React.DragEvent, dayIndex: number) => {
-    if (!draggingEvent) return;
-    
-    const selectedDate = weekDays[dayIndex];
-    
-    const container = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - container.top;
-    
-    const totalMinutes = Math.floor(y);
-    const hours = Math.floor(totalMinutes / 60) + startHour;
-    const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
-    
-    const newStart = new Date(selectedDate);
-    newStart.setHours(hours, minutes, 0, 0);
-    
-    const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
-    const newEnd = new Date(newStart.getTime() + duration);
-
-    console.log('Week view drop event:', {
-      event: draggingEvent.title,
-      oldStart: draggingEvent.start.toISOString(),
-      newStart: newStart.toISOString(),
-      dayIndex,
-      selectedDate: selectedDate.toISOString()
-    });
-
-    // We'll let onEventDrop handle the state update to prevent duplication issues
-    onEventDrop(draggingEvent, newStart, newEnd);
-    
-    // Reset drag state
-    setDraggingEvent(null);
-    setDragPreview(null);
-  };
-
-  const handleDragCancel = () => {
-    setDraggingEvent(null);
-    setDragPreview(null);
-  };
-
   const handleCalendarClick = (e: React.MouseEvent) => {
     // Only reset if clicking directly on the calendar, not on an event
     if (e.target === e.currentTarget) {
-      setDraggingEvent(null);
-      setDragPreview(null);
+      // No drag state to reset
     }
   };
 
@@ -175,10 +108,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               key={`day-${dayIndex}`}
               className="relative border-r last:border-r-0 border-border day-column"
               style={{ height: `${calendarHeight}px` }}
-              onDragOver={(e) => handleDragOver(e, dayIndex)}
-              onDrop={(e) => handleDragEnd(e, dayIndex)}
-              onDragLeave={() => setDragPreview(null)}
-              onDragExit={handleDragCancel}
             >
               {Array.from({ length: totalHours + 1 }).map((_, index) => (
                 <div 
@@ -224,9 +153,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 
                 if (!isSameDate) return null;
                 
-                // Skip this event if it's currently being dragged
-                if (draggingEvent && draggingEvent.id === event.id) return null;
-                
                 const eventHour = event.start.getHours();
                 const eventMinute = event.start.getMinutes();
                 
@@ -246,16 +172,11 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                       padding: 0
                     }}
                   >
-                    <div
-                      draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
-                      onDragStart={(e) => handleDragStart(event, e)}
-                      className="h-full w-full"
-                    >
+                    <div className="h-full w-full">
                       <CalendarEventComponent 
                         key={`event-${event.id}-${dayIndex}`}
                         event={event} 
                         onEventClick={onEventClick}
-                        isDragging={false}
                         slotIndex={slotIndex}
                         totalSlots={totalSlots}
                       />
@@ -267,27 +188,6 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           );
         })}
       </div>
-      
-      {dragPreview && dragPreview.columnIndex !== undefined && (
-        <div 
-          className="absolute left-0 top-0 pointer-events-none z-50 w-full h-full"
-          style={{
-            gridColumnStart: dragPreview.columnIndex + 2,
-            gridColumnEnd: dragPreview.columnIndex + 3,
-          }}
-        >
-          <div 
-            className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md absolute"
-            style={{
-              top: `${dragPreview.top}px`,
-              left: '50%',
-              transform: 'translateX(-50%)'
-            }}
-          >
-            Drop to schedule at {dragPreview.time}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

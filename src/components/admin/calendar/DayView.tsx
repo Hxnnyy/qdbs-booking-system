@@ -19,9 +19,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   onEventClick
 }) => {
   const { startHour, endHour, autoScrollToCurrentTime } = useCalendarSettings();
-  const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
-  const [dragPreview, setDragPreview] = useState<{ time: string, top: number } | null>(null);
   const totalHours = endHour - startHour;
   const calendarHeight = totalHours * 60;
   const holidayEvents = getHolidayEventsForDate(events, date);
@@ -50,67 +48,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
     }
   }, [date, startHour, endHour, autoScrollToCurrentTime]);
 
-  const handleDragStart = (event: CalendarEvent, e: React.DragEvent) => {
-    e.stopPropagation();
-    if (event.status === 'lunch-break' || event.status === 'holiday') return;
-    setDraggingEvent(event);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!draggingEvent) return;
-    
-    const container = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - container.top;
-    
-    const totalMinutes = Math.floor(y);
-    const hours = Math.floor(totalMinutes / 60) + startHour;
-    const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
-    
-    const previewTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'pm' : 'am'}`;
-    setDragPreview({ time: previewTime, top: Math.floor(totalMinutes / 15) * 15 });
-  };
-
-  const handleDragEnd = (e: React.DragEvent) => {
-    if (!draggingEvent) return;
-    
-    const container = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - container.top;
-    
-    const totalMinutes = Math.floor(y);
-    const hours = Math.floor(totalMinutes / 60) + startHour;
-    const minutes = Math.floor(totalMinutes % 60 / 15) * 15;
-    
-    const newStart = new Date(date);
-    newStart.setHours(hours, minutes, 0, 0);
-    
-    const duration = draggingEvent.end.getTime() - draggingEvent.start.getTime();
-    const newEnd = new Date(newStart.getTime() + duration);
-
-    console.log('Day view drop event:', {
-      event: draggingEvent.title,
-      oldStart: draggingEvent.start.toISOString(),
-      newStart: newStart.toISOString()
-    });
-
-    // We'll let onEventDrop handle the state update to prevent duplication issues
-    onEventDrop(draggingEvent, newStart, newEnd);
-    
-    // Reset drag state
-    setDraggingEvent(null);
-    setDragPreview(null);
-  };
-
-  const handleDragCancel = () => {
-    setDraggingEvent(null);
-    setDragPreview(null);
-  };
-
-  // Handle click on the calendar background to reset drag state
   const handleCalendarClick = (e: React.MouseEvent) => {
+    // Only reset if clicking directly on the calendar, not on an event
     if (e.target === e.currentTarget) {
-      setDraggingEvent(null);
-      setDragPreview(null);
+      // No drag state to reset
     }
   };
 
@@ -136,10 +77,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
         <div 
           className="relative day-column"
           style={{ height: `${calendarHeight}px` }}
-          onDragOver={handleDragOver}
-          onDrop={handleDragEnd}
-          onDragLeave={() => setDragPreview(null)}
-          onDragExit={handleDragCancel}
         >
           <div className="absolute top-0 left-0 right-0 bottom-0">
             {Array.from({ length: totalHours + 1 }).map((_, index) => (
@@ -187,9 +124,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
               const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
               const height = Math.max(durationMinutes, 15);
               
-              // Skip this event if it's currently being dragged
-              if (draggingEvent && draggingEvent.id === event.id) return null;
-              
               return (
                 <div 
                   key={`event-container-${event.id}`}
@@ -200,16 +134,11 @@ export const DayView: React.FC<CalendarViewProps> = ({
                     padding: 0
                   }}
                 >
-                  <div
-                    draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
-                    onDragStart={(e) => handleDragStart(event, e)}
-                    className="h-full w-full"
-                  >
+                  <div className="h-full w-full">
                     <CalendarEventComponent 
                       key={`event-${event.id}`}
                       event={event} 
                       onEventClick={onEventClick}
-                      isDragging={false}
                       slotIndex={slotIndex}
                       totalSlots={totalSlots}
                     />
@@ -220,17 +149,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
       </div>
-      {dragPreview && (
-        <div 
-          className="absolute pointer-events-none z-50 grid grid-cols-[4rem_1fr]"
-          style={{ top: `${dragPreview.top}px` }}
-        >
-          <div></div>
-          <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
-            Drop to schedule at {dragPreview.time}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

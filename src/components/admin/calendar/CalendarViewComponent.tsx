@@ -26,7 +26,6 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [isDragging, setIsDragging] = useState(false);
 
   const handleDateChange = (date: Date) => {
     setCurrentDate(date);
@@ -52,24 +51,6 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     }
   };
 
-  // Handler for drag and drop operations with improved state management
-  const handleEventDrop = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
-    // Forward to the parent handler which will handle UI updates
-    onEventDrop(event, newStart, newEnd);
-  };
-
-  // Add global event listeners for drag operations
-  React.useEffect(() => {
-    const handleDragEnd = () => {
-      setIsDragging(false);
-    };
-
-    document.addEventListener('dragend', handleDragEnd);
-    return () => {
-      document.removeEventListener('dragend', handleDragEnd);
-    };
-  }, []);
-
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)] flex flex-col">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -92,7 +73,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
                 {format(currentDate, 'MMMM d, yyyy')}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={currentDate}
@@ -120,7 +101,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             date={currentDate}
             onDateChange={handleDateChange}
             events={events}
-            onEventDrop={handleEventDrop}
+            onEventDrop={onEventDrop}
             onEventClick={onEventClick}
           />
         ) : (
@@ -128,7 +109,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             date={currentDate}
             onDateChange={handleDateChange}
             events={events}
-            onEventDrop={handleEventDrop}
+            onEventDrop={onEventDrop}
             onEventClick={onEventClick}
           />
         )}

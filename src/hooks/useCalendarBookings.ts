@@ -121,7 +121,7 @@ export const useCalendarBookings = () => {
   const updateBookingTime = async (eventId: string, newStart: Date, newEnd: Date) => {
     try {
       if (eventId.startsWith('lunch-')) {
-        toast.error('Lunch breaks cannot be moved via drag and drop. Please edit them in the barber settings.');
+        toast.error('Lunch breaks cannot be moved. Please edit them in the barber settings.');
         return;
       }
       
@@ -129,18 +129,6 @@ export const useCalendarBookings = () => {
       const newBookingTime = formatNewBookingTime(newStart);
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
-      
-      // Immediately update the UI to prevent duplicate events
-      setCalendarEvents(prev => {
-        // Find and update the specific event that's being moved
-        const updated = prev.map(event => 
-          event.id === eventId 
-            ? { ...event, start: newStart, end: newEnd }
-            : event
-        );
-        
-        return updated;
-      });
       
       setIsLoading(true);
       
@@ -154,27 +142,14 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      // Update bookings state too
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === eventId 
-            ? { 
-                ...booking, 
-                booking_date: newBookingDate,
-                booking_time: newBookingTime
-              }
-            : booking
-        )
-      );
+      // Update local state after successful database update
+      await fetchData();
       
       toast.success('Booking time updated successfully');
     } catch (err: any) {
       console.error('Error updating booking time:', err);
       setError(err.message);
       toast.error('Failed to update booking time');
-      
-      // Revert optimistic update on error by refetching
-      fetchData();
     } finally {
       setIsLoading(false);
     }
@@ -218,22 +193,11 @@ export const useCalendarBookings = () => {
 
   const handleEventDrop = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
     if (event.status === 'lunch-break' || event.id.startsWith('lunch-')) {
-      toast.error('Lunch breaks cannot be moved via drag and drop. Please edit them in the barber settings.');
+      toast.error('Lunch breaks cannot be moved. Please edit them in the barber settings.');
       return;
     }
     
-    // Immediately update the UI to prevent duplicate events
-    setCalendarEvents(prev => {
-      const updated = prev.map(e => 
-        e.id === event.id 
-          ? { ...e, start: newStart, end: newEnd }
-          : e
-      );
-      
-      return updated;
-    });
-    
-    // Then update in the database
+    // Update in the database - removed UI optimistic updates
     updateBookingTime(event.id, newStart, newEnd);
   };
 
