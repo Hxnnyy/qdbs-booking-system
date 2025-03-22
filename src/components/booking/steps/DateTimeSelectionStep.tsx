@@ -42,26 +42,14 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   selectedBarberId,
   serviceDuration
 }) => {
-  const [lunchBreaks, setLunchBreaks] = useState<any[]>([]);
   const [loadingLunchBreaks, setLoadingLunchBreaks] = useState(false);
 
-  // Fetch lunch breaks when barber changes
+  // Debug log the time slots coming in
   useEffect(() => {
-    if (selectedBarberId) {
-      setLoadingLunchBreaks(true);
-      fetchBarberLunchBreaks(selectedBarberId)
-        .then(breaks => {
-          setLunchBreaks(breaks);
-          console.log('Lunch breaks loaded in DateTimeSelectionStep:', breaks);
-        })
-        .catch(err => {
-          console.error('Error loading lunch breaks:', err);
-        })
-        .finally(() => {
-          setLoadingLunchBreaks(false);
-        });
+    if (availableTimeSlots?.length > 0) {
+      console.log('DateTimeSelectionStep received time slots:', availableTimeSlots);
     }
-  }, [selectedBarberId]);
+  }, [availableTimeSlots]);
 
   const handleRetry = () => {
     // Re-trigger the date selection to refresh time slots
@@ -74,6 +62,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
     }
   };
 
+  // Debug logging for monitoring
   console.log('DateTimeSelectionStep rendering with timeslots:', availableTimeSlots?.length);
   console.log('Service duration passed to TimeSlotsGrid:', serviceDuration);
 

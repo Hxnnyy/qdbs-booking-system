@@ -3,7 +3,13 @@ import React from 'react';
 import { TimeSlotProps } from '@/types/booking';
 import { cn } from '@/lib/utils';
 
-const TimeSlot: React.FC<TimeSlotProps> = ({ time, selected, onClick, disabled = false }) => {
+const TimeSlot: React.FC<TimeSlotProps> = ({ 
+  time, 
+  selected, 
+  onClick, 
+  disabled = false, 
+  ...props 
+}) => {
   // Convert selected to boolean if it's a string comparison
   const isSelected = typeof selected === 'string' ? selected === time : !!selected;
   
@@ -20,6 +26,9 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ time, selected, onClick, disabled =
       disabled={disabled}
       data-time={time}
       data-testid={`time-slot-${time}`}
+      data-selected={isSelected ? "true" : "false"}
+      data-disabled={disabled ? "true" : "false"}
+      {...props}
     >
       {time}
     </button>

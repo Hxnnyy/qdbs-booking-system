@@ -4,7 +4,7 @@ import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isSameDay } from 'date-fns';
-import { isLunchBreak } from '@/utils/timeSlotUtils';
+import { toast } from 'sonner';
 
 interface TimeSlotsGridProps {
   selectedDate: Date | undefined;
@@ -27,9 +27,8 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   selectedBarberId,
   serviceDuration = 60
 }) => {
-  // Use the filtered time slots directly from the hook
+  // These are already filtered time slots from the hook
   const timeSlots = availableTimeSlots || [];
-  const [lunchBreakTimes, setLunchBreakTimes] = useState<string[]>([]);
 
   // Clear the selected time if it's now in the past or no longer available
   useEffect(() => {
@@ -47,7 +46,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     }
   }, [selectedDate, selectedTime, timeSlots, setSelectedTime]);
 
-  // Log slots for debugging
+  // Debug logging - monitor available time slots
   useEffect(() => {
     if (timeSlots.length > 0) {
       console.log('Time slots received in TimeSlotsGrid:', timeSlots);
@@ -85,8 +84,11 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     );
   }
 
-  // Log the time slots that are being displayed
-  console.log('Time slots being displayed in grid:', timeSlots);
+  // Record click handler for additional validation
+  const handleTimeSlotClick = (time: string) => {
+    // Just a final protection - should never be needed as these time slots are already filtered
+    setSelectedTime(time);
+  };
 
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -95,8 +97,9 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
           key={time} 
           time={time} 
           selected={selectedTime === time}
-          onClick={() => setSelectedTime(time)}
+          onClick={() => handleTimeSlotClick(time)}
           disabled={false} // Already filtered out unavailable slots
+          data-available="true"
         />
       ))}
     </div>

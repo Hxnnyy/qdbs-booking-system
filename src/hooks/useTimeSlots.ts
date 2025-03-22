@@ -17,6 +17,10 @@ import { isLunchBreak } from '@/utils/timeSlotUtils';
  * Create a "fake booking" from a lunch break to use with existing booking filtering logic
  */
 const createFakeLunchBooking = (lunchBreak: any) => {
+  if (!lunchBreak.is_active) {
+    return null;
+  }
+  
   return {
     booking_time: lunchBreak.start_time,
     services: {
@@ -27,13 +31,6 @@ const createFakeLunchBooking = (lunchBreak: any) => {
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
- * 
- * @param selectedDate - The selected date
- * @param selectedBarberId - The ID of the selected barber
- * @param selectedService - The selected service
- * @param existingBookings - Array of existing bookings
- * @param calendarEvents - Array of calendar events
- * @returns Object with time slots, loading state, error, and recalculate function
  */
 export const useTimeSlots = (
   selectedDate: Date | undefined,
@@ -76,7 +73,7 @@ export const useTimeSlots = (
     loadLunchBreaks();
   }, [selectedBarberId]);
 
-  // The main calculation function, optimized
+  // The main calculation function
   const calculateAvailableTimeSlots = useCallback(async () => {
     if (!selectedDate || !selectedBarberId || !selectedService) {
       setTimeSlots([]);
@@ -132,44 +129,54 @@ export const useTimeSlots = (
         }
       }
       
+      // Only consider active lunch breaks
+      const activeLunchBreaks = lunchBreaks?.filter(lb => lb.is_active) || [];
+      console.log(`Found ${activeLunchBreaks.length} active lunch breaks for barber ${selectedBarberId}`);
+      
       // Create combined bookings by treating lunch breaks as bookings
       const combinedBookings = [...existingBookings];
       
-      // Only add active lunch breaks
-      if (lunchBreaks && lunchBreaks.length > 0) {
-        const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
-        console.log(`Adding ${activeLunchBreaks.length} lunch breaks as fake bookings`);
-        
-        activeLunchBreaks.forEach(lunchBreak => {
-          const fakeBooking = createFakeLunchBooking(lunchBreak);
+      // Add active lunch breaks as fake bookings
+      activeLunchBreaks.forEach(lunchBreak => {
+        const fakeBooking = createFakeLunchBooking(lunchBreak);
+        if (fakeBooking) {
           combinedBookings.push(fakeBooking);
           console.log(`Added lunch break at ${lunchBreak.start_time} for ${lunchBreak.duration}min as a booking`);
-        });
-      }
+        }
+      });
       
-      // Fetch all possible time slots
-      console.log(`Fetching time slots from service with duration: ${selectedService.duration}`);
+      // Fetch all possible time slots, passing the combined bookings list
+      console.log(`Fetching time slots with service duration: ${selectedService.duration}`);
       const fetchedTimeSlots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
         selectedService.duration,
-        combinedBookings, // Use the combined bookings list
+        combinedBookings, 
         [] // Empty lunch breaks since we're treating them as bookings already
       );
       
       console.log(`Initial time slots (${fetchedTimeSlots.length}):`, fetchedTimeSlots);
       
-      // Filter out time slots that are in the past (for today only)
+      // Final filter: remove time slots in the past
       const finalSlots = fetchedTimeSlots.filter(
         timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
       );
       
-      console.log(`Final available time slots (${finalSlots.length}):`, finalSlots);
+      // Extra verification step - double check for lunch break overlaps
+      const verifiedSlots = finalSlots.filter(timeSlot => {
+        const overlapsLunch = isLunchBreak(timeSlot, activeLunchBreaks, selectedService.duration);
+        if (overlapsLunch) {
+          console.log(`VERIFICATION REMOVED: ${timeSlot} overlaps with lunch break`);
+        }
+        return !overlapsLunch;
+      });
+      
+      console.log(`Final available time slots (${verifiedSlots.length}):`, verifiedSlots);
       
       // Cache the result
-      calculationCache.current.set(cacheKey, finalSlots);
+      calculationCache.current.set(cacheKey, verifiedSlots);
       
-      setTimeSlots(finalSlots);
+      setTimeSlots(verifiedSlots);
     } catch (err) {
       console.error('Error calculating time slots:', err);
       setError('Failed to load available time slots');
