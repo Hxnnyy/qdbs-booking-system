@@ -19,10 +19,11 @@ import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
  * @returns Boolean indicating if the time slot overlaps with a lunch break
  */
 export const isLunchBreak = (
-  timeSlot: string,
+  timeSlot: string, 
   lunchBreaks: any[],
   serviceDuration: number
 ): boolean => {
+  // Early exit if no lunch breaks
   if (!lunchBreaks || lunchBreaks.length === 0) return false;
   
   // Filter to only active lunch breaks
@@ -32,8 +33,13 @@ export const isLunchBreak = (
   // Convert time slot time to minutes for comparison
   const [hours, minutes] = timeSlot.split(':').map(Number);
   const timeInMinutes = hours * 60 + minutes;
+  
+  // Calculate the end time of this appointment
   const timeSlotEndMinutes = timeInMinutes + serviceDuration;
   
+  console.log(`Checking time slot ${timeSlot} (duration: ${serviceDuration}min) against ${activeLunchBreaks.length} lunch breaks`);
+  
+  // Check against each active lunch break
   return activeLunchBreaks.some(breakTime => {
     // Skip if break time is not in the correct format
     if (!breakTime.start_time || typeof breakTime.start_time !== 'string') {
@@ -41,25 +47,32 @@ export const isLunchBreak = (
       return false;
     }
     
+    // Parse lunch break time
     const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
     const breakStartMinutes = breakHours * 60 + breakMinutes;
     const breakEndMinutes = breakStartMinutes + breakTime.duration;
     
-    console.log(`Checking time slot ${timeSlot} (${timeInMinutes}-${timeSlotEndMinutes}) against lunch break ${breakTime.start_time} (${breakStartMinutes}-${breakEndMinutes})`);
+    console.log(`Checking time slot ${timeSlot} (${timeInMinutes}-${timeSlotEndMinutes}min) against lunch break ${breakTime.start_time} (${breakStartMinutes}-${breakEndMinutes}min)`);
     
-    // Check if slot starts during lunch break
+    // Four possible overlap conditions:
+    
+    // 1. Appointment starts during lunch break
     const startsInLunchBreak = timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes;
     
-    // Check if service would overlap with lunch break
-    const overlapsWithLunchBreak = timeInMinutes < breakStartMinutes && timeSlotEndMinutes > breakStartMinutes;
+    // 2. Appointment ends during lunch break
+    const endsInLunchBreak = timeSlotEndMinutes > breakStartMinutes && timeSlotEndMinutes <= breakEndMinutes;
     
-    // Check if service entirely contains the lunch break
+    // 3. Appointment completely contains lunch break
     const containsLunchBreak = timeInMinutes <= breakStartMinutes && timeSlotEndMinutes >= breakEndMinutes;
     
-    const isOverlapping = startsInLunchBreak || overlapsWithLunchBreak || containsLunchBreak;
+    // 4. Appointment is completely contained by lunch break
+    const containedByLunchBreak = timeInMinutes >= breakStartMinutes && timeSlotEndMinutes <= breakEndMinutes;
+    
+    // Any of these conditions means there's an overlap
+    const isOverlapping = startsInLunchBreak || endsInLunchBreak || containsLunchBreak || containedByLunchBreak;
     
     if (isOverlapping) {
-      console.log(`Time slot ${timeSlot} overlaps with lunch break ${breakTime.start_time} (${breakTime.duration} mins)`);
+      console.log(`Time slot ${timeSlot} OVERLAPS with lunch break ${breakTime.start_time} (${breakTime.duration}min)`);
     }
     
     return isOverlapping;
@@ -127,6 +140,15 @@ export const filterAvailableTimeSlots = (
   const availableSlots: string[] = [];
   console.log(`Filtering ${possibleSlots.length} time slots with ${lunchBreaks?.length || 0} lunch breaks`);
   
+  // Log lunch break details for debugging
+  if (lunchBreaks && lunchBreaks.length > 0) {
+    lunchBreaks.forEach(breakTime => {
+      if (breakTime.is_active) {
+        console.log(`Active lunch break: ${breakTime.start_time} (${breakTime.duration}min)`);
+      }
+    });
+  }
+  
   for (const slot of possibleSlots) {
     const isBooked = isTimeSlotBooked(
       slot.time, 
@@ -140,6 +162,8 @@ export const filterAvailableTimeSlots = (
       availableSlots.push(slot.time);
     } else if (isOnLunchBreak) {
       console.log(`Excluding time slot ${slot.time} due to lunch break overlap`);
+    } else if (isBooked) {
+      console.log(`Excluding time slot ${slot.time} due to existing booking`);
     }
   }
   

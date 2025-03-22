@@ -6,7 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { generatePossibleTimeSlots, filterAvailableTimeSlots } from '@/utils/timeSlotUtils';
+import { generatePossibleTimeSlots, filterAvailableTimeSlots, isLunchBreak } from '@/utils/timeSlotUtils';
 import { isWithinOpeningHours } from '@/utils/bookingUtils';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
@@ -35,7 +35,15 @@ export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> =
       throw error;
     }
     
-    console.log(`Fetched ${data?.length || 0} lunch breaks for barber ${barberId}:`, data);
+    const activeBreaks = data?.filter(breakTime => breakTime.is_active) || [];
+    console.log(`Fetched ${data?.length || 0} lunch breaks for barber ${barberId}, ${activeBreaks.length} active breaks`);
+    
+    if (activeBreaks.length > 0) {
+      activeBreaks.forEach(breakTime => {
+        console.log(`Active lunch break: ${breakTime.start_time} (${breakTime.duration}min)`);
+      });
+    }
+    
     return data || [];
   } catch (err) {
     console.error('Error fetching lunch breaks:', err);
@@ -61,7 +69,7 @@ export const fetchBarberTimeSlots = async (
   cachedLunchBreaks: any[] = []
 ): Promise<string[]> => {
   try {
-    console.log(`Fetching time slots for barber ${barberId} on ${date.toISOString()}`);
+    console.log(`Fetching time slots for barber ${barberId} on ${date.toISOString()}, service duration: ${serviceDuration}min`);
     const dayOfWeek = date.getDay();
     
     const { data, error } = await supabase
@@ -86,26 +94,38 @@ export const fetchBarberTimeSlots = async (
       ? cachedLunchBreaks 
       : await fetchBarberLunchBreaks(barberId);
     
-    console.log('Lunch breaks for filtering:', lunchBreaks);
+    console.log(`Processing lunch breaks for filtering: ${lunchBreaks.length} breaks found`);
+    
+    // Log active lunch breaks
+    const activeLunchBreaks = lunchBreaks.filter(breakTime => breakTime.is_active);
+    console.log(`${activeLunchBreaks.length} active lunch breaks found`);
     
     // Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);
-    console.log(`Generated ${possibleSlots.length} possible time slots`);
+    console.log(`Generated ${possibleSlots.length} possible time slots from ${data.open_time} to ${data.close_time}`);
     
-    // Filter slots based on availability and lunch breaks
-    const availableSlots = filterAvailableTimeSlots(
+    // First pass: Filter out slots that overlap with lunch breaks and existing bookings
+    const initialFilteredSlots = filterAvailableTimeSlots(
       possibleSlots,
       serviceDuration,
       existingBookings,
       lunchBreaks
     );
     
-    console.log(`After initial filtering: ${availableSlots.length} slots available`);
+    console.log(`After initial filtering: ${initialFilteredSlots.length} slots available`);
     
-    // Further filter slots based on opening hours
+    // Second pass: Further filter slots based on opening hours
     const withinOpeningHoursSlots = [];
     
-    for (const slot of availableSlots) {
+    for (const slot of initialFilteredSlots) {
+      // Double-check for lunch break overlap directly
+      const lunchBreakOverlap = isLunchBreak(slot, lunchBreaks, serviceDuration);
+      
+      if (lunchBreakOverlap) {
+        console.log(`Skipping slot ${slot} due to lunch break overlap (secondary check)`);
+        continue;
+      }
+      
       const withinHours = await isWithinOpeningHours(
         barberId,
         date,
@@ -115,6 +135,8 @@ export const fetchBarberTimeSlots = async (
       
       if (withinHours) {
         withinOpeningHoursSlots.push(slot);
+      } else {
+        console.log(`Skipping slot ${slot} as it's not within opening hours`);
       }
     }
     

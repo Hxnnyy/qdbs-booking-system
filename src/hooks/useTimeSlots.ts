@@ -5,7 +5,7 @@
  * Custom hook to calculate available time slots for a barber on a specific date
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
@@ -36,6 +36,7 @@ export const useTimeSlots = (
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
+  const lunchBreakTimestampRef = useRef<number>(Date.now());
   
   // Clear lunch breaks cache when barber changes
   useEffect(() => {
@@ -46,9 +47,12 @@ export const useTimeSlots = (
     
     const loadLunchBreaks = async () => {
       console.log(`Loading lunch breaks for barber ${selectedBarberId}`);
+      setIsCalculating(true);
       const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
       console.log('Loaded lunch breaks:', lunchBreaks);
       setCachedLunchBreaks(lunchBreaks);
+      lunchBreakTimestampRef.current = Date.now(); // Update timestamp on refresh
+      setIsCalculating(false);
     };
     
     loadLunchBreaks();
@@ -66,11 +70,12 @@ export const useTimeSlots = (
     setIsCalculating(true);
     setError(null);
     
-    // Create a cache key based on the date, barber, service, and lunch break data
-    // Include lunch break data in the cache key to ensure recalculation if lunch breaks change
+    // Create a cache key based on the date, barber, service, lunch break data, and timestamp
+    // Include lunch break timestamp to ensure recalculation if lunch breaks change
     const lunchBreakKey = cachedLunchBreaks ? 
-      cachedLunchBreaks.map(b => `${b.id}-${b.start_time}-${b.duration}-${b.is_active}`).join(',') : 
+      `${lunchBreakTimestampRef.current}_${cachedLunchBreaks.filter(b => b.is_active).length}` : 
       'no-breaks';
+    
     const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}_${lunchBreakKey}`;
     
     // Check if we have cached results
@@ -139,12 +144,26 @@ export const useTimeSlots = (
     calculationCache.clear();
   }, []);
 
+  // Method to force reload lunch breaks data
+  const reloadLunchBreaks = useCallback(async () => {
+    if (!selectedBarberId) return;
+    
+    console.log('Forcing reload of lunch breaks data');
+    const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+    console.log('Reloaded lunch breaks:', lunchBreaks);
+    setCachedLunchBreaks(lunchBreaks);
+    lunchBreakTimestampRef.current = Date.now(); // Update timestamp
+    clearCache();
+    calculateAvailableTimeSlots();
+  }, [selectedBarberId, clearCache, calculateAvailableTimeSlots]);
+
   return {
     timeSlots,
     isCalculating,
     error,
     recalculate: calculateAvailableTimeSlots,
-    clearCache
+    clearCache,
+    reloadLunchBreaks
   };
 };
 
