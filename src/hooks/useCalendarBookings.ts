@@ -129,17 +129,7 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          booking_date: newBookingDate,
-          booking_time: newBookingTime
-        })
-        .eq('id', eventId);
-      
-      if (error) throw error;
-      
-      const updatedEvents = calendarEvents.filter(event => event.id !== eventId);
+      const filteredEvents = calendarEvents.filter(event => event.id !== eventId);
       
       const originalEvent = calendarEvents.find(event => event.id === eventId);
       
@@ -150,10 +140,18 @@ export const useCalendarBookings = () => {
           end: new Date(newEnd)
         };
         
-        updatedEvents.push(updatedEvent);
-        
-        setCalendarEvents(updatedEvents);
+        setCalendarEvents([...filteredEvents, updatedEvent]);
       }
+      
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          booking_date: newBookingDate,
+          booking_time: newBookingTime
+        })
+        .eq('id', eventId);
+      
+      if (error) throw error;
       
       setBookings(prev => 
         prev.map(booking => 
@@ -172,6 +170,8 @@ export const useCalendarBookings = () => {
       console.error('Error updating booking time:', err);
       setError(err.message);
       toast.error('Failed to update booking time');
+      
+      fetchData();
     } finally {
       setIsLoading(false);
     }
@@ -223,6 +223,8 @@ export const useCalendarBookings = () => {
     const newEndCopy = new Date(newEnd);
     
     const eventCopy = {...event};
+    
+    setCalendarEvents(prev => prev.filter(e => e.id !== event.id));
     
     updateBookingTime(eventCopy.id, newStartCopy, newEndCopy);
   };

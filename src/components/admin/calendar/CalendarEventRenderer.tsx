@@ -45,9 +45,13 @@ export const CalendarEventRenderer: React.FC<CalendarEventRendererProps> = ({
         const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
         const height = Math.max(durationMinutes, 15);
         
+        // Create a truly unique key that includes both the event ID and date
+        const dateStr = date ? date.toISOString().split('T')[0] : 'day-view';
+        const uniqueKey = `${event.id}-${dateStr}-${slotIndex}`;
+        
         return (
           <div 
-            key={`${event.id}${date ? `-${date.toISOString().split('T')[0]}` : ''}`}
+            key={uniqueKey}
             draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
             onDragStart={() => onDragStart(event)}
             className="absolute w-full"

@@ -23,11 +23,12 @@ export const DragPreviewIndicator: React.FC<DragPreviewIndicatorProps> = ({
         }}
       >
         <div 
-          className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md absolute"
+          className="bg-primary/80 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md absolute"
           style={{
             top: `${dragPreview.top}px`,
             left: '50%',
-            transform: 'translateX(-50%)'
+            transform: 'translateX(-50%)',
+            animation: 'pulse 1.5s infinite'
           }}
         >
           Drop to schedule at {dragPreview.time}
@@ -42,7 +43,7 @@ export const DragPreviewIndicator: React.FC<DragPreviewIndicatorProps> = ({
       style={{ top: `${dragPreview.top}px` }}
     >
       <div></div>
-      <div className="bg-primary/70 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
+      <div className="bg-primary/80 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
         Drop to schedule at {dragPreview.time}
       </div>
     </div>
