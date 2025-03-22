@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -77,10 +76,8 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      // Process lunch breaks, making sure to only include one instance per barber
       const processedLunchBreaks = new Map<string, LunchBreak>();
       (lunchData || []).forEach(lunchBreak => {
-        // Use barber_id as key to ensure one lunch break per barber
         processedLunchBreaks.set(lunchBreak.barber_id, lunchBreak);
       });
       
@@ -130,7 +127,56 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       
-      setIsLoading(true);
+      try {
+        const event = calendarEvents.find(e => e.id === eventId);
+        if (!event) {
+          throw new Error('Event not found');
+        }
+        
+        const serviceDuration = Math.round((event.end.getTime() - event.start.getTime()) / (1000 * 60));
+        
+        const { data: validationData, error: validationError } = await supabase.functions.invoke(
+          'get-available-time-slots', 
+          {
+            body: {
+              barberId: event.barberId,
+              date: newStart.toISOString(),
+              serviceDuration: serviceDuration,
+              excludeBookingId: eventId
+            }
+          }
+        );
+        
+        if (validationError) {
+          throw validationError;
+        }
+        
+        const timeSlot = newBookingTime;
+        const availableSlots = validationData?.timeSlots || [];
+        
+        if (!availableSlots.includes(timeSlot)) {
+          toast.error('This time slot is not available. Please choose another time.');
+          return false;
+        }
+      } catch (validationErr) {
+        console.error('Error validating time slot:', validationErr);
+        toast.error('Could not validate time slot availability');
+        return false;
+      }
+      
+      setCalendarEvents(prev => 
+        prev.map(e => {
+          if (e.id === eventId) {
+            const duration = e.end.getTime() - e.start.getTime();
+            return {
+              ...e,
+              start: newStart,
+              end: new Date(newStart.getTime() + duration)
+            };
+          }
+          return e;
+        })
+      );
       
       const { error } = await supabase
         .from('bookings')
@@ -140,18 +186,17 @@ export const useCalendarBookings = () => {
         })
         .eq('id', eventId);
       
-      if (error) throw error;
-      
-      // Update local state after successful database update
-      await fetchData();
+      if (error) {
+        await fetchData();
+        throw error;
+      }
       
       toast.success('Booking time updated successfully');
+      return true;
     } catch (err: any) {
       console.error('Error updating booking time:', err);
-      setError(err.message);
       toast.error('Failed to update booking time');
-    } finally {
-      setIsLoading(false);
+      return false;
     }
   };
 
@@ -197,7 +242,11 @@ export const useCalendarBookings = () => {
       return;
     }
     
-    // Update in the database - removed UI optimistic updates
+    if (event.status === 'holiday') {
+      toast.error('Holiday events cannot be moved. Please edit them in the barber settings.');
+      return;
+    }
+    
     updateBookingTime(event.id, newStart, newEnd);
   };
 

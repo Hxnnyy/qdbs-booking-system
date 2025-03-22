@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
@@ -10,6 +10,21 @@ import { processOverlappingEvents } from '@/utils/processOverlappingEvents';
 import { TimeColumn } from './TimeColumn';
 import { DayHeader } from './DayHeader';
 import { HolidayIndicator } from './HolidayIndicator';
+import { toast } from 'sonner';
+
+interface DragState {
+  isActive: boolean;
+  ghostPosition: { 
+    top: number, 
+    height: number,
+    dayIndex: number 
+  } | null;
+  currentTime: string;
+  currentDate: Date | null;
+  event: CalendarEvent | null;
+  startY: number;
+  startDayIndex: number;
+}
 
 export const WeekView: React.FC<CalendarViewProps> = ({ 
   date, 
@@ -24,6 +39,18 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const totalHours = endHour - startHour;
   const calendarHeight = totalHours * 60;
+  const dayColumnRefs = useRef<(HTMLDivElement | null)[]>(Array(7).fill(null));
+
+  // Drag state
+  const [dragState, setDragState] = useState<DragState>({
+    isActive: false,
+    ghostPosition: null,
+    currentTime: '',
+    currentDate: null,
+    event: null,
+    startY: 0,
+    startDayIndex: 0
+  });
 
   useEffect(() => {
     const filtered = filterEventsByWeek(events, date);
@@ -53,6 +80,140 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       }
     }
   }, [date, weekDays, startHour, endHour, autoScrollToCurrentTime]);
+
+  const handleDragOver = (e: React.DragEvent, dayIndex: number) => {
+    e.preventDefault();
+    
+    if (!dayColumnRefs.current[dayIndex] || !dragState.event) return;
+    
+    // Calculate position in the column
+    const rect = dayColumnRefs.current[dayIndex]!.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    
+    // Calculate time based on position
+    const minutes = Math.floor(y);
+    const hours = startHour + Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    // Format time string
+    const timeString = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    const currentDate = weekDays[dayIndex];
+    
+    // Update ghost position
+    const eventDuration = dragState.event.end.getTime() - dragState.event.start.getTime();
+    const durationMinutes = eventDuration / (1000 * 60);
+    
+    setDragState(prev => ({
+      ...prev,
+      ghostPosition: { 
+        top: minutes, 
+        height: durationMinutes,
+        dayIndex
+      },
+      currentTime: timeString,
+      currentDate
+    }));
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDragLeave = (e: React.DragEvent, dayIndex: number) => {
+    if (!dayColumnRefs.current[dayIndex]) return;
+    
+    // Check if we're leaving the column entirely
+    const rect = dayColumnRefs.current[dayIndex]!.getBoundingClientRect();
+    if (
+      e.clientX < rect.left || 
+      e.clientX > rect.right || 
+      e.clientY < rect.top || 
+      e.clientY > rect.bottom
+    ) {
+      // Only clear ghost if we're not entering another day column
+      if (
+        !e.relatedTarget || 
+        !e.relatedTarget.closest('.day-column') || 
+        e.relatedTarget.closest('.day-column') === dayColumnRefs.current[dayIndex]
+      ) {
+        setDragState(prev => ({
+          ...prev,
+          ghostPosition: null
+        }));
+      }
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, dayIndex: number) => {
+    e.preventDefault();
+    
+    if (
+      !dayColumnRefs.current[dayIndex] || 
+      !dragState.ghostPosition || 
+      !dragState.event || 
+      !dragState.currentDate
+    ) return;
+    
+    try {
+      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      const eventId = dragData.eventId;
+      
+      // Find the event being dropped
+      const droppedEvent = events.find(event => event.id === eventId);
+      if (!droppedEvent) {
+        toast.error('Event not found');
+        return;
+      }
+      
+      // Calculate new start time
+      const [hours, minutes] = dragState.currentTime.split(':').map(Number);
+      const newStart = new Date(dragState.currentDate);
+      newStart.setHours(hours, minutes, 0, 0);
+      
+      // Calculate new end time based on the duration of the original event
+      const duration = droppedEvent.end.getTime() - droppedEvent.start.getTime();
+      const newEnd = new Date(newStart.getTime() + duration);
+      
+      // Call the callback to update the event
+      if (onEventDrop) {
+        onEventDrop(droppedEvent, newStart, newEnd);
+      }
+    } catch (error) {
+      console.error('Error handling drop:', error);
+      toast.error('Failed to reschedule appointment');
+    } finally {
+      // Reset drag state
+      setDragState({
+        isActive: false,
+        ghostPosition: null,
+        currentTime: '',
+        currentDate: null,
+        event: null,
+        startY: 0,
+        startDayIndex: 0
+      });
+    }
+  };
+
+  const handleEventDragStart = (event: CalendarEvent) => {
+    // Find which day the event belongs to
+    const eventDate = event.start;
+    const dayIndex = weekDays.findIndex(day => 
+      day.getDate() === eventDate.getDate() && 
+      day.getMonth() === eventDate.getMonth() && 
+      day.getFullYear() === eventDate.getFullYear()
+    );
+
+    setDragState({
+      isActive: true,
+      ghostPosition: null,
+      currentTime: '',
+      currentDate: null,
+      event: event,
+      startY: 0,
+      startDayIndex: dayIndex !== -1 ? dayIndex : 0
+    });
+  };
 
   const handleCalendarClick = (e: React.MouseEvent) => {
     // Only reset if clicking directly on the calendar, not on an event
@@ -106,8 +267,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           return (
             <div 
               key={`day-${dayIndex}`}
+              ref={el => dayColumnRefs.current[dayIndex] = el}
               className="relative border-r last:border-r-0 border-border day-column"
               style={{ height: `${calendarHeight}px` }}
+              onDragOver={(e) => handleDragOver(e, dayIndex)}
+              onDragEnter={handleDragEnter}
+              onDragLeave={(e) => handleDragLeave(e, dayIndex)}
+              onDrop={(e) => handleDrop(e, dayIndex)}
             >
               {Array.from({ length: totalHours + 1 }).map((_, index) => (
                 <div 
@@ -124,6 +290,23 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                   )}
                 </div>
               ))}
+              
+              {/* Ghost element to show where the event will be dropped */}
+              {dragState.ghostPosition && dragState.ghostPosition.dayIndex === dayIndex && (
+                <div 
+                  className="absolute w-full bg-primary/30 border-l-4 border-primary z-50 pointer-events-none rounded-sm"
+                  style={{ 
+                    top: `${dragState.ghostPosition.top}px`, 
+                    height: `${dragState.ghostPosition.height}px`,
+                    left: 0,
+                    right: 0
+                  }}
+                >
+                  <div className="px-2 py-1 text-xs font-medium">
+                    Drop to reschedule: {format(day, 'MMM d')} {dragState.currentTime}
+                  </div>
+                </div>
+              )}
               
               {isCurrentDay && (() => {
                 const now = new Date();
@@ -179,6 +362,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                         onEventClick={onEventClick}
                         slotIndex={slotIndex}
                         totalSlots={totalSlots}
+                        onDragStart={handleEventDragStart}
                       />
                     </div>
                   </div>

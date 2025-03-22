@@ -102,7 +102,7 @@ function hasLunchBreakConflict(timeSlot, lunchBreaks, serviceDuration) {
 /**
  * Check if a time slot is already booked
  */
-function isTimeSlotBooked(timeSlot, serviceDuration, existingBookings) {
+function isTimeSlotBooked(timeSlot, serviceDuration, existingBookings, excludeBookingId = null) {
   if (!existingBookings || existingBookings.length === 0) return false;
 
   // Convert time slot to minutes for easier calculation
@@ -112,6 +112,11 @@ function isTimeSlotBooked(timeSlot, serviceDuration, existingBookings) {
 
   // Check if any existing booking overlaps with this time slot
   return existingBookings.some(booking => {
+    // Skip this booking if it's the one being moved
+    if (excludeBookingId && booking.id === excludeBookingId) {
+      return false;
+    }
+    
     // Parse booking time
     const [bookingHours, bookingMinutes] = booking.booking_time.split(':').map(Number);
     const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
@@ -170,7 +175,7 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const { barberId, date, serviceDuration } = await req.json();
+    const { barberId, date, serviceDuration, excludeBookingId } = await req.json();
     
     // Validate required parameters
     if (!barberId || !date || !serviceDuration) {
@@ -182,7 +187,7 @@ Deno.serve(async (req) => {
       });
     }
     
-    console.log(`Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}`);
+    console.log(`Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}, exclude booking: ${excludeBookingId || 'none'}`);
     
     // Parse the date
     const requestDate = new Date(date);
@@ -252,6 +257,7 @@ Deno.serve(async (req) => {
     const { data: existingBookings, error: bookingsError } = await supabase
       .from('bookings')
       .select(`
+        id,
         booking_time,
         service_id,
         services (
@@ -269,6 +275,7 @@ Deno.serve(async (req) => {
     
     // Transform bookings to include service duration directly
     const bookingsWithDuration = existingBookings ? existingBookings.map(booking => ({
+      id: booking.id,
       booking_time: booking.booking_time,
       service_duration: booking.services ? booking.services.duration : 60 // Default to 60 if not found
     })) : [];
@@ -291,19 +298,16 @@ Deno.serve(async (req) => {
         requestDate.getFullYear() === today.getFullYear() &&
         isTimeSlotInPast(requestDate, slot.time)
       ) {
-        console.log(`Slot ${slot.time} is in the past, skipping`);
         return false;
       }
       
-      // Filter out booked slots
-      if (isTimeSlotBooked(slot.time, serviceDuration, bookingsWithDuration)) {
-        console.log(`Slot ${slot.time} is already booked or overlaps with existing booking, skipping`);
+      // Filter out booked slots (but allow the same time slot for the booking being moved)
+      if (isTimeSlotBooked(slot.time, serviceDuration, bookingsWithDuration, excludeBookingId)) {
         return false;
       }
       
       // Filter out lunch break slots
       if (hasLunchBreakConflict(slot.time, lunchBreaks, serviceDuration)) {
-        console.log(`Slot ${slot.time} is during lunch break, skipping`);
         return false;
       }
       
