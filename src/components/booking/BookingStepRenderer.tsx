@@ -19,6 +19,7 @@ interface BookingStepRendererProps {
   barbers: Barber[];
   services: Service[];
   barberServices: Service[];
+  serviceBarbers?: Barber[];
   existingBookings: any[];
   bookingLoading: boolean;
   bookingResult: BookingResult | null;
@@ -39,6 +40,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   barbers,
   services,
   barberServices,
+  serviceBarbers = [],
   existingBookings,
   bookingLoading,
   bookingResult,
@@ -66,20 +68,20 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   };
 
   switch (step) {
-    case 'barber':
-      return (
-        <BarberSelectionStep
-          barbers={barbers}
-          onSelectBarber={handlers.handleSelectBarber}
-          onNext={() => {}}
-        />
-      );
     case 'service':
       return (
         <ServiceSelectionStep
-          services={barberServices}
+          services={services}
           onSelectService={handlers.handleSelectService}
-          onBack={handlers.handleBackToBarbers}
+          onNext={() => {}}
+        />
+      );
+    case 'barber':
+      return (
+        <BarberSelectionStep
+          barbers={serviceBarbers.length > 0 ? serviceBarbers : barbers}
+          onSelectBarber={handlers.handleSelectBarber}
+          onBack={handlers.handleBackToServices}
           onNext={() => {}}
         />
       );
@@ -91,7 +93,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           selectedTime={formState.selectedTime}
           setSelectedTime={(time) => updateFormState({ selectedTime: time })}
           onNext={handlers.handleDateTimeComplete}
-          onBack={handlers.handleBackToServices}
+          onBack={handlers.handleBackToBarbers}
           allEvents={allEvents}
           selectedBarberId={selectedBarberId}
           serviceDuration={getServiceDuration()}

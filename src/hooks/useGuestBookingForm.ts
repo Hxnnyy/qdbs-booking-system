@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { format, addDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,6 +6,7 @@ import { toast } from 'sonner';
 import { isBarberOnHoliday } from '@/utils/calendarUtils';
 import { BookingFormState, ExistingBooking } from '@/types/booking';
 import { Service } from '@/supabase-types';
+import { Barber } from '@/hooks/useBarbers';
 
 export const useGuestBookingForm = () => {
   // Form state
@@ -23,7 +25,9 @@ export const useGuestBookingForm = () => {
 
   // UI state
   const [barberServices, setBarberServices] = useState<Service[]>([]);
+  const [serviceBarbers, setServiceBarbers] = useState<Barber[]>([]);
   const [isLoadingBarberServices, setIsLoadingBarberServices] = useState<boolean>(false);
+  const [isLoadingServiceBarbers, setIsLoadingServiceBarbers] = useState<boolean>(false);
   const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState<boolean>(false);
 
@@ -83,6 +87,59 @@ export const useGuestBookingForm = () => {
     }
   };
 
+  const fetchBarbersForService = async (serviceId: string) => {
+    try {
+      setIsLoadingServiceBarbers(true);
+      
+      // Get all barbers that offer this service
+      const { data: barberServiceLinks, error: linkError } = await supabase
+        .from('barber_services')
+        .select('barber_id')
+        .eq('service_id', serviceId);
+      
+      if (linkError) throw linkError;
+      
+      if (barberServiceLinks && barberServiceLinks.length > 0) {
+        const barberIds = barberServiceLinks.map(item => item.barber_id);
+        
+        // Get details for each barber
+        const { data: barberDetails, error: barberError } = await supabase
+          .from('barbers')
+          .select('*')
+          .in('id', barberIds)
+          .eq('active', true)
+          .order('name');
+        
+        if (barberError) throw barberError;
+        
+        setServiceBarbers(barberDetails || []);
+      } else {
+        // If no specific barbers are linked, assume all active barbers can offer this service
+        const { data: allBarbers } = await supabase
+          .from('barbers')
+          .select('*')
+          .eq('active', true)
+          .order('name');
+          
+        setServiceBarbers(allBarbers || []);
+      }
+    } catch (error) {
+      console.error('Error fetching barbers for service:', error);
+      toast.error('Failed to load barbers for this service');
+      
+      // Fallback to all active barbers
+      const { data: allBarbers } = await supabase
+        .from('barbers')
+        .select('*')
+        .eq('active', true)
+        .order('name');
+        
+      setServiceBarbers(allBarbers || []);
+    } finally {
+      setIsLoadingServiceBarbers(false);
+    }
+  };
+
   const fetchExistingBookings = async (
     barberId: string,
     date: Date,
@@ -136,9 +193,12 @@ export const useGuestBookingForm = () => {
     formState,
     updateFormState,
     barberServices,
+    serviceBarbers,
     isLoadingBarberServices,
+    isLoadingServiceBarbers,
     existingBookings,
     isLoadingBookings,
-    fetchBarberServices
+    fetchBarberServices,
+    fetchBarbersForService
   };
 };

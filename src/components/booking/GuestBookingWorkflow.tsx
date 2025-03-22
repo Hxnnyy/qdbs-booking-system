@@ -17,16 +17,18 @@ interface GuestBookingWorkflowProps {
   formState: BookingFormState;
   updateFormState: (updates: Partial<BookingFormState>) => void;
   barberServices: Service[];
+  serviceBarbers: Barber[];
   existingBookings: any[];
   isLoading: boolean;
   fetchBarberServices: (barberId: string) => Promise<void>;
+  fetchBarbersForService: (serviceId: string) => Promise<void>;
   calendarEvents?: CalendarEvent[];
 }
 
 /**
  * GuestBookingWorkflow Component
  * 
- * Manages the guest booking flow including barber selection, service selection,
+ * Manages the guest booking flow including service selection, barber selection,
  * date and time selection, guest information, and confirmation
  */
 const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
@@ -35,9 +37,11 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   formState,
   updateFormState,
   barberServices,
+  serviceBarbers,
   existingBookings,
   isLoading,
   fetchBarberServices,
+  fetchBarbersForService,
   calendarEvents = []
 }) => {
   const {
@@ -45,10 +49,10 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     showSuccess,
     bookingResult,
     bookingLoading,
-    handleSelectBarber,
     handleSelectService,
-    handleBackToBarbers,
+    handleSelectBarber,
     handleBackToServices,
+    handleBackToBarbers,
     handleDateTimeComplete,
     handleBackToDateTime,
     handleGuestInfoComplete,
@@ -56,7 +60,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleVerificationComplete,
     handleBackToVerification,
     handleSubmit
-  } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services);
+  } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services, fetchBarbersForService);
 
   // Use the time slots hook
   const {
@@ -83,10 +87,10 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   );
 
   const handlers = {
-    handleSelectBarber,
     handleSelectService,
-    handleBackToBarbers,
+    handleSelectBarber,
     handleBackToServices,
+    handleBackToBarbers,
     handleDateTimeComplete,
     handleBackToDateTime,
     handleGuestInfoComplete,
@@ -115,6 +119,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         barbers={barbers}
         services={services}
         barberServices={barberServices}
+        serviceBarbers={serviceBarbers}
         existingBookings={existingBookings}
         bookingLoading={bookingLoading}
         bookingResult={bookingResult}

@@ -9,8 +9,8 @@ interface StepIndicatorProps {
 
 // Array of steps in order
 const steps: BookingStep[] = [
-  'barber',
   'service',
+  'barber',
   'datetime',
   'guest-info',
   'verify-phone',

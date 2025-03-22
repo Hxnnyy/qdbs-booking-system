@@ -28,7 +28,7 @@ export interface BookingFormState {
   bookingComplete?: boolean;
 }
 
-export type BookingStep = 'barber' | 'service' | 'datetime' | 'guest-info' | 'verify-phone' | 'notes' | 'confirmation';
+export type BookingStep = 'service' | 'barber' | 'datetime' | 'guest-info' | 'verify-phone' | 'notes' | 'confirmation';
 
 export interface ExistingBooking {
   booking_time: string;
@@ -56,10 +56,10 @@ export interface VerifyPhoneResult {
 }
 
 export interface BookingStepHandlers {
-  handleSelectBarber: (barberId: string) => void;
   handleSelectService: (serviceId: string) => void;
-  handleBackToBarbers: () => void;
+  handleSelectBarber: (barberId: string) => void;
   handleBackToServices: () => void;
+  handleBackToBarbers: () => void;
   handleDateTimeComplete: () => void;
   handleBackToDateTime: () => void;
   handleGuestInfoComplete: () => void;
