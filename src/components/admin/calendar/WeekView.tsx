@@ -34,6 +34,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     handleDragStart,
     handleDragOver,
     handleDragEnd,
+    handleDragCancel,
     setDragPreview
   } = useCalendarDragDrop(events, onEventDrop, startHour);
 
@@ -66,6 +67,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     }
   }, [date, weekDays, startHour, endHour, autoScrollToCurrentTime]);
 
+  // Enhanced drag handlers
   const handleDragOverWithDay = (e: React.DragEvent, dayIndex: number) => {
     handleDragOver(e, dayIndex);
   };
@@ -78,6 +80,27 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const isEventDragging = (eventId: string) => {
     return draggingEvent?.id === eventId;
   };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear preview if dragging outside the calendar area
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      setDragPreview(null);
+    }
+  };
+
+  // Add handler for when drag operation is cancelled
+  useEffect(() => {
+    const handleDocumentDragEnd = () => {
+      handleDragCancel();
+    };
+
+    document.addEventListener('dragend', handleDocumentDragEnd);
+    
+    return () => {
+      document.removeEventListener('dragend', handleDocumentDragEnd);
+    };
+  }, [handleDragCancel]);
 
   const hasHolidayEvents = weekDays.some(day => 
     getHolidayEventsForDate(events, day).length > 0
@@ -123,7 +146,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
             style={{ height: `${calendarHeight}px` }}
             onDragOver={(e) => handleDragOverWithDay(e, dayIndex)}
             onDrop={(e) => handleDragEndWithDay(e, dayIndex)}
-            onDragLeave={() => setDragPreview(null)}
+            onDragLeave={handleDragLeave}
           >
             <CalendarTimeGrid
               totalHours={totalHours}

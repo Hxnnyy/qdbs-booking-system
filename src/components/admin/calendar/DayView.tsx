@@ -33,6 +33,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
     handleDragStart,
     handleDragOver,
     handleDragEnd,
+    handleDragCancel,
     setDragPreview
   } = useCalendarDragDrop(events, onEventDrop, startHour);
 
@@ -60,6 +61,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
     }
   }, [date, startHour, endHour, autoScrollToCurrentTime]);
 
+  // Enhanced drag event handlers
   const handleDragEndWithDate = (e: React.DragEvent) => {
     handleDragEnd(e, date);
   };
@@ -67,6 +69,28 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const isEventDragging = (eventId: string) => {
     return draggingEvent?.id === eventId;
   };
+
+  // Handler for drag leaving the drop area
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear preview if dragging outside the calendar area
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      setDragPreview(null);
+    }
+  };
+
+  // Add handler for when drag operation is cancelled
+  useEffect(() => {
+    const handleDocumentDragEnd = () => {
+      handleDragCancel();
+    };
+
+    document.addEventListener('dragend', handleDocumentDragEnd);
+    
+    return () => {
+      document.removeEventListener('dragend', handleDocumentDragEnd);
+    };
+  }, [handleDragCancel]);
 
   return (
     <div className="h-full calendar-view day-view">
@@ -90,7 +114,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
           style={{ height: `${calendarHeight}px` }}
           onDragOver={handleDragOver}
           onDrop={handleDragEndWithDate}
-          onDragLeave={() => setDragPreview(null)}
+          onDragLeave={handleDragLeave}
         >
           <div className="absolute top-0 left-0 right-0 bottom-0">
             <CalendarTimeGrid

@@ -13,6 +13,12 @@ export const DragPreviewIndicator: React.FC<DragPreviewIndicatorProps> = ({
 }) => {
   if (!dragPreview) return null;
 
+  // Define a pulse animation CSS
+  const pulseStyle = {
+    animation: 'pulse 1.5s infinite',
+    boxShadow: '0 0 0 rgba(var(--primary), 0.4)',
+  };
+
   if (isWeekView && dragPreview.columnIndex !== undefined) {
     return (
       <div 
@@ -28,7 +34,7 @@ export const DragPreviewIndicator: React.FC<DragPreviewIndicatorProps> = ({
             top: `${dragPreview.top}px`,
             left: '50%',
             transform: 'translateX(-50%)',
-            animation: 'pulse 1.5s infinite'
+            ...pulseStyle
           }}
         >
           Drop to schedule at {dragPreview.time}
@@ -43,7 +49,10 @@ export const DragPreviewIndicator: React.FC<DragPreviewIndicatorProps> = ({
       style={{ top: `${dragPreview.top}px` }}
     >
       <div></div>
-      <div className="bg-primary/80 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md">
+      <div 
+        className="bg-primary/80 border-2 border-primary text-white font-medium rounded px-3 py-1.5 text-sm inline-block shadow-md"
+        style={pulseStyle}
+      >
         Drop to schedule at {dragPreview.time}
       </div>
     </div>

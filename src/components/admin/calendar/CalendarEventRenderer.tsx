@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { CalendarEvent as CalendarEventType } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
 import { processOverlappingEvents } from '@/utils/processOverlappingEvents';
@@ -13,7 +13,7 @@ interface CalendarEventRendererProps {
   date?: Date;
 }
 
-export const CalendarEventRenderer: React.FC<CalendarEventRendererProps> = ({ 
+export const CalendarEventRenderer: React.FC<CalendarEventRendererProps> = memo(({ 
   events, 
   startHour, 
   onEventClick, 
@@ -49,6 +49,12 @@ export const CalendarEventRenderer: React.FC<CalendarEventRendererProps> = ({
         const dateStr = date ? date.toISOString().split('T')[0] : 'day-view';
         const uniqueKey = `${event.id}-${dateStr}-${slotIndex}`;
         
+        const dragging = isDragging(event.id);
+        
+        if (dragging) {
+          return null; // Don't render if it's currently being dragged
+        }
+        
         return (
           <div 
             key={uniqueKey}
@@ -64,7 +70,7 @@ export const CalendarEventRenderer: React.FC<CalendarEventRendererProps> = ({
             <CalendarEventComponent 
               event={event} 
               onEventClick={onEventClick}
-              isDragging={isDragging(event.id)}
+              isDragging={dragging}
               slotIndex={slotIndex}
               totalSlots={totalSlots}
             />
@@ -73,4 +79,6 @@ export const CalendarEventRenderer: React.FC<CalendarEventRendererProps> = ({
       })}
     </>
   );
-};
+});
+
+CalendarEventRenderer.displayName = 'CalendarEventRenderer';

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CalendarEvent, DragPreview } from '@/types/calendar';
 
 export const useCalendarDragDrop = (
@@ -10,22 +10,29 @@ export const useCalendarDragDrop = (
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
+  const dragSourceId = useRef<string | null>(null);
 
   // Initialize display events from props
   useEffect(() => {
-    // Create deep copies to prevent reference issues
-    const deepCopiedEvents = events.map(event => ({...event}));
-    setDisplayEvents(deepCopiedEvents);
-  }, [events]);
+    if (!draggingEvent) {
+      // Only update display events when not dragging to prevent flicker
+      const deepCopiedEvents = events.map(event => ({...event}));
+      setDisplayEvents(deepCopiedEvents);
+    }
+  }, [events, draggingEvent]);
 
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
     
+    // Store the ID of the event being dragged
+    dragSourceId.current = event.id;
+    
+    // Create a deep copy of the event to prevent reference issues
+    const eventCopy = {...event};
+    setDraggingEvent(eventCopy);
+    
     // Immediately remove the event from display to prevent duplicates
     setDisplayEvents(prev => prev.filter(e => e.id !== event.id));
-    
-    // Store a deep copy of the event
-    setDraggingEvent({...event});
   };
 
   const handleDragOver = (e: React.DragEvent, dayIndex?: number) => {
@@ -49,7 +56,13 @@ export const useCalendarDragDrop = (
   };
 
   const handleDragEnd = (e: React.DragEvent, date: Date, dayIndex?: number) => {
-    if (!draggingEvent) return;
+    if (!draggingEvent || !dragSourceId.current) {
+      // Clear states just in case
+      setDraggingEvent(null);
+      setDragPreview(null);
+      dragSourceId.current = null;
+      return;
+    }
     
     const container = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - container.top;
@@ -71,16 +84,27 @@ export const useCalendarDragDrop = (
       dayIndex
     });
     
-    // Call the actual event handler with deep copies
+    // Make a deep copy of the dragging event
     const eventCopy = {...draggingEvent};
     
-    // Clear drag states immediately
+    // Clear all drag states immediately to prevent UI issues
     setDraggingEvent(null);
     setDragPreview(null);
+    const sourceId = dragSourceId.current;
+    dragSourceId.current = null;
+    
+    // Double-check removal of the event from display events
+    setDisplayEvents(prev => prev.filter(e => e.id !== sourceId));
     
     // Let the parent component handle the actual update
-    // This should include updating the database and then refreshing the events
     onEventDrop(eventCopy, newStart, newEnd);
+  };
+
+  // Handler to cancel drag operation
+  const handleDragCancel = () => {
+    setDraggingEvent(null);
+    setDragPreview(null);
+    dragSourceId.current = null;
   };
 
   return {
@@ -91,6 +115,8 @@ export const useCalendarDragDrop = (
     handleDragStart,
     handleDragOver,
     handleDragEnd,
-    setDragPreview
+    handleDragCancel,
+    setDragPreview,
+    dragSourceId: dragSourceId.current
   };
 };
