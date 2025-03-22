@@ -37,7 +37,7 @@ export const useTimeSlots = (
   const [error, setError] = useState<string | null>(null);
   const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
   
-  // Pre-fetch lunch breaks for this barber
+  // Clear lunch breaks cache when barber changes
   useEffect(() => {
     if (!selectedBarberId) {
       setCachedLunchBreaks(null);
@@ -45,6 +45,7 @@ export const useTimeSlots = (
     }
     
     const loadLunchBreaks = async () => {
+      console.log(`Loading lunch breaks for barber ${selectedBarberId}`);
       const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
       console.log('Loaded lunch breaks:', lunchBreaks);
       setCachedLunchBreaks(lunchBreaks);
@@ -56,6 +57,7 @@ export const useTimeSlots = (
   // The main calculation function, optimized
   const calculateAvailableTimeSlots = useCallback(async () => {
     if (!selectedDate || !selectedBarberId || !selectedService) {
+      console.log('Missing required data for time slot calculation');
       setTimeSlots([]);
       setError(null);
       return;
@@ -64,11 +66,16 @@ export const useTimeSlots = (
     setIsCalculating(true);
     setError(null);
     
-    // Create a cache key based on the date, barber, and service
-    const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}`;
+    // Create a cache key based on the date, barber, service, and lunch break data
+    // Include lunch break data in the cache key to ensure recalculation if lunch breaks change
+    const lunchBreakKey = cachedLunchBreaks ? 
+      cachedLunchBreaks.map(b => `${b.id}-${b.start_time}-${b.duration}-${b.is_active}`).join(',') : 
+      'no-breaks';
+    const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}_${lunchBreakKey}`;
     
     // Check if we have cached results
     if (calculationCache.has(cacheKey)) {
+      console.log('Using cached time slots');
       const cachedResult = calculationCache.get(cacheKey) || [];
       setTimeSlots(cachedResult);
       setIsCalculating(false);
@@ -84,11 +91,14 @@ export const useTimeSlots = (
       );
       
       if (!isAvailable) {
+        console.log('Barber not available:', errorMessage);
         setError(errorMessage);
         setTimeSlots([]);
         setIsCalculating(false);
         return;
       }
+      
+      console.log('Fetching time slots with cached lunch breaks:', cachedLunchBreaks);
       
       // Fetch time slots, passing cached lunch breaks if available
       const slots = await fetchBarberTimeSlots(
@@ -103,6 +113,8 @@ export const useTimeSlots = (
       const filteredSlots = slots.filter(
         timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
       );
+      
+      console.log(`After all filtering: ${filteredSlots.length} slots available`);
       
       // Cache the result
       calculationCache.set(cacheKey, filteredSlots);
@@ -123,6 +135,7 @@ export const useTimeSlots = (
 
   // Method to clear the cache when needed (like after booking)
   const clearCache = useCallback(() => {
+    console.log('Clearing time slot calculation cache');
     calculationCache.clear();
   }, []);
 

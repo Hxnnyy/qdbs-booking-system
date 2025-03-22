@@ -20,14 +20,22 @@ import { CalendarEvent } from '@/types/calendar';
  */
 export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> => {
   try {
-    if (!barberId) return [];
+    if (!barberId) {
+      console.log('No barber ID provided for lunch break fetch');
+      return [];
+    }
     
     const { data, error } = await supabase
       .from('barber_lunch_breaks')
       .select('*')
       .eq('barber_id', barberId);
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching lunch breaks:', error);
+      throw error;
+    }
+    
+    console.log(`Fetched ${data?.length || 0} lunch breaks for barber ${barberId}:`, data);
     return data || [];
   } catch (err) {
     console.error('Error fetching lunch breaks:', err);
@@ -53,6 +61,7 @@ export const fetchBarberTimeSlots = async (
   cachedLunchBreaks: any[] = []
 ): Promise<string[]> => {
   try {
+    console.log(`Fetching time slots for barber ${barberId} on ${date.toISOString()}`);
     const dayOfWeek = date.getDay();
     
     const { data, error } = await supabase
@@ -63,10 +72,12 @@ export const fetchBarberTimeSlots = async (
       .maybeSingle();
     
     if (error) {
+      console.error('Error fetching opening hours:', error);
       throw error;
     }
     
     if (!data || data.is_closed) {
+      console.log('Barber is closed on this day or no opening hours found');
       return [];
     }
     
@@ -75,11 +86,11 @@ export const fetchBarberTimeSlots = async (
       ? cachedLunchBreaks 
       : await fetchBarberLunchBreaks(barberId);
     
-    // Log lunch breaks for debugging
     console.log('Lunch breaks for filtering:', lunchBreaks);
     
     // Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);
+    console.log(`Generated ${possibleSlots.length} possible time slots`);
     
     // Filter slots based on availability and lunch breaks
     const availableSlots = filterAvailableTimeSlots(
@@ -88,6 +99,8 @@ export const fetchBarberTimeSlots = async (
       existingBookings,
       lunchBreaks
     );
+    
+    console.log(`After initial filtering: ${availableSlots.length} slots available`);
     
     // Further filter slots based on opening hours
     const withinOpeningHoursSlots = [];
@@ -105,6 +118,7 @@ export const fetchBarberTimeSlots = async (
       }
     }
     
+    console.log(`Final available slots: ${withinOpeningHoursSlots.length}`);
     return withinOpeningHoursSlots;
   } catch (error) {
     console.error('Error fetching barber time slots:', error);

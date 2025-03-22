@@ -29,6 +29,8 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
     try {
       setIsLoading(true);
       
+      console.log(`Fetching lunch break for barber ${barberId}`);
+      
       // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('barber_lunch_breaks')
@@ -37,8 +39,11 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         .maybeSingle();
       
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+        console.error('Error fetching lunch break:', error);
         throw error;
       }
+      
+      console.log('Fetched lunch break:', data);
       
       if (data) {
         setLunchBreak(data);
@@ -66,6 +71,8 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         return;
       }
       
+      console.log(`Saving lunch break with start time ${startTime}, duration ${durationNum}, active: ${isActive}`);
+      
       // If we already have a lunch break, update it
       if (lunchBreak) {
         // @ts-ignore - Supabase types issue
@@ -78,7 +85,10 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
           })
           .eq('id', lunchBreak.id);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating lunch break:', error);
+          throw error;
+        }
       } else {
         // Create a new lunch break
         const newBreak: InsertableLunchBreak = {
@@ -88,16 +98,21 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
           is_active: isActive
         };
         
+        console.log('Creating new lunch break:', newBreak);
+        
         // @ts-ignore - Supabase types issue
         const { error } = await supabase
           .from('barber_lunch_breaks')
           .insert(newBreak);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating lunch break:', error);
+          throw error;
+        }
       }
       
       toast.success('Lunch break settings saved');
-      fetchLunchBreak(); // Reload to get the updated data
+      await fetchLunchBreak(); // Reload to get the updated data
       
       if (onSaved) {
         onSaved();
