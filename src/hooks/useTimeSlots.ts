@@ -46,6 +46,7 @@ export const useTimeSlots = (
     
     const loadLunchBreaks = async () => {
       const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+      console.log('Loaded lunch breaks:', lunchBreaks);
       setCachedLunchBreaks(lunchBreaks);
     };
     
@@ -85,9 +86,11 @@ export const useTimeSlots = (
       if (!isAvailable) {
         setError(errorMessage);
         setTimeSlots([]);
+        setIsCalculating(false);
         return;
       }
       
+      // Fetch time slots, passing cached lunch breaks if available
       const slots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 

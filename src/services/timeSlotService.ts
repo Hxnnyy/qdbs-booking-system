@@ -75,6 +75,9 @@ export const fetchBarberTimeSlots = async (
       ? cachedLunchBreaks 
       : await fetchBarberLunchBreaks(barberId);
     
+    // Log lunch breaks for debugging
+    console.log('Lunch breaks for filtering:', lunchBreaks);
+    
     // Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);
     

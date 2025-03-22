@@ -34,6 +34,11 @@ export const isLunchBreak = (
   const timeSlotEndMinutes = timeInMinutes + serviceDuration;
   
   return activeLunchBreaks.some(breakTime => {
+    // Skip if break time is not in the correct format
+    if (!breakTime.start_time || typeof breakTime.start_time !== 'string') {
+      return false;
+    }
+    
     const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
     const breakStartMinutes = breakHours * 60 + breakMinutes;
     const breakEndMinutes = breakStartMinutes + breakTime.duration;
