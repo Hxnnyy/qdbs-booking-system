@@ -11,13 +11,20 @@ export const useCalendarDragDrop = (
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
 
+  // Initialize display events from props
   useEffect(() => {
-    setDisplayEvents(events);
+    // Create deep copies to prevent reference issues
+    const deepCopiedEvents = events.map(event => ({...event}));
+    setDisplayEvents(deepCopiedEvents);
   }, [events]);
 
   const handleDragStart = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
-    // Create a deep copy of the event to prevent reference issues
+    
+    // Immediately remove the event from display to prevent duplicates
+    setDisplayEvents(prev => prev.filter(e => e.id !== event.id));
+    
+    // Store a deep copy of the event
     setDraggingEvent({...event});
   };
 
@@ -63,19 +70,17 @@ export const useCalendarDragDrop = (
       newStart: newStart.toISOString(),
       dayIndex
     });
-
-    // Store the event ID before clearing dragging state
-    const eventId = draggingEvent.id;
     
-    // Clear drag states immediately to prevent UI issues
+    // Call the actual event handler with deep copies
+    const eventCopy = {...draggingEvent};
+    
+    // Clear drag states immediately
     setDraggingEvent(null);
     setDragPreview(null);
     
-    // Remove the event from display events immediately to prevent duplication
-    setDisplayEvents(prev => prev.filter(e => e.id !== eventId));
-    
-    // Call the actual event handler
-    onEventDrop(draggingEvent, newStart, newEnd);
+    // Let the parent component handle the actual update
+    // This should include updating the database and then refreshing the events
+    onEventDrop(eventCopy, newStart, newEnd);
   };
 
   return {
