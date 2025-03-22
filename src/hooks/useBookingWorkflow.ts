@@ -7,19 +7,11 @@ import { useGuestBookings } from '@/hooks/useGuestBookings';
 import { Service } from '@/supabase-types';
 import { supabase } from '@/integrations/supabase/client';
 
-// Create a function to get selected barber that doesn't use hooks
-const getEffectiveBarber = (selectedBarber: string | null, selectedBarberForBooking: string | null) => {
-  return selectedBarber === 'any' && selectedBarberForBooking 
-    ? selectedBarberForBooking 
-    : selectedBarber;
-};
-
 export const useBookingWorkflow = (
   formState: BookingFormState,
   updateFormState: (updates: Partial<BookingFormState>) => void,
   fetchBarberServices: (barberId: string) => Promise<void>,
-  services: Service[],
-  selectedBarberForBooking: string | null
+  services: Service[]
 ) => {
   // Initialize step based on form state
   const getInitialStep = (): BookingStep => {
@@ -189,16 +181,8 @@ export const useBookingWorkflow = (
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
-      // Use the effective barber (from props, not hooks)
-      const effectiveBarber = getEffectiveBarber(selectedBarber, selectedBarberForBooking);
-      
-      if (selectedBarber === 'any' && !selectedBarberForBooking) {
-        toast.error('Unable to find an available barber. Please try another date or time.');
-        return;
-      }
-      
       const result = await createGuestBooking({
-        barber_id: effectiveBarber,
+        barber_id: selectedBarber,
         service_id: selectedService,
         booking_date: formattedDate,
         booking_time: selectedTime,
@@ -215,7 +199,7 @@ export const useBookingWorkflow = (
         const { data: barberData } = await supabase
           .from('barbers')
           .select('name')
-          .eq('id', effectiveBarber)
+          .eq('id', selectedBarber)
           .single();
           
         const { data: serviceData } = await supabase

@@ -1,12 +1,10 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft } from 'lucide-react';
-import { BookingStepProps, BookingFormState } from '@/types/booking';
-import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
+import { ArrowLeft } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+import { BookingStepProps, BookingFormState } from '@/types/booking';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
 
@@ -17,83 +15,63 @@ interface NotesAndConfirmationStepProps extends BookingStepProps {
   barbers: Barber[];
   services: Service[];
   isLoading: boolean;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => void; // Changed from Promise<void> to void
 }
 
 const NotesAndConfirmationStep: React.FC<NotesAndConfirmationStepProps> = ({ 
   notes, 
   setNotes, 
   formData, 
-  barbers,
-  services,
+  barbers, 
+  services, 
   isLoading,
   onSubmit,
-  onBack
+  onBack,
+  onNext
 }) => {
-  // Find selected barber and service without using hooks
-  const selectedBarber = formData.selectedBarber === 'any'
-    ? { name: 'Any Available Barber', id: 'any' } as Barber
-    : barbers.find(b => b.id === formData.selectedBarber);
-    
-  const selectedService = services.find(s => s.id === formData.selectedService);
-
+  const { selectedBarber, selectedService, selectedDate, selectedTime, guestName, guestPhone } = formData;
+  
   return (
-    <div className="space-y-8">
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <h3 className="text-xl font-semibold font-playfair">Booking Summary</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Barber</h4>
-              <p className="font-medium">
-                {selectedBarber ? selectedBarber.name : formData.selectedBarber === 'any' ? 'Any Available Barber' : 'Selected Barber'}
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Service</h4>
-              <p className="font-medium">{selectedService?.name || 'Selected Service'}</p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Date</h4>
-              <p className="font-medium">
-                {formData.selectedDate ? format(formData.selectedDate, 'EEEE, MMMM d, yyyy') : ''}
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Time</h4>
-              <p className="font-medium">{formData.selectedTime}</p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Name</h4>
-              <p className="font-medium">{formData.guestName}</p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Contact</h4>
-              <p className="font-medium">{formData.guestPhone}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <div className="space-y-2">
-        <label htmlFor="notes" className="text-sm font-medium">Additional Notes (optional)</label>
-        <Textarea
-          id="notes"
-          placeholder="Any special requests or information for your barber..."
-          rows={4}
+    <form onSubmit={onSubmit} className="space-y-6">
+      <div>
+        <h3 className="text-xl font-bold mb-4 font-playfair">Additional Notes (Optional)</h3>
+        <textarea
+          className="w-full p-2 border rounded-md"
+          rows={3}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
+          placeholder="Any special requests or information for your barber..."
         />
       </div>
       
-      <div className="flex justify-between">
+      <div className="pt-4">
+        <h3 className="text-xl font-bold mb-4 font-playfair">Review Your Booking</h3>
+        <div className="bg-gray-100 p-4 rounded-md border text-gray-800">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="text-sm font-medium">Barber</div>
+            <div className="text-sm">{barbers.find(b => b.id === selectedBarber)?.name}</div>
+            
+            <div className="text-sm font-medium">Service</div>
+            <div className="text-sm">{services.find(s => s.id === selectedService)?.name}</div>
+            
+            <div className="text-sm font-medium">Date</div>
+            <div className="text-sm">{selectedDate ? format(selectedDate, 'EEEE, MMMM do, yyyy') : ''}</div>
+            
+            <div className="text-sm font-medium">Time</div>
+            <div className="text-sm">{selectedTime}</div>
+            
+            <div className="text-sm font-medium">Name</div>
+            <div className="text-sm">{guestName}</div>
+            
+            <div className="text-sm font-medium">Phone</div>
+            <div className="text-sm">{guestPhone}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-between mt-4">
         <Button 
+          type="button"
           variant="outline" 
           onClick={onBack}
           className="flex items-center gap-2"
@@ -102,7 +80,7 @@ const NotesAndConfirmationStep: React.FC<NotesAndConfirmationStepProps> = ({
         </Button>
         
         <Button 
-          onClick={onSubmit}
+          type="submit" 
           className="bg-burgundy hover:bg-burgundy-light"
           disabled={isLoading}
         >
@@ -115,7 +93,7 @@ const NotesAndConfirmationStep: React.FC<NotesAndConfirmationStepProps> = ({
           )}
         </Button>
       </div>
-    </div>
+    </form>
   );
 };
 

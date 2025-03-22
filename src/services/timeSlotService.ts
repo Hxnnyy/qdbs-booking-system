@@ -6,7 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { generatePossibleTimeSlots, filterAvailableTimeSlots, isLunchBreak } from '@/utils/timeSlotUtils';
+import { generatePossibleTimeSlots, filterAvailableTimeSlots } from '@/utils/timeSlotUtils';
 import { isWithinOpeningHours } from '@/utils/bookingUtils';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
@@ -20,8 +20,6 @@ import { CalendarEvent } from '@/types/calendar';
  */
 export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> => {
   try {
-    console.log(`Fetching lunch breaks for barber: ${barberId}`);
-    
     const { data, error } = await supabase
       .from('barber_lunch_breaks')
       .select('*')
@@ -29,8 +27,6 @@ export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> =
       .eq('is_active', true);
       
     if (error) throw error;
-    
-    console.log(`Found ${data?.length || 0} lunch breaks for barber ${barberId}`);
     return data || [];
   } catch (err) {
     console.error('Error fetching lunch breaks:', err);
@@ -56,16 +52,7 @@ export const fetchBarberTimeSlots = async (
   cachedLunchBreaks: any[] = []
 ): Promise<string[]> => {
   try {
-    console.log(`Fetching time slots for barber: ${barberId}, date: ${date.toISOString()}, duration: ${serviceDuration}`);
-    
     const dayOfWeek = date.getDay();
-    
-    // Filter existing bookings to only include this barber's bookings
-    const barberBookings = existingBookings.filter(booking => 
-      booking.barber_id === barberId || !booking.barber_id
-    );
-    
-    console.log(`Found ${barberBookings.length} existing bookings for this barber`);
     
     const { data, error } = await supabase
       .from('opening_hours')
@@ -79,21 +66,15 @@ export const fetchBarberTimeSlots = async (
     }
     
     if (!data || data.is_closed) {
-      console.log(`Barber ${barberId} is not working on day ${dayOfWeek}`);
       return [];
     }
-    
-    console.log(`Barber hours: ${data.open_time} - ${data.close_time}`);
     
     // Use cached lunch breaks if available, otherwise fetch them
     let lunchBreaks = cachedLunchBreaks;
     
     if (!lunchBreaks || lunchBreaks.length === 0) {
-      console.log('No cached lunch breaks, fetching from database');
       lunchBreaks = await fetchBarberLunchBreaks(barberId);
     }
-    
-    console.log(`Processing ${lunchBreaks.length} lunch breaks for barber ${barberId}`);
     
     // Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);
@@ -102,11 +83,9 @@ export const fetchBarberTimeSlots = async (
     const availableSlots = filterAvailableTimeSlots(
       possibleSlots,
       serviceDuration,
-      barberBookings,
+      existingBookings,
       lunchBreaks
     );
-    
-    console.log(`After filtering by bookings and lunch: ${availableSlots.length} slots available`);
     
     // Further filter slots based on opening hours
     const withinOpeningHoursSlots = [];
@@ -121,19 +100,10 @@ export const fetchBarberTimeSlots = async (
       
       if (withinHours) {
         withinOpeningHoursSlots.push(slot);
-      } else {
-        console.log(`Slot ${slot} is outside of opening hours`);
       }
     }
     
-    console.log(`After filtering by opening hours: ${withinOpeningHoursSlots.length} slots available`);
-    
-    // Filter out slots that are in the past
-    const nonPastSlots = withinOpeningHoursSlots.filter(slot => !isTimeSlotInPast(date, slot));
-    
-    console.log(`Final available slots: ${nonPastSlots.length}`);
-    return nonPastSlots;
-    
+    return withinOpeningHoursSlots;
   } catch (error) {
     console.error('Error fetching barber time slots:', error);
     return [];
@@ -157,16 +127,9 @@ export const checkBarberAvailability = (
     return { isAvailable: true, errorMessage: null };
   }
   
-  // Handle "any barber" case differently
-  if (barberId === 'any') {
-    return { isAvailable: true, errorMessage: null };
-  }
-  
-  console.log(`Checking holiday status for barber ${barberId} on ${date.toISOString()}`);
   const isHoliday = isBarberHolidayDate(calendarEvents, date, barberId);
   
   if (isHoliday) {
-    console.log(`Barber ${barberId} is on holiday on ${date.toISOString()}`);
     return { 
       isAvailable: false, 
       errorMessage: 'Barber is on holiday on this date.' 

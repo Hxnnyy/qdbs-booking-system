@@ -1,20 +1,18 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Scissors, ImageOff, Users } from 'lucide-react';
+import { Scissors, ImageOff } from 'lucide-react';
 import { BookingStepProps } from '@/types/booking';
 import { Barber } from '@/hooks/useBarbers';
 
 interface BarberSelectionStepProps extends BookingStepProps {
   barbers: Barber[];
   onSelectBarber: (barberId: string) => void;
-  showAnyBarberOption?: boolean;
 }
 
 const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({ 
   barbers, 
-  onSelectBarber,
-  showAnyBarberOption = false
+  onSelectBarber 
 }) => {
   // Filter barbers to show only active ones first, then inactive ones
   const sortedBarbers = [...barbers].sort((a, b) => {
@@ -28,23 +26,6 @@ const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {/* "Any Barber" option */}
-      {showAnyBarberOption && (
-        <Card 
-          className="cursor-pointer hover:shadow-md transition-all"
-          onClick={() => onSelectBarber('any')}
-        >
-          <CardContent className="p-4 flex flex-col items-center text-center">
-            <div className="w-24 h-24 rounded-full bg-burgundy/10 mb-4 overflow-hidden flex items-center justify-center">
-              <Users className="w-12 h-12 text-burgundy" />
-            </div>
-            <h3 className="font-bold text-lg">Any Barber</h3>
-            <p className="text-sm text-muted-foreground">Choose from all available barbers</p>
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Individual barbers */}
       {sortedBarbers.map((barber) => (
         <Card 
           key={barber.id}
