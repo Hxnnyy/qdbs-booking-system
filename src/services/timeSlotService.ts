@@ -60,6 +60,8 @@ export const isLunchBreakOverlap = (
   slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
   
   return lunchBreaks.some(lunch => {
+    if (!lunch.is_active) return false;
+    
     const [lunchHours, lunchMinutes] = lunch.start_time.split(':').map(Number);
     const lunchStart = new Date(date);
     lunchStart.setHours(lunchHours, lunchMinutes, 0, 0);
@@ -67,10 +69,19 @@ export const isLunchBreakOverlap = (
     const lunchEnd = new Date(lunchStart);
     lunchEnd.setMinutes(lunchEnd.getMinutes() + lunch.duration);
     
-    return (
+    // Check for any overlap between the service time slot and the lunch break
+    const hasOverlap = (
       (slotStart < lunchEnd && slotEnd > lunchStart) ||
       (slotStart.getTime() === lunchStart.getTime())
     );
+    
+    if (hasOverlap) {
+      console.log(`Lunch break overlap detected: 
+        Slot: ${timeSlot}-${serviceDuration}min, 
+        Lunch: ${lunch.start_time}-${lunch.duration}min`);
+    }
+    
+    return hasOverlap;
   });
 };
 

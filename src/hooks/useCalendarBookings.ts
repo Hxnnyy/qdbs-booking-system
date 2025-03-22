@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 import { bookingToCalendarEvent, createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
+import { formatNewBookingDate, formatNewBookingTime } from '@/utils/bookingUpdateUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
