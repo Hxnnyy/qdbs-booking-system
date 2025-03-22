@@ -34,8 +34,7 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         .from('barber_lunch_breaks')
         .select('*')
         .eq('barber_id', barberId)
-        .eq('is_active', true)
-        .single();
+        .maybeSingle();
       
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
         throw error;
@@ -45,7 +44,7 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         setLunchBreak(data);
         setStartTime(data.start_time);
         setDuration(data.duration);
-        setIsActive(data.is_active);
+        setIsActive(data.is_active === true);
       }
     } catch (err: any) {
       console.error('Error loading lunch break:', err);

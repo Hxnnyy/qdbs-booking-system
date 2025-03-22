@@ -5,12 +5,15 @@
  * Custom hook to calculate available time slots for a barber on a specific date
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
 import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
+
+// Create a module-level cache to persist data across renders
+const calculationCache = new Map<string, string[]>();
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
@@ -34,12 +37,12 @@ export const useTimeSlots = (
   const [error, setError] = useState<string | null>(null);
   const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
   
-  // Cache to avoid recalculation
-  const calculationCache = useRef<Map<string, string[]>>(new Map());
-  
   // Pre-fetch lunch breaks for this barber
   useEffect(() => {
-    if (!selectedBarberId || cachedLunchBreaks !== null) return;
+    if (!selectedBarberId) {
+      setCachedLunchBreaks(null);
+      return;
+    }
     
     const loadLunchBreaks = async () => {
       const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
@@ -47,7 +50,7 @@ export const useTimeSlots = (
     };
     
     loadLunchBreaks();
-  }, [selectedBarberId, cachedLunchBreaks]);
+  }, [selectedBarberId]);
 
   // The main calculation function, optimized
   const calculateAvailableTimeSlots = useCallback(async () => {
@@ -64,8 +67,8 @@ export const useTimeSlots = (
     const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}`;
     
     // Check if we have cached results
-    if (calculationCache.current.has(cacheKey)) {
-      const cachedResult = calculationCache.current.get(cacheKey) || [];
+    if (calculationCache.has(cacheKey)) {
+      const cachedResult = calculationCache.get(cacheKey) || [];
       setTimeSlots(cachedResult);
       setIsCalculating(false);
       return;
@@ -99,7 +102,7 @@ export const useTimeSlots = (
       );
       
       // Cache the result
-      calculationCache.current.set(cacheKey, filteredSlots);
+      calculationCache.set(cacheKey, filteredSlots);
       
       setTimeSlots(filteredSlots);
     } catch (err) {
@@ -115,11 +118,17 @@ export const useTimeSlots = (
     calculateAvailableTimeSlots();
   }, [calculateAvailableTimeSlots]);
 
+  // Method to clear the cache when needed (like after booking)
+  const clearCache = useCallback(() => {
+    calculationCache.clear();
+  }, []);
+
   return {
     timeSlots,
     isCalculating,
     error,
-    recalculate: calculateAvailableTimeSlots
+    recalculate: calculateAvailableTimeSlots,
+    clearCache
   };
 };
 

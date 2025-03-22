@@ -1,4 +1,3 @@
-
 /**
  * Time Slot Service
  * 
@@ -20,11 +19,12 @@ import { CalendarEvent } from '@/types/calendar';
  */
 export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> => {
   try {
+    if (!barberId) return [];
+    
     const { data, error } = await supabase
       .from('barber_lunch_breaks')
       .select('*')
-      .eq('barber_id', barberId)
-      .eq('is_active', true);
+      .eq('barber_id', barberId);
       
     if (error) throw error;
     return data || [];
@@ -70,11 +70,9 @@ export const fetchBarberTimeSlots = async (
     }
     
     // Use cached lunch breaks if available, otherwise fetch them
-    let lunchBreaks = cachedLunchBreaks;
-    
-    if (!lunchBreaks || lunchBreaks.length === 0) {
-      lunchBreaks = await fetchBarberLunchBreaks(barberId);
-    }
+    let lunchBreaks = cachedLunchBreaks && cachedLunchBreaks.length > 0 
+      ? cachedLunchBreaks 
+      : await fetchBarberLunchBreaks(barberId);
     
     // Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);

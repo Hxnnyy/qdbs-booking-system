@@ -25,17 +25,29 @@ export const isLunchBreak = (
 ): boolean => {
   if (!lunchBreaks || lunchBreaks.length === 0) return false;
   
+  // Filter to only active lunch breaks
+  const activeLunchBreaks = lunchBreaks.filter(breakTime => breakTime.is_active);
+  if (activeLunchBreaks.length === 0) return false;
+  
   const [hours, minutes] = timeSlot.split(':').map(Number);
   const timeInMinutes = hours * 60 + minutes;
+  const timeSlotEndMinutes = timeInMinutes + serviceDuration;
   
-  return lunchBreaks.some(breakTime => {
+  return activeLunchBreaks.some(breakTime => {
     const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
     const breakStartMinutes = breakHours * 60 + breakMinutes;
     const breakEndMinutes = breakStartMinutes + breakTime.duration;
     
-    // Check if slot starts during lunch break or if service would overlap with lunch break
-    return (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) || 
-           (timeInMinutes < breakStartMinutes && (timeInMinutes + serviceDuration) > breakStartMinutes);
+    // Check if slot starts during lunch break
+    const startsInLunchBreak = timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes;
+    
+    // Check if service would overlap with lunch break
+    const overlapsWithLunchBreak = timeInMinutes < breakStartMinutes && timeSlotEndMinutes > breakStartMinutes;
+    
+    // Check if service entirely contains the lunch break
+    const containsLunchBreak = timeInMinutes <= breakStartMinutes && timeSlotEndMinutes >= breakEndMinutes;
+    
+    return startsInLunchBreak || overlapsWithLunchBreak || containsLunchBreak;
   });
 };
 
