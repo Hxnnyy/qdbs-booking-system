@@ -9,7 +9,6 @@ import { format } from 'date-fns';
 import { Spinner } from '@/components/ui/spinner';
 import { Barber } from '@/hooks/useBarbers';
 import { Service } from '@/supabase-types';
-import { useTimeSlots } from '@/hooks/useTimeSlots';
 
 interface NotesAndConfirmationStepProps extends BookingStepProps {
   notes: string;
@@ -31,17 +30,9 @@ const NotesAndConfirmationStep: React.FC<NotesAndConfirmationStepProps> = ({
   onSubmit,
   onBack
 }) => {
-  // Use the timeslots hook to get the selected barber for "any barber" option
-  const { selectedBarberForBooking } = useTimeSlots(
-    formData.selectedDate,
-    formData.selectedBarber,
-    formData.selectedServiceDetails,
-    [], // Empty array as we don't need to calculate slots here
-    []
-  );
-
-  const selectedBarber = formData.selectedBarber === 'any' && selectedBarberForBooking
-    ? barbers.find(b => b.id === selectedBarberForBooking)
+  // Find selected barber and service without using hooks
+  const selectedBarber = formData.selectedBarber === 'any'
+    ? { name: 'Any Available Barber', id: 'any' } as Barber
     : barbers.find(b => b.id === formData.selectedBarber);
     
   const selectedService = services.find(s => s.id === formData.selectedService);

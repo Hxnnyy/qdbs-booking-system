@@ -40,24 +40,6 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   fetchBarberServices,
   calendarEvents = []
 }) => {
-  const {
-    step,
-    showSuccess,
-    bookingResult,
-    bookingLoading,
-    handleSelectBarber,
-    handleSelectService,
-    handleBackToBarbers,
-    handleBackToServices,
-    handleDateTimeComplete,
-    handleBackToDateTime,
-    handleGuestInfoComplete,
-    handleBackToGuestInfo,
-    handleVerificationComplete,
-    handleBackToVerification,
-    handleSubmit
-  } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services);
-
   // Use the time slots hook with memoized dependencies
   const {
     timeSlots: calculatedTimeSlots,
@@ -83,6 +65,25 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     calendarEvents,
     existingBookings
   );
+
+  // Use booking workflow with the selectedBarberForBooking passed directly
+  const {
+    step,
+    showSuccess,
+    bookingResult,
+    bookingLoading,
+    handleSelectBarber,
+    handleSelectService,
+    handleBackToBarbers,
+    handleBackToServices,
+    handleDateTimeComplete,
+    handleBackToDateTime,
+    handleGuestInfoComplete,
+    handleBackToGuestInfo,
+    handleVerificationComplete,
+    handleBackToVerification,
+    handleSubmit
+  } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services, selectedBarberForBooking);
 
   // When barber or service changes, clear selected time
   useEffect(() => {

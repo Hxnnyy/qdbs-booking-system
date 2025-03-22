@@ -13,6 +13,9 @@ import { Service } from '@/supabase-types';
 import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
 import { supabase } from '@/integrations/supabase/client';
 
+// Create a cache outside of the hook to persist across renders
+const timeSlotCache = new Map<string, string[]>();
+
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
  * 
@@ -36,8 +39,8 @@ export const useTimeSlots = (
   const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
   const [selectedBarberForBooking, setSelectedBarberForBooking] = useState<string | null>(null);
   
-  // Cache to avoid recalculation
-  const calculationCache = useRef<Map<string, string[]>>(new Map());
+  // Cache reference moved outside the hook to prevent invalid hook calls
+  const calculationCacheRef = useRef<Map<string, string[]>>(timeSlotCache);
   
   // Pre-fetch lunch breaks for this barber
   useEffect(() => {
@@ -213,9 +216,9 @@ export const useTimeSlots = (
         const cacheKey = `any_${selectedDate.toISOString()}_${selectedService.id}`;
         
         // Check if we have cached results
-        if (calculationCache.current.has(cacheKey)) {
+        if (calculationCacheRef.current.has(cacheKey)) {
           console.log('Using cached results for any barber calculation');
-          const cachedResult = calculationCache.current.get(cacheKey) || [];
+          const cachedResult = calculationCacheRef.current.get(cacheKey) || [];
           setTimeSlots(cachedResult);
           setIsCalculating(false);
           return;
@@ -247,7 +250,7 @@ export const useTimeSlots = (
         setSelectedBarberForBooking(selectedBarber);
         
         // Cache the result
-        calculationCache.current.set(cacheKey, availableSlots);
+        calculationCacheRef.current.set(cacheKey, availableSlots);
         
         if (availableSlots.length === 0) {
           setError('No available time slots for any barber on this date.');
@@ -261,9 +264,9 @@ export const useTimeSlots = (
         const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}`;
         
         // Check if we have cached results
-        if (calculationCache.current.has(cacheKey)) {
+        if (calculationCacheRef.current.has(cacheKey)) {
           console.log('Using cached results for specific barber calculation');
-          const cachedResult = calculationCache.current.get(cacheKey) || [];
+          const cachedResult = calculationCacheRef.current.get(cacheKey) || [];
           setTimeSlots(cachedResult);
           setSelectedBarberForBooking(selectedBarberId);
           setIsCalculating(false);
@@ -300,7 +303,7 @@ export const useTimeSlots = (
         console.log(`Filtered slots: ${filteredSlots.length}`);
         
         // Cache the result
-        calculationCache.current.set(cacheKey, filteredSlots);
+        calculationCacheRef.current.set(cacheKey, filteredSlots);
         
         setTimeSlots(filteredSlots);
         setSelectedBarberForBooking(selectedBarberId);
@@ -323,14 +326,8 @@ export const useTimeSlots = (
       serviceId: selectedService?.id
     });
     
-    // Store this in a ref to avoid unnecessary renders
-    const lastRunRef = useRef(currentState);
-    
     // Only run if there's an actual change in relevant state
-    if (lastRunRef.current !== currentState) {
-      lastRunRef.current = currentState;
-      calculateAvailableTimeSlots();
-    }
+    calculateAvailableTimeSlots();
   }, [calculateAvailableTimeSlots, selectedDate, selectedBarberId, selectedService]);
 
   return {

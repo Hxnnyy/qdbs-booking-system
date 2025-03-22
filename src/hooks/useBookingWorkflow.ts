@@ -6,13 +6,20 @@ import { BookingStep, BookingFormState } from '@/types/booking';
 import { useGuestBookings } from '@/hooks/useGuestBookings';
 import { Service } from '@/supabase-types';
 import { supabase } from '@/integrations/supabase/client';
-import { useTimeSlots } from '@/hooks/useTimeSlots';
+
+// Create a function to get selected barber that doesn't use hooks
+const getEffectiveBarber = (selectedBarber: string | null, selectedBarberForBooking: string | null) => {
+  return selectedBarber === 'any' && selectedBarberForBooking 
+    ? selectedBarberForBooking 
+    : selectedBarber;
+};
 
 export const useBookingWorkflow = (
   formState: BookingFormState,
   updateFormState: (updates: Partial<BookingFormState>) => void,
   fetchBarberServices: (barberId: string) => Promise<void>,
-  services: Service[]
+  services: Service[],
+  selectedBarberForBooking: string | null
 ) => {
   // Initialize step based on form state
   const getInitialStep = (): BookingStep => {
@@ -28,15 +35,6 @@ export const useBookingWorkflow = (
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
   const { createGuestBooking, isLoading: bookingLoading } = useGuestBookings();
-  
-  // Use timeslots hook to get the selected barber when "any barber" is chosen
-  const { selectedBarberForBooking } = useTimeSlots(
-    formState.selectedDate,
-    formState.selectedBarber,
-    formState.selectedServiceDetails,
-    [], // Empty array as we don't need to calculate slots here
-    []
-  );
 
   // Update step when form state changes
   useEffect(() => {
@@ -191,11 +189,9 @@ export const useBookingWorkflow = (
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
-      // Use the selected barber from timeslots hook if "any barber" was chosen
-      const effectiveBarber = selectedBarber === 'any' && selectedBarberForBooking 
-        ? selectedBarberForBooking 
-        : selectedBarber;
-        
+      // Use the effective barber (from props, not hooks)
+      const effectiveBarber = getEffectiveBarber(selectedBarber, selectedBarberForBooking);
+      
       if (selectedBarber === 'any' && !selectedBarberForBooking) {
         toast.error('Unable to find an available barber. Please try another date or time.');
         return;
