@@ -38,12 +38,15 @@ export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> =
       throw error;
     }
     
+    console.log(`Fetched ${data?.length || 0} lunch breaks for barber ${barberId}`);
+    
+    // Log detailed info about active lunch breaks
     const activeBreaks = data?.filter(breakTime => breakTime.is_active) || [];
-    console.log(`Fetched ${data?.length || 0} lunch breaks for barber ${barberId}, ${activeBreaks.length} active breaks`);
+    console.log(`Found ${activeBreaks.length} active lunch breaks`);
     
     if (activeBreaks.length > 0) {
       activeBreaks.forEach(breakTime => {
-        console.log(`Active lunch break: ${breakTime.start_time} (${breakTime.duration}min)`);
+        console.log(`Active lunch break ID ${breakTime.id}: ${breakTime.start_time} (${breakTime.duration}min)`);
       });
     }
     
@@ -72,7 +75,10 @@ export const fetchBarberTimeSlots = async (
   cachedLunchBreaks: any[] = []
 ): Promise<string[]> => {
   try {
-    console.log(`Fetching time slots for barber ${barberId} on ${date.toISOString()}, service duration: ${serviceDuration}min`);
+    const formattedDate = date.toISOString().split('T')[0];
+    console.log(`===== FETCHING TIME SLOTS =====`);
+    console.log(`Barber: ${barberId}, Date: ${formattedDate}, Service Duration: ${serviceDuration}min`);
+    
     const dayOfWeek = date.getDay();
     
     // Fetch opening hours for the selected day
@@ -93,27 +99,29 @@ export const fetchBarberTimeSlots = async (
       return [];
     }
     
-    // Use cached lunch breaks if available, otherwise fetch them
-    const lunchBreaks = cachedLunchBreaks && cachedLunchBreaks.length > 0 
-      ? cachedLunchBreaks 
-      : await fetchBarberLunchBreaks(barberId);
+    console.log(`Barber opening hours: ${data.open_time} to ${data.close_time}`);
     
-    console.log(`Processing lunch breaks: ${lunchBreaks.length} breaks found, ${lunchBreaks.filter(b => b.is_active).length} active`);
+    // Use cached lunch breaks if available, otherwise fetch them
+    let lunchBreaks = cachedLunchBreaks;
+    if (!lunchBreaks || lunchBreaks.length === 0) {
+      console.log(`No cached lunch breaks, fetching fresh data`);
+      lunchBreaks = await fetchBarberLunchBreaks(barberId);
+    } else {
+      console.log(`Using ${lunchBreaks.length} cached lunch breaks`);
+    }
     
     // Generate all possible time slots based on opening hours
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);
-    console.log(`Generated ${possibleSlots.length} possible time slots from ${data.open_time} to ${data.close_time}`);
+    console.log(`Generated ${possibleSlots.length} possible time slots`);
     
     // Convert possible slots to time strings
     const timeStrings = possibleSlots.map(slot => slot.time);
     
-    // New improved filtering workflow:
-    
-    // 1. First, filter out slots that are in the past
+    // Step 1: Filter out slots that are in the past
     const notPastSlots = timeStrings.filter(slot => !isTimeSlotInPast(date, slot));
     console.log(`After filtering past times: ${notPastSlots.length} slots available`);
     
-    // 2. Filter out slots that already have bookings
+    // Step 2: Filter out slots that already have bookings
     const noBookingSlots = notPastSlots.filter(slot => {
       const isBooked = existingBookings.some(booking => {
         return booking.time === slot || 
@@ -124,7 +132,7 @@ export const fetchBarberTimeSlots = async (
     });
     console.log(`After filtering existing bookings: ${noBookingSlots.length} slots available`);
     
-    // 3. Apply the new lunch break filter
+    // Step 3: Apply lunch break filtering using our consolidated utility
     const noLunchSlots = filterOutLunchBreakOverlaps(
       noBookingSlots,
       serviceDuration,
@@ -132,7 +140,7 @@ export const fetchBarberTimeSlots = async (
     );
     console.log(`After lunch break filtering: ${noLunchSlots.length} slots available`);
     
-    // 4. Final check: are slots within opening hours?
+    // Step 4: Final check to ensure slots are within opening hours
     const finalAvailableSlots = [];
     
     for (const slot of noLunchSlots) {
@@ -151,6 +159,8 @@ export const fetchBarberTimeSlots = async (
     }
     
     console.log(`Final available slots: ${finalAvailableSlots.length}`);
+    console.log(`===== END FETCHING TIME SLOTS =====`);
+    
     return finalAvailableSlots;
   } catch (error) {
     console.error('Error fetching barber time slots:', error);

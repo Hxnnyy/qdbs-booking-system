@@ -36,6 +36,8 @@ export const useTimeSlots = (
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedLunchBreaks, setCachedLunchBreaks] = useState<any[] | null>(null);
+  
+  // Use a lunchBreakTimestamp to track changes to lunch breaks
   const lunchBreakTimestampRef = useRef<number>(Date.now());
   
   // Load lunch breaks when barber changes
@@ -46,13 +48,29 @@ export const useTimeSlots = (
     }
     
     const loadLunchBreaks = async () => {
-      console.log(`Loading lunch breaks for barber ${selectedBarberId}`);
-      setIsCalculating(true);
-      const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-      console.log('Loaded lunch breaks:', lunchBreaks);
-      setCachedLunchBreaks(lunchBreaks);
-      lunchBreakTimestampRef.current = Date.now(); // Update timestamp on refresh
-      setIsCalculating(false);
+      try {
+        console.log(`Loading lunch breaks for barber ${selectedBarberId}`);
+        setIsCalculating(true);
+        
+        const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+        
+        // Detailed logging of lunch breaks
+        console.log(`Loaded ${lunchBreaks.length} lunch breaks for barber ${selectedBarberId}`);
+        const activeBreaks = lunchBreaks.filter(b => b.is_active);
+        console.log(`Active lunch breaks: ${activeBreaks.length}`);
+        
+        activeBreaks.forEach(breakTime => {
+          console.log(`Active break: ${breakTime.start_time} (${breakTime.duration}min)`);
+        });
+        
+        setCachedLunchBreaks(lunchBreaks);
+        lunchBreakTimestampRef.current = Date.now(); // Update timestamp on refresh
+      } catch (err) {
+        console.error('Error loading lunch breaks:', err);
+        toast.error('Failed to load lunch break settings');
+      } finally {
+        setIsCalculating(false);
+      }
     };
     
     loadLunchBreaks();
@@ -71,11 +89,19 @@ export const useTimeSlots = (
     setError(null);
     
     // Create a detailed cache key that includes lunch break information
-    const activeLunchBreaks = cachedLunchBreaks 
-      ? cachedLunchBreaks.filter(b => b.is_active).map(b => `${b.start_time}_${b.duration}`).join('|')
+    // Include full details of active lunch breaks in the cache key to ensure uniqueness
+    const formattedDate = selectedDate.toISOString().split('T')[0];
+    const activeBreaksString = cachedLunchBreaks 
+      ? cachedLunchBreaks
+          .filter(b => b.is_active)
+          .map(b => `${b.id}_${b.start_time}_${b.duration}`)
+          .join('|') 
       : 'no-breaks';
     
-    const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}_${lunchBreakTimestampRef.current}_${activeLunchBreaks}`;
+    // Create a highly specific cache key that accounts for all relevant factors
+    const cacheKey = `${formattedDate}_${selectedBarberId}_${selectedService.id}_${lunchBreakTimestampRef.current}_${activeBreaksString}`;
+    
+    console.log(`Cache key for time slots: ${cacheKey}`);
     
     // Check if we have cached results
     if (calculationCache.has(cacheKey)) {
@@ -102,12 +128,11 @@ export const useTimeSlots = (
         return;
       }
       
-      console.log('Fetching time slots with lunch breaks:', {
-        lunchBreakCount: cachedLunchBreaks?.length || 0,
-        activeLunchBreaks: cachedLunchBreaks?.filter(b => b.is_active).length || 0
-      });
+      console.log(`Fetching time slots for date: ${formattedDate}, barber: ${selectedBarberId}, service: ${selectedService.id}`);
+      console.log(`Service duration: ${selectedService.duration} minutes`);
+      console.log(`Lunch breaks: ${cachedLunchBreaks?.length || 0} (${cachedLunchBreaks?.filter(b => b.is_active).length || 0} active)`);
       
-      // Use the improved fetchBarberTimeSlots with lunch break filtering
+      // Use the time slot service with fresh lunch break data
       const availableSlots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
@@ -119,7 +144,7 @@ export const useTimeSlots = (
       // Cache the result
       calculationCache.set(cacheKey, availableSlots);
       
-      console.log(`Final time slots after all filtering: ${availableSlots.length}`);
+      console.log(`Final time slots: ${availableSlots.length}`);
       setTimeSlots(availableSlots);
     } catch (err) {
       console.error('Error calculating time slots:', err);
@@ -146,12 +171,23 @@ export const useTimeSlots = (
     if (!selectedBarberId) return;
     
     console.log('Forcing reload of lunch breaks data');
-    const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-    console.log('Reloaded lunch breaks:', lunchBreaks);
-    setCachedLunchBreaks(lunchBreaks);
-    lunchBreakTimestampRef.current = Date.now(); // Update timestamp
-    clearCache();
-    calculateAvailableTimeSlots();
+    setIsCalculating(true);
+    
+    try {
+      const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+      console.log(`Reloaded ${lunchBreaks.length} lunch breaks`);
+      
+      setCachedLunchBreaks(lunchBreaks);
+      lunchBreakTimestampRef.current = Date.now(); // Update timestamp
+      
+      clearCache(); // Clear the entire cache to ensure fresh data
+      calculateAvailableTimeSlots(); // Recalculate with fresh data
+    } catch (error) {
+      console.error('Error reloading lunch breaks:', error);
+      toast.error('Failed to reload lunch break settings');
+    } finally {
+      setIsCalculating(false);
+    }
   }, [selectedBarberId, clearCache, calculateAvailableTimeSlots]);
 
   return {

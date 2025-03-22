@@ -22,7 +22,9 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchLunchBreak();
+    if (barberId) {
+      fetchLunchBreak();
+    }
   }, [barberId]);
 
   const fetchLunchBreak = async () => {
@@ -56,6 +58,10 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         setStartTime(data.start_time);
         setDuration(data.duration);
         setIsActive(data.is_active === true);
+        
+        console.log(`Loaded lunch break settings: Start=${data.start_time}, Duration=${data.duration}, Active=${data.is_active}`);
+      } else {
+        console.log('No lunch break found for this barber');
       }
     } catch (err: any) {
       console.error('Error loading lunch break:', err);
@@ -88,6 +94,8 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
       
       // If we already have a lunch break, update it
       if (lunchBreak) {
+        console.log(`Updating existing lunch break (ID: ${lunchBreak.id})`);
+        
         // @ts-ignore - Supabase types issue
         const { error } = await supabase
           .from('barber_lunch_breaks')
@@ -135,6 +143,7 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
       
       // Notify parent component if needed
       if (onSaved) {
+        console.log('Calling onSaved callback to refresh data');
         onSaved();
       }
     } catch (err: any) {
