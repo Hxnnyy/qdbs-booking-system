@@ -1,13 +1,9 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { corsHeaders } from "../_shared/cors.ts";
 
 // Constants and types
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 interface BookingData {
   barber_id: string;
   service_id: string;
@@ -26,24 +22,46 @@ serve(async (req) => {
 
   try {
     // Get environment variables
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    // Validate environment variables
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
     
     // Create Supabase client with service role key (has admin privileges)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Parse request body
-    const { booking } = await req.json();
+    const requestData = await req.json();
+    console.log("Request data:", JSON.stringify(requestData));
     
-    if (!booking || !booking.barber_id || !booking.service_id || !booking.booking_date || 
+    const booking = requestData.booking;
+    
+    // Validate booking data
+    if (!booking) {
+      console.error("No booking data provided");
+      return new Response(
+        JSON.stringify({ error: "No booking data provided" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
+    if (!booking.barber_id || !booking.service_id || !booking.booking_date || 
         !booking.booking_time || !booking.user_id) {
+      console.error("Missing required booking fields:", JSON.stringify(booking));
       return new Response(
         JSON.stringify({ error: "Missing required booking information" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
     
-    console.log("Creating booking with service role:", booking);
+    console.log("Creating booking with service role:", JSON.stringify(booking));
     
     // Create the booking with service role privileges (bypassing RLS)
     const { data, error } = await supabase
@@ -62,19 +80,26 @@ serve(async (req) => {
       .single();
     
     if (error) {
-      console.error("Error creating booking:", error);
+      console.error("Error creating booking:", error.message, error.details, error.hint);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: error.message, details: error.details }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
     
+    console.log("Booking created successfully:", JSON.stringify(data));
+    
     // Get user email from profiles table to send notification
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("email, first_name, last_name")
       .eq("id", booking.user_id)
       .single();
+    
+    if (profileError) {
+      console.error("Error fetching user profile:", profileError.message);
+      // Continue despite profile error - we'll still return the booking
+    }
     
     // Try to send confirmation email but don't fail if it doesn't work
     try {
@@ -106,7 +131,9 @@ serve(async (req) => {
           }
         });
         
-        console.log("Confirmation email sent");
+        console.log("Confirmation email sent to:", profile.email);
+      } else {
+        console.log("No profile email found, skipping confirmation email");
       }
     } catch (emailError) {
       console.error("Error sending confirmation email:", emailError);
@@ -119,7 +146,7 @@ serve(async (req) => {
     );
     
   } catch (err) {
-    console.error("Error processing request:", err);
+    console.error("Unexpected error processing request:", err.message, err.stack);
     return new Response(
       JSON.stringify({ error: "Internal Server Error", details: err.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
