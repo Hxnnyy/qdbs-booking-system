@@ -92,6 +92,15 @@ export const DayView: React.FC<CalendarViewProps> = ({
       newStart: newStart.toISOString()
     });
 
+    // Immediately update the local displayEvents to prevent duplicate UI issues
+    setDisplayEvents(prev => 
+      prev.map(event => 
+        event.id === draggingEvent.id 
+          ? { ...event, start: newStart, end: newEnd }
+          : event
+      )
+    );
+
     onEventDrop(draggingEvent, newStart, newEnd);
     setDraggingEvent(null);
     setDragPreview(null);
@@ -169,9 +178,12 @@ export const DayView: React.FC<CalendarViewProps> = ({
               const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
               const height = Math.max(durationMinutes, 15);
               
+              // Skip this event if it's currently being dragged
+              if (draggingEvent && draggingEvent.id === event.id) return null;
+              
               return (
                 <div 
-                  key={event.id}
+                  key={`event-${event.id}`}
                   draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
                   onDragStart={() => handleDragStart(event)}
                   className="absolute w-full"
@@ -182,9 +194,10 @@ export const DayView: React.FC<CalendarViewProps> = ({
                   }}
                 >
                   <CalendarEventComponent 
+                    key={`component-${event.id}`}
                     event={event} 
                     onEventClick={onEventClick}
-                    isDragging={draggingEvent?.id === event.id}
+                    isDragging={false}
                     slotIndex={slotIndex}
                     totalSlots={totalSlots}
                   />

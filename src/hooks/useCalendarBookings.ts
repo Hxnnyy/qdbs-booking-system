@@ -120,8 +120,6 @@ export const useCalendarBookings = () => {
 
   const updateBookingTime = async (eventId: string, newStart: Date, newEnd: Date) => {
     try {
-      setIsLoading(true);
-      
       if (eventId.startsWith('lunch-')) {
         toast.error('Lunch breaks cannot be moved via drag and drop. Please edit them in the barber settings.');
         return;
@@ -131,6 +129,17 @@ export const useCalendarBookings = () => {
       const newBookingTime = formatNewBookingTime(newStart);
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
+      
+      // Optimistically update the UI first
+      setCalendarEvents(prev => 
+        prev.map(event => 
+          event.id === eventId 
+            ? { ...event, start: newStart, end: newEnd }
+            : event
+        )
+      );
+      
+      setIsLoading(true);
       
       const { error } = await supabase
         .from('bookings')
@@ -142,14 +151,7 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      setCalendarEvents(prev => 
-        prev.map(event => 
-          event.id === eventId 
-            ? { ...event, start: newStart, end: newEnd }
-            : event
-        )
-      );
-      
+      // Update bookings state too
       setBookings(prev => 
         prev.map(booking => 
           booking.id === eventId 
@@ -167,6 +169,9 @@ export const useCalendarBookings = () => {
       console.error('Error updating booking time:', err);
       setError(err.message);
       toast.error('Failed to update booking time');
+      
+      // Revert optimistic update on error by refetching
+      fetchData();
     } finally {
       setIsLoading(false);
     }
