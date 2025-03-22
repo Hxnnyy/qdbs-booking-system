@@ -42,7 +42,8 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       id: booking.id,
       isGuest: booking.guest_booking,
       hasProfile: !!booking.profile,
-      profileData: booking.profile
+      profileData: booking.profile,
+      userId: booking.user_id
     });
     
     // For registered users, try to get their name from the user_profiles or create a title

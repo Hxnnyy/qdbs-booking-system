@@ -244,6 +244,15 @@ export const fetchPaginatedBookings = async (
     
     console.log('Fetching paginated bookings with profile data...');
     
+    // For debugging: First check if we can directly query the profiles table
+    const { data: profilesTest } = await supabase
+      .from('profiles')
+      .select('*')
+      .limit(3);
+    
+    console.log('Profiles test query result:', profilesTest);
+    
+    // Now get the bookings with joined profile data
     const { data, error } = await supabase
       .from('bookings')
       .select(`
@@ -261,6 +270,13 @@ export const fetchPaginatedBookings = async (
     }
     
     console.log('Retrieved bookings data:', data && data.length ? data[0] : 'No data');
+    
+    // Debug each booking's profile data
+    if (data && data.length > 0) {
+      data.forEach((booking, index) => {
+        console.log(`Booking ${index} with user_id ${booking.user_id} has profile:`, booking.profile);
+      });
+    }
     
     return {
       bookings: data || [],
