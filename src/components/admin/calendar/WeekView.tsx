@@ -131,11 +131,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       e.clientY > rect.bottom
     ) {
       // Only clear ghost if we're not entering another day column
-      if (
-        !e.relatedTarget || 
-        !e.relatedTarget.closest('.day-column') || 
-        e.relatedTarget.closest('.day-column') === dayColumnRefs.current[dayIndex]
-      ) {
+      // Type check properly to make sure we can use closest
+      const relatedTarget = e.relatedTarget as Element | null;
+      const isDayColumn = relatedTarget && relatedTarget.closest('.day-column');
+      const isSameDayColumn = isDayColumn && relatedTarget.closest('.day-column') === dayColumnRefs.current[dayIndex];
+      
+      if (!isDayColumn || isSameDayColumn) {
         setDragState(prev => ({
           ...prev,
           ghostPosition: null
