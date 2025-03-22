@@ -1,9 +1,10 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isSameDay } from 'date-fns';
+import { isLunchBreak } from '@/utils/timeSlotUtils';
 
 interface TimeSlotsGridProps {
   selectedDate: Date | undefined;
@@ -12,6 +13,8 @@ interface TimeSlotsGridProps {
   availableTimeSlots: string[];
   isLoading: boolean;
   error: string | null;
+  selectedBarberId?: string | null;
+  serviceDuration?: number;
 }
 
 const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
@@ -20,24 +23,42 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   setSelectedTime,
   availableTimeSlots,
   isLoading,
-  error
+  error,
+  selectedBarberId,
+  serviceDuration = 60
 }) => {
-  // Filter time slots to prevent booking in the past for today
-  const filteredTimeSlots = selectedDate ? 
-    availableTimeSlots.filter(time => !isTimeSlotInPast(selectedDate, time)) : 
-    [];
+  // Use the filtered time slots directly from the hook
+  const timeSlots = availableTimeSlots || [];
+  const [lunchBreakTimes, setLunchBreakTimes] = useState<string[]>([]);
 
-  // Clear the selected time if it's now in the past
+  // Clear the selected time if it's now in the past or no longer available
   useEffect(() => {
-    if (selectedDate && selectedTime && isTimeSlotInPast(selectedDate, selectedTime)) {
-      setSelectedTime('');
+    if (selectedDate && selectedTime) {
+      // Clear if time slot is in the past
+      if (isTimeSlotInPast(selectedDate, selectedTime)) {
+        setSelectedTime('');
+        return;
+      }
+      
+      // Clear if time slot is no longer in the available list
+      if (timeSlots.length > 0 && !timeSlots.includes(selectedTime)) {
+        setSelectedTime('');
+      }
     }
-  }, [selectedDate, selectedTime, setSelectedTime]);
+  }, [selectedDate, selectedTime, timeSlots, setSelectedTime]);
+
+  // Log slots for debugging
+  useEffect(() => {
+    if (timeSlots.length > 0) {
+      console.log('Time slots received in TimeSlotsGrid:', timeSlots);
+    }
+  }, [timeSlots]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
         <Spinner className="h-8 w-8" />
+        <span className="ml-2 text-muted-foreground">Loading available times...</span>
       </div>
     );
   }
@@ -51,7 +72,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     );
   }
 
-  if (filteredTimeSlots.length === 0) {
+  if (timeSlots.length === 0) {
     return (
       <div className="text-center p-4 border rounded-md bg-muted">
         <p className="text-muted-foreground">
@@ -64,9 +85,12 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     );
   }
 
+  // Log the time slots that are being displayed
+  console.log('Time slots being displayed in grid:', timeSlots);
+
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-      {filteredTimeSlots.map((time) => (
+      {timeSlots.map((time) => (
         <TimeSlot 
           key={time} 
           time={time} 

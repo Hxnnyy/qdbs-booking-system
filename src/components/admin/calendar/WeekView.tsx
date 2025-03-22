@@ -28,6 +28,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
   useEffect(() => {
     const filtered = filterEventsByWeek(events, date);
+    console.log(`Week view: Generated ${filtered.length} events, including lunch breaks`);
     setDisplayEvents(filtered);
   }, [events, date]);
 
@@ -196,14 +197,13 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               })()}
               
               {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-                const eventDate = event.start;
-                const eventDay = weekDays.findIndex(day => 
-                  day.getDate() === eventDate.getDate() &&
-                  day.getMonth() === eventDate.getMonth() &&
-                  day.getFullYear() === eventDate.getFullYear()
-                );
+                const dayDate = weekDays[dayIndex];
+                const isSameDate = 
+                  dayDate.getDate() === event.start.getDate() &&
+                  dayDate.getMonth() === event.start.getMonth() &&
+                  dayDate.getFullYear() === event.start.getFullYear();
                 
-                if (eventDay !== dayIndex) return null;
+                if (!isSameDate) return null;
                 
                 const eventHour = event.start.getHours();
                 const eventMinute = event.start.getMinutes();

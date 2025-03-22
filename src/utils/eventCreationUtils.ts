@@ -80,7 +80,8 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
 // Create a calendar event for a lunch break
 export const createLunchBreakEvent = (lunchBreak: LunchBreak & { barber?: { name: string, color?: string } }): CalendarEvent => {
   try {
-    // Create a lunch break event for today
+    // Create a lunch break event for today - this will be adjusted for each day of the week
+    // when displayed in the calendar views
     const today = new Date();
     const [hours, minutes] = lunchBreak.start_time.split(':').map(Number);
     

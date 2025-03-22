@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import ImageUpload from './ImageUpload';
 
 interface EditBarberDialogProps {
   isOpen: boolean;
@@ -16,7 +17,9 @@ interface EditBarberDialogProps {
     image_url: string;
     color: string;
   };
+  barberId: string;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onImageUploaded: (url: string) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
@@ -24,12 +27,14 @@ export const EditBarberDialog: React.FC<EditBarberDialogProps> = ({
   isOpen,
   onOpenChange,
   formData,
+  barberId,
   onInputChange,
+  onImageUploaded,
   onSubmit,
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Barber</DialogTitle>
         </DialogHeader>
@@ -66,13 +71,11 @@ export const EditBarberDialog: React.FC<EditBarberDialogProps> = ({
               />
             </div>
             <div>
-              <Label htmlFor="edit-image_url">Image URL</Label>
-              <Input
-                id="edit-image_url"
-                name="image_url"
-                value={formData.image_url}
-                onChange={onInputChange}
-                placeholder="https://example.com/image.jpg"
+              <Label htmlFor="edit-image">Profile Image</Label>
+              <ImageUpload 
+                currentImageUrl={formData.image_url} 
+                onImageUploaded={onImageUploaded}
+                barberId={barberId}
               />
             </div>
             <div>

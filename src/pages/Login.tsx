@@ -114,9 +114,16 @@ const Login = () => {
                   </Link>
                 </div>
                 <div className="text-sm text-center">
-                  <Link to="/book-guest" className="text-burgundy hover:underline font-playfair">
-                    Continue as guest
-                  </Link>
+                  <motion.div 
+                    className="inline-block bg-slate-50 text-burgundy px-3 py-1 rounded-full font-playfair"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.5 }}
+                  >
+                    <Link to="/book-guest" className="hover:underline">
+                      Continue as guest
+                    </Link>
+                  </motion.div>
                 </div>
               </CardFooter>
             </form>

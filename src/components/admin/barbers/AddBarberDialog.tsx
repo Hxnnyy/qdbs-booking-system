@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import ImageUpload from './ImageUpload';
 
 interface AddBarberDialogProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface AddBarberDialogProps {
     color: string;
   };
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onImageUploaded: (url: string) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
@@ -25,11 +27,12 @@ export const AddBarberDialog: React.FC<AddBarberDialogProps> = ({
   onOpenChange,
   formData,
   onInputChange,
+  onImageUploaded,
   onSubmit,
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Barber</DialogTitle>
         </DialogHeader>
@@ -66,13 +69,11 @@ export const AddBarberDialog: React.FC<AddBarberDialogProps> = ({
               />
             </div>
             <div>
-              <Label htmlFor="image_url">Image URL</Label>
-              <Input
-                id="image_url"
-                name="image_url"
-                value={formData.image_url}
-                onChange={onInputChange}
-                placeholder="https://example.com/image.jpg"
+              <Label htmlFor="image_upload">Profile Image</Label>
+              <ImageUpload 
+                currentImageUrl={formData.image_url} 
+                onImageUploaded={onImageUploaded}
+                barberId="new" // Temporary ID for new barbers
               />
             </div>
             <div>

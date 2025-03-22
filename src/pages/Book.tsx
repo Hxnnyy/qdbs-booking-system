@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useBarbers } from '@/hooks/useBarbers';
 import { useServices } from '@/hooks/useServices';
@@ -52,6 +52,22 @@ const Book = () => {
   } = useBookingFlow(barbers, services, allEvents);
 
   const isLoading = barbersLoading || servicesLoading || isLoadingBarberServices || isLoadingBookings || calendarLoading;
+
+  // Debug effect to log important data
+  useEffect(() => {
+    if (selectedService && selectedServiceDetails) {
+      console.log('Selected service details:', selectedServiceDetails);
+    }
+    
+    if (availableTimeSlots && availableTimeSlots.length > 0) {
+      console.log('Available time slots count in Book.tsx:', availableTimeSlots.length);
+    }
+    
+    if (selectedDate && selectedBarber) {
+      console.log('Selected date:', selectedDate);
+      console.log('Selected barber:', selectedBarber);
+    }
+  }, [selectedService, selectedServiceDetails, availableTimeSlots, selectedDate, selectedBarber]);
 
   const renderStepTitle = () => {
     switch (step) {

@@ -23,9 +23,16 @@ const BarberCTA: React.FC = () => {
             <Button asChild size="lg" className="rounded-none bg-burgundy hover:bg-burgundy-light">
               <Link to="/book">Book Appointment</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-none border-burgundy text-burgundy hover:bg-burgundy/10">
-              <Link to="/book-guest">Book as Guest</Link>
-            </Button>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="bg-slate-50 rounded-full"
+            >
+              <Button asChild size="lg" variant="ghost" className="rounded-full text-burgundy hover:bg-slate-100">
+                <Link to="/book-guest">Book as Guest</Link>
+              </Button>
+            </motion.div>
           </div>
         </motion.div>
       </div>

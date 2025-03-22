@@ -34,8 +34,7 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         .from('barber_lunch_breaks')
         .select('*')
         .eq('barber_id', barberId)
-        .eq('is_active', true)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to prevent error if no record
       
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
         throw error;
