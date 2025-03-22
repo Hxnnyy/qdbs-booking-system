@@ -21,6 +21,7 @@ export const useBookings = () => {
         throw new Error('You must be logged in to book an appointment');
       }
 
+      // Create booking with user ID from Auth context
       const newBooking: InsertableBooking = {
         ...bookingData,
         user_id: user.id,
@@ -29,10 +30,10 @@ export const useBookings = () => {
 
       console.log('Creating booking with data:', newBooking);
 
-      // @ts-ignore - Supabase types issue
+      // Create the booking
       const { data, error: insertError } = await supabase
         .from('bookings')
-        .insert([newBooking]) // Wrap in array to fix potential Supabase issue
+        .insert([newBooking])
         .select();
 
       if (insertError) {
@@ -42,50 +43,56 @@ export const useBookings = () => {
 
       console.log('Booking created successfully:', data);
       
-      // Get user email and details directly from profile table only
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('email, first_name, last_name')
-        .eq('id', user.id)
-        .single();
+      // Send confirmation email - only using profiles table, no references to auth.users
+      try {
+        // Get profile data from profiles table only
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('email, first_name, last_name')
+          .eq('id', user.id)
+          .single();
         
-      if (profileError) {
-        console.error('Error fetching profile data:', profileError);
-        // Continue with booking process even if email retrieval fails
-      } else if (profileData && profileData.email) {
-        // Get barber and service names for the confirmation email
-        const { data: barberData } = await supabase
-          .from('barbers')
-          .select('name')
-          .eq('id', bookingData.barber_id)
-          .single();
-          
-        const { data: serviceData } = await supabase
-          .from('services')
-          .select('name')
-          .eq('id', bookingData.service_id)
-          .single();
-          
-        // Send confirmation email
-        try {
-          await supabase.functions.invoke('send-booking-email', {
-            body: {
-              to: profileData.email,
-              name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Customer',
-              bookingId: data[0].id,
-              bookingDate: bookingData.booking_date,
-              bookingTime: bookingData.booking_time,
-              barberName: barberData?.name || 'Barber',
-              serviceName: serviceData?.name || 'Service',
-              isGuest: false
-            }
-          });
-          
-          console.log('Confirmation email sent to registered user');
-        } catch (emailError) {
-          console.error('Error sending confirmation email:', emailError);
-          // Don't fail the booking if email sending fails
+        if (profileError) {
+          console.error('Error fetching profile data:', profileError);
+          // Continue booking process even if email retrieval fails
+        } else if (profileData && profileData.email) {
+          // Get barber and service names for the confirmation email
+          const { data: barberData } = await supabase
+            .from('barbers')
+            .select('name')
+            .eq('id', bookingData.barber_id)
+            .single();
+            
+          const { data: serviceData } = await supabase
+            .from('services')
+            .select('name')
+            .eq('id', bookingData.service_id)
+            .single();
+            
+          // Send confirmation email
+          try {
+            await supabase.functions.invoke('send-booking-email', {
+              body: {
+                to: profileData.email,
+                name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Customer',
+                bookingId: data[0].id,
+                bookingDate: bookingData.booking_date,
+                bookingTime: bookingData.booking_time,
+                barberName: barberData?.name || 'Barber',
+                serviceName: serviceData?.name || 'Service',
+                isGuest: false
+              }
+            });
+            
+            console.log('Confirmation email sent to registered user');
+          } catch (emailError) {
+            console.error('Error sending confirmation email:', emailError);
+            // Don't fail the booking if email sending fails
+          }
         }
+      } catch (emailProcessingError) {
+        console.error('Error in email processing:', emailProcessingError);
+        // Continue with booking success even if there are email issues
       }
       
       toast.success('Booking created successfully!');
