@@ -26,6 +26,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleDateChange = (date: Date) => {
     setCurrentDate(date);
@@ -51,11 +52,23 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     }
   };
 
-  // Handler for drag and drop operations
+  // Handler for drag and drop operations with improved state management
   const handleEventDrop = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
-    // Forward to the parent handler
+    // Forward to the parent handler which will handle UI updates
     onEventDrop(event, newStart, newEnd);
   };
+
+  // Add global event listeners for drag operations
+  React.useEffect(() => {
+    const handleDragEnd = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('dragend', handleDragEnd);
+    return () => {
+      document.removeEventListener('dragend', handleDragEnd);
+    };
+  }, []);
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)] flex flex-col">

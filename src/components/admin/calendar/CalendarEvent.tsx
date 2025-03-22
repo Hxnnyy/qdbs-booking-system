@@ -62,6 +62,10 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent event bubbling
+    
+    // Don't trigger click handler during drag operation
+    if (isDragging) return;
+    
     if (onEventClick) {
       onEventClick(event);
     } else if (onClick) {
@@ -78,7 +82,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       `}
       style={styles}
       onClick={handleClick}
-      draggable={!isLunchBreak && !isHoliday} // Only make regular appointments draggable
+      // We've moved draggable to the parent container
     >
       <div className="font-semibold truncate">
         {isHoliday ? (

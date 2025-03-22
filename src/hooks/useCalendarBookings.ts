@@ -130,14 +130,17 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       
-      // Optimistically update the UI first
-      setCalendarEvents(prev => 
-        prev.map(event => 
+      // Immediately update the UI to prevent duplicate events
+      setCalendarEvents(prev => {
+        // Find and update the specific event that's being moved
+        const updated = prev.map(event => 
           event.id === eventId 
             ? { ...event, start: newStart, end: newEnd }
             : event
-        )
-      );
+        );
+        
+        return updated;
+      });
       
       setIsLoading(true);
       
@@ -219,6 +222,18 @@ export const useCalendarBookings = () => {
       return;
     }
     
+    // Immediately update the UI to prevent duplicate events
+    setCalendarEvents(prev => {
+      const updated = prev.map(e => 
+        e.id === event.id 
+          ? { ...e, start: newStart, end: newEnd }
+          : e
+      );
+      
+      return updated;
+    });
+    
+    // Then update in the database
     updateBookingTime(event.id, newStart, newEnd);
   };
 

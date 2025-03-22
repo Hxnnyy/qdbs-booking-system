@@ -50,7 +50,8 @@ export const DayView: React.FC<CalendarViewProps> = ({
     }
   }, [date, startHour, endHour, autoScrollToCurrentTime]);
 
-  const handleDragStart = (event: CalendarEvent) => {
+  const handleDragStart = (event: CalendarEvent, e: React.DragEvent) => {
+    e.stopPropagation();
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
   };
@@ -92,18 +93,25 @@ export const DayView: React.FC<CalendarViewProps> = ({
       newStart: newStart.toISOString()
     });
 
-    // Immediately update the local displayEvents to prevent duplicate UI issues
-    setDisplayEvents(prev => 
-      prev.map(event => 
-        event.id === draggingEvent.id 
-          ? { ...event, start: newStart, end: newEnd }
-          : event
-      )
-    );
-
+    // We'll let onEventDrop handle the state update to prevent duplication issues
     onEventDrop(draggingEvent, newStart, newEnd);
+    
+    // Reset drag state
     setDraggingEvent(null);
     setDragPreview(null);
+  };
+
+  const handleDragCancel = () => {
+    setDraggingEvent(null);
+    setDragPreview(null);
+  };
+
+  // Handle click on the calendar background to reset drag state
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setDraggingEvent(null);
+      setDragPreview(null);
+    }
   };
 
   const processedEvents = processOverlappingEvents(displayEvents);
@@ -123,7 +131,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
         </div>
       )}
       
-      <div className="calendar-body grid grid-cols-[4rem_1fr]">
+      <div className="calendar-body grid grid-cols-[4rem_1fr]" onClick={handleCalendarClick}>
         <TimeColumn startHour={startHour} totalHours={totalHours} />
         <div 
           className="relative day-column"
@@ -131,6 +139,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
           onDragOver={handleDragOver}
           onDrop={handleDragEnd}
           onDragLeave={() => setDragPreview(null)}
+          onDragExit={handleDragCancel}
         >
           <div className="absolute top-0 left-0 right-0 bottom-0">
             {Array.from({ length: totalHours + 1 }).map((_, index) => (
@@ -183,9 +192,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
               
               return (
                 <div 
-                  key={`event-${event.id}`}
-                  draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
-                  onDragStart={() => handleDragStart(event)}
+                  key={`event-container-${event.id}`}
                   className="absolute w-full"
                   style={{ 
                     top: `${top}px`, 
@@ -193,14 +200,20 @@ export const DayView: React.FC<CalendarViewProps> = ({
                     padding: 0
                   }}
                 >
-                  <CalendarEventComponent 
-                    key={`component-${event.id}`}
-                    event={event} 
-                    onEventClick={onEventClick}
-                    isDragging={false}
-                    slotIndex={slotIndex}
-                    totalSlots={totalSlots}
-                  />
+                  <div
+                    draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
+                    onDragStart={(e) => handleDragStart(event, e)}
+                    className="h-full w-full"
+                  >
+                    <CalendarEventComponent 
+                      key={`event-${event.id}`}
+                      event={event} 
+                      onEventClick={onEventClick}
+                      isDragging={false}
+                      slotIndex={slotIndex}
+                      totalSlots={totalSlots}
+                    />
+                  </div>
                 </div>
               );
             })}

@@ -56,7 +56,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     }
   }, [date, weekDays, startHour, endHour, autoScrollToCurrentTime]);
 
-  const handleDragStart = (event: CalendarEvent) => {
+  const handleDragStart = (event: CalendarEvent, e: React.DragEvent) => {
+    e.stopPropagation();
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
     setDraggingEvent(event);
   };
@@ -106,18 +107,25 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       selectedDate: selectedDate.toISOString()
     });
 
-    // Immediately update the local displayEvents to prevent duplicate UI issues
-    setDisplayEvents(prev => 
-      prev.map(event => 
-        event.id === draggingEvent.id 
-          ? { ...event, start: newStart, end: newEnd }
-          : event
-      )
-    );
-
+    // We'll let onEventDrop handle the state update to prevent duplication issues
     onEventDrop(draggingEvent, newStart, newEnd);
+    
+    // Reset drag state
     setDraggingEvent(null);
     setDragPreview(null);
+  };
+
+  const handleDragCancel = () => {
+    setDraggingEvent(null);
+    setDragPreview(null);
+  };
+
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    // Only reset if clicking directly on the calendar, not on an event
+    if (e.target === e.currentTarget) {
+      setDraggingEvent(null);
+      setDragPreview(null);
+    }
   };
 
   const processedEvents = processOverlappingEvents(displayEvents);
@@ -156,7 +164,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         </div>
       )}
       
-      <div className="calendar-body grid grid-cols-[4rem_repeat(7,1fr)]">
+      <div className="calendar-body grid grid-cols-[4rem_repeat(7,1fr)]" onClick={handleCalendarClick}>
         <TimeColumn startHour={startHour} totalHours={totalHours} />
         
         {weekDays.map((day, dayIndex) => {
@@ -170,6 +178,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
               onDragOver={(e) => handleDragOver(e, dayIndex)}
               onDrop={(e) => handleDragEnd(e, dayIndex)}
               onDragLeave={() => setDragPreview(null)}
+              onDragExit={handleDragCancel}
             >
               {Array.from({ length: totalHours + 1 }).map((_, index) => (
                 <div 
@@ -229,9 +238,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 
                 return (
                   <div 
-                    key={`event-${event.id}-${dayIndex}`}
-                    draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
-                    onDragStart={() => handleDragStart(event)}
+                    key={`event-container-${event.id}-${dayIndex}`}
                     className="absolute w-full"
                     style={{ 
                       top: `${top}px`, 
@@ -239,14 +246,20 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                       padding: 0
                     }}
                   >
-                    <CalendarEventComponent 
-                      key={`component-${event.id}-${dayIndex}`}
-                      event={event} 
-                      onEventClick={onEventClick}
-                      isDragging={false}
-                      slotIndex={slotIndex}
-                      totalSlots={totalSlots}
-                    />
+                    <div
+                      draggable={event.status !== 'lunch-break' && event.status !== 'holiday'}
+                      onDragStart={(e) => handleDragStart(event, e)}
+                      className="h-full w-full"
+                    >
+                      <CalendarEventComponent 
+                        key={`event-${event.id}-${dayIndex}`}
+                        event={event} 
+                        onEventClick={onEventClick}
+                        isDragging={false}
+                        slotIndex={slotIndex}
+                        totalSlots={totalSlots}
+                      />
+                    </div>
                   </div>
                 );
               })}
