@@ -87,7 +87,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     clientPhone,
     isGuest: booking.guest_booking,
     hasProfile: !!booking.profile,
-    profileData: booking.profile
+    profileData: booking.profile,
+    userId: booking.user_id
   });
   
   return (

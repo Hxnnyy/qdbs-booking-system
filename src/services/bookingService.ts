@@ -1,4 +1,3 @@
-
 /**
  * Booking Service
  * 
@@ -244,22 +243,22 @@ export const fetchPaginatedBookings = async (
     
     console.log('Fetching paginated bookings with profile data...');
     
-    // For debugging: First check if we can directly query the profiles table
-    const { data: profilesTest } = await supabase
-      .from('profiles')
-      .select('*')
-      .limit(3);
-    
-    console.log('Profiles test query result:', profilesTest);
-    
-    // Now get the bookings with joined profile data
+    // First get the bookings with all the necessary joins
     const { data, error } = await supabase
       .from('bookings')
       .select(`
-        *,
+        id,
+        user_id,
+        barber_id,
+        service_id,
+        booking_date,
+        booking_time,
+        status,
+        notes,
+        created_at,
+        guest_booking,
         barber:barber_id(name, color),
-        service:service_id(name, price, duration),
-        profile:user_id(first_name, last_name, email, phone, is_admin, is_super_admin)
+        service:service_id(name, price, duration)
       `)
       .order('booking_date', { ascending: false })
       .order('booking_time', { ascending: true })
@@ -269,17 +268,56 @@ export const fetchPaginatedBookings = async (
       throw error;
     }
     
-    console.log('Retrieved bookings data:', data && data.length ? data[0] : 'No data');
+    // Extract all user_ids that are not null and not guest bookings
+    const userIds = data
+      .filter(booking => booking.user_id && !booking.guest_booking)
+      .map(booking => booking.user_id);
     
-    // Debug each booking's profile data
-    if (data && data.length > 0) {
-      data.forEach((booking, index) => {
-        console.log(`Booking ${index} with user_id ${booking.user_id} has profile:`, booking.profile);
-      });
+    console.log(`Found ${userIds.length} registered user bookings. Fetching their profiles...`);
+    
+    // Fetch profile data separately for all user IDs
+    let profilesData = {};
+    if (userIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, phone')
+        .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      } else if (profiles) {
+        // Create a map of user_id to profile data
+        profilesData = profiles.reduce((acc, profile) => {
+          acc[profile.id] = profile;
+          return acc;
+        }, {});
+        
+        console.log(`Retrieved ${profiles.length} profiles from database:`, profilesData);
+      }
     }
     
+    // Attach profile data to each booking
+    const bookingsWithProfiles = data.map(booking => {
+      // If this is a registered user booking, attach the profile
+      if (booking.user_id && !booking.guest_booking && profilesData[booking.user_id]) {
+        return {
+          ...booking,
+          profile: profilesData[booking.user_id]
+        };
+      }
+      return booking;
+    });
+    
+    console.log('Final bookings data with profiles attached:', bookingsWithProfiles.map(b => ({
+      id: b.id,
+      user_id: b.user_id,
+      guest_booking: b.guest_booking,
+      hasProfile: !!b.profile,
+      profileName: b.profile ? `${b.profile.first_name} ${b.profile.last_name}` : null
+    })));
+    
     return {
-      bookings: data || [],
+      bookings: bookingsWithProfiles || [],
       totalCount: count || 0
     };
   } catch (error) {
