@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Service } from '@/supabase-types';
 import { isWithinOpeningHours, isTimeSlotBooked } from '@/utils/bookingUtils';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
+import { hasLunchBreakConflict } from '@/utils/bookingTimeUtils';
 
 /**
  * Check if a time slot overlaps with a lunch break
@@ -23,46 +24,8 @@ export const isLunchBreak = (
   lunchBreaks: any[],
   serviceDuration: number
 ): boolean => {
-  if (!lunchBreaks || lunchBreaks.length === 0) return false;
-  
-  // Only check active lunch breaks
-  const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
-  if (activeLunchBreaks.length === 0) return false;
-
-  const [hours, minutes] = timeSlot.split(':').map(Number);
-  const timeInMinutes = hours * 60 + minutes;
-  const serviceEndMinutes = timeInMinutes + serviceDuration;
-  
-  // Log for debugging
-  console.log(`LUNCH CHECK: Slot starts at ${timeInMinutes} minutes (${timeSlot}), ends at ${serviceEndMinutes} minutes, service duration: ${serviceDuration}min`);
-  
-  for (const breakTime of activeLunchBreaks) {
-    const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
-    const breakStartMinutes = breakHours * 60 + breakMinutes;
-    const breakEndMinutes = breakStartMinutes + breakTime.duration;
-    
-    console.log(`LUNCH DATA: ${breakTime.start_time} (${breakStartMinutes} mins) to ${breakEndMinutes} mins, duration: ${breakTime.duration}min, active: ${breakTime.is_active}`);
-    
-    // Simple overlap check - if any part of the appointment overlaps with any part of the lunch break
-    const hasOverlap = (
-      // Appointment starts during lunch break
-      (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) ||
-      // Appointment ends during lunch break
-      (serviceEndMinutes > breakStartMinutes && serviceEndMinutes <= breakEndMinutes) ||
-      // Appointment completely contains lunch break
-      (timeInMinutes <= breakStartMinutes && serviceEndMinutes >= breakEndMinutes) ||
-      // Lunch break completely contains appointment
-      (timeInMinutes >= breakStartMinutes && serviceEndMinutes <= breakEndMinutes)
-    );
-    
-    // Log for debugging
-    if (hasOverlap) {
-      console.log(`⛔ OVERLAP DETECTED: ${timeSlot} with service duration ${serviceDuration}min overlaps with lunch break at ${breakTime.start_time} for ${breakTime.duration}min`);
-      return true;
-    }
-  }
-  
-  return false;
+  // Use the more reliable function from bookingTimeUtils
+  return hasLunchBreakConflict(timeSlot, lunchBreaks, serviceDuration);
 };
 
 /**
@@ -136,20 +99,24 @@ export const filterAvailableTimeSlots = (
   console.log(`Service duration: ${serviceDuration} minutes`);
   
   if (lunchBreaks && lunchBreaks.length > 0) {
-    console.log("Active lunch breaks:");
-    lunchBreaks.filter(b => b.is_active).forEach(b => {
-      console.log(`- ${b.start_time} for ${b.duration} minutes`);
-    });
+    const activeLunchBreaks = lunchBreaks.filter(b => b.is_active);
+    console.log("Active lunch breaks:", activeLunchBreaks);
   }
   
   for (const slot of possibleSlots) {
+    // Create a simplified booking check that treats lunch breaks as bookings
     const isBooked = isTimeSlotBooked(
       slot.time, 
       { duration: serviceDuration } as any, 
       existingBookings
     );
     
-    const isOnLunchBreak = isLunchBreak(slot.time, lunchBreaks, serviceDuration);
+    // Separate lunch break check
+    const isOnLunchBreak = hasLunchBreakConflict(
+      slot.time, 
+      lunchBreaks, 
+      serviceDuration
+    );
     
     if (isOnLunchBreak) {
       console.log(`❌ Slot ${slot.time} is during lunch break, skipping`);

@@ -20,6 +20,7 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ time, selected, onClick, disabled =
       disabled={disabled}
       data-time={time}
       data-testid={`time-slot-${time}`}
+      data-selected={isSelected}
     >
       {time}
     </button>

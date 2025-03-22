@@ -51,3 +51,47 @@ export const formatBookingDateTime = (date: string, time: string): string => {
     return `${date} at ${time}`;
   }
 };
+
+/**
+ * Check if a time slot has a lunch break conflict
+ * 
+ * @param timeSlot - Time slot string in "HH:MM" format
+ * @param lunchBreaks - Array of lunch break objects
+ * @param serviceDuration - Duration of the service in minutes
+ * @returns Boolean indicating if there's a lunch break conflict
+ */
+export const hasLunchBreakConflict = (
+  timeSlot: string, 
+  lunchBreaks: any[], 
+  serviceDuration: number
+): boolean => {
+  if (!lunchBreaks || lunchBreaks.length === 0) return false;
+  
+  // Only consider active lunch breaks
+  const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
+  if (activeLunchBreaks.length === 0) return false;
+  
+  // Convert time slot to minutes for easier comparison
+  const [hours, minutes] = timeSlot.split(':').map(Number);
+  const timeInMinutes = hours * 60 + minutes;
+  
+  // Calculate end time of the appointment in minutes
+  const endTimeInMinutes = timeInMinutes + serviceDuration;
+  
+  // Check against each lunch break
+  for (const lunch of activeLunchBreaks) {
+    // Convert lunch break time to minutes
+    const [lunchHours, lunchMinutes] = lunch.start_time.split(':').map(Number);
+    const lunchStartMinutes = lunchHours * 60 + lunchMinutes;
+    const lunchEndMinutes = lunchStartMinutes + lunch.duration;
+    
+    // Check for overlap using the simplest logic:
+    // If the appointment starts before lunch ends AND appointment ends after lunch starts,
+    // then there's an overlap
+    if (timeInMinutes < lunchEndMinutes && endTimeInMinutes > lunchStartMinutes) {
+      return true;
+    }
+  }
+  
+  return false;
+};

@@ -4,7 +4,7 @@ import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isSameDay } from 'date-fns';
-import { isLunchBreak } from '@/utils/timeSlotUtils';
+import { getNoTimeSlotsMessage } from '@/utils/bookingTimeUtils';
 
 interface TimeSlotsGridProps {
   selectedDate: Date | undefined;
@@ -29,7 +29,6 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
 }) => {
   // Use the filtered time slots directly from the hook
   const timeSlots = availableTimeSlots || [];
-  const [lunchBreakTimes, setLunchBreakTimes] = useState<string[]>([]);
 
   // Clear the selected time if it's now in the past or no longer available
   useEffect(() => {
@@ -76,17 +75,12 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     return (
       <div className="text-center p-4 border rounded-md bg-muted">
         <p className="text-muted-foreground">
-          {selectedDate && isSameDay(selectedDate, new Date()) && isTimeSlotInPast(selectedDate, '23:59') ? 
-            "No more available time slots for today." : 
-            "No available time slots for this date."}
+          {getNoTimeSlotsMessage(selectedDate)}
         </p>
         <p className="text-sm mt-2">Please select another date or barber.</p>
       </div>
     );
   }
-
-  // Log the time slots that are being displayed
-  console.log('Time slots being displayed in grid:', timeSlots);
 
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">

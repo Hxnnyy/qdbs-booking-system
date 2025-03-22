@@ -72,3 +72,17 @@ export interface PaginatedResponse<T> {
   /** Total number of pages */
   totalPages: number;
 }
+
+/**
+ * Time slot properties
+ */
+export interface TimeSlotProps {
+  /** Time string in "HH:MM" format */
+  time: string;
+  /** Whether this time slot is selected */
+  selected: boolean | string;
+  /** Click handler for the time slot */
+  onClick: () => void;
+  /** Whether this time slot is disabled */
+  disabled?: boolean;
+}

@@ -11,19 +11,7 @@ import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
 import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
-import { isLunchBreak } from '@/utils/timeSlotUtils';
-
-/**
- * Create a "fake booking" from a lunch break to use with existing booking filtering logic
- */
-const createFakeLunchBooking = (lunchBreak: any) => {
-  return {
-    booking_time: lunchBreak.start_time,
-    services: {
-      duration: lunchBreak.duration
-    }
-  };
-};
+import { hasLunchBreakConflict } from '@/utils/bookingTimeUtils';
 
 /**
  * Custom hook to calculate available time slots for a barber on a specific date
@@ -64,11 +52,10 @@ export const useTimeSlots = (
       console.log(`Fetching lunch breaks for barber ${selectedBarberId}`);
       try {
         const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-        console.log(`LUNCH BREAKS FETCHED:`, lunchBreaks);
+        console.log(`Lunch breaks fetched for barber ${selectedBarberId}:`, lunchBreaks);
         setCachedLunchBreaks(lunchBreaks);
       } catch (err) {
         console.error("Error fetching lunch breaks:", err);
-        // Don't block the flow on lunch break fetch errors
         setCachedLunchBreaks([]);
       }
     };
@@ -76,7 +63,7 @@ export const useTimeSlots = (
     loadLunchBreaks();
   }, [selectedBarberId]);
 
-  // The main calculation function, optimized
+  // The main calculation function
   const calculateAvailableTimeSlots = useCallback(async () => {
     if (!selectedDate || !selectedBarberId || !selectedService) {
       setTimeSlots([]);
@@ -124,37 +111,41 @@ export const useTimeSlots = (
         try {
           lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
           setCachedLunchBreaks(lunchBreaks);
-          console.log("LUNCH BREAKS FETCHED IN CALCULATION:", lunchBreaks);
+          console.log("Lunch breaks fetched during calculation:", lunchBreaks);
         } catch (err) {
           console.error("Error fetching lunch breaks:", err);
-          // Don't block on lunch break fetch errors
           lunchBreaks = [];
         }
       }
       
-      // Create combined bookings by treating lunch breaks as bookings
+      // Check if any lunch breaks are active
+      const activeLunchBreaks = lunchBreaks?.filter(lb => lb.is_active) || [];
+      console.log(`Active lunch breaks: ${activeLunchBreaks.length}`);
+      
+      // Create fake bookings from lunch breaks to simplify our logic
       const combinedBookings = [...existingBookings];
       
-      // Only add active lunch breaks
-      if (lunchBreaks && lunchBreaks.length > 0) {
-        const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
-        console.log(`Adding ${activeLunchBreaks.length} lunch breaks as fake bookings`);
-        
-        activeLunchBreaks.forEach(lunchBreak => {
-          const fakeBooking = createFakeLunchBooking(lunchBreak);
+      // Add lunch breaks as fake bookings
+      if (activeLunchBreaks.length > 0) {
+        activeLunchBreaks.forEach(lunch => {
+          const fakeBooking = {
+            booking_time: lunch.start_time,
+            services: {
+              duration: lunch.duration
+            }
+          };
           combinedBookings.push(fakeBooking);
-          console.log(`Added lunch break at ${lunchBreak.start_time} for ${lunchBreak.duration}min as a booking`);
+          console.log(`Added lunch break at ${lunch.start_time} for ${lunch.duration}min as a booking`);
         });
       }
       
-      // Fetch all possible time slots
-      console.log(`Fetching time slots from service with duration: ${selectedService.duration}`);
+      // Fetch time slots
       const fetchedTimeSlots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
         selectedService.duration,
-        combinedBookings, // Use the combined bookings list
-        [] // Empty lunch breaks since we're treating them as bookings already
+        combinedBookings,
+        lunchBreaks
       );
       
       console.log(`Initial time slots (${fetchedTimeSlots.length}):`, fetchedTimeSlots);
