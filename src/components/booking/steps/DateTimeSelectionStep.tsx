@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
@@ -7,6 +7,7 @@ import { BookingStepProps } from '@/types/booking';
 import { Spinner } from '@/components/ui/spinner';
 import TimeSlotsGrid from '../TimeSlotsGrid';
 import { CalendarEvent } from '@/types/calendar';
+import { fetchBarberLunchBreaks } from '@/services/timeSlotService';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
@@ -41,6 +42,27 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   selectedBarberId,
   serviceDuration
 }) => {
+  const [lunchBreaks, setLunchBreaks] = useState<any[]>([]);
+  const [loadingLunchBreaks, setLoadingLunchBreaks] = useState(false);
+
+  // Fetch lunch breaks when barber changes
+  useEffect(() => {
+    if (selectedBarberId) {
+      setLoadingLunchBreaks(true);
+      fetchBarberLunchBreaks(selectedBarberId)
+        .then(breaks => {
+          setLunchBreaks(breaks);
+          console.log('Lunch breaks loaded in DateTimeSelectionStep:', breaks);
+        })
+        .catch(err => {
+          console.error('Error loading lunch breaks:', err);
+        })
+        .finally(() => {
+          setLoadingLunchBreaks(false);
+        });
+    }
+  }, [selectedBarberId]);
+
   const handleRetry = () => {
     // Re-trigger the date selection to refresh time slots
     if (onRetry) {
@@ -99,7 +121,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
                 selectedTime={selectedTime}
                 setSelectedTime={setSelectedTime}
                 availableTimeSlots={availableTimeSlots}
-                isLoading={isLoadingTimeSlots}
+                isLoading={isLoadingTimeSlots || loadingLunchBreaks}
                 error={null}
                 selectedBarberId={selectedBarberId}
                 serviceDuration={serviceDuration}

@@ -14,6 +14,18 @@ import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability }
 import { isLunchBreak } from '@/utils/timeSlotUtils';
 
 /**
+ * Create a "fake booking" from a lunch break to use with existing booking filtering logic
+ */
+const createFakeLunchBooking = (lunchBreak: any) => {
+  return {
+    booking_time: lunchBreak.start_time,
+    services: {
+      duration: lunchBreak.duration
+    }
+  };
+};
+
+/**
  * Custom hook to calculate available time slots for a barber on a specific date
  * 
  * @param selectedDate - The selected date
@@ -120,40 +132,35 @@ export const useTimeSlots = (
         }
       }
       
+      // Create combined bookings by treating lunch breaks as bookings
+      const combinedBookings = [...existingBookings];
+      
+      // Only add active lunch breaks
+      if (lunchBreaks && lunchBreaks.length > 0) {
+        const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
+        console.log(`Adding ${activeLunchBreaks.length} lunch breaks as fake bookings`);
+        
+        activeLunchBreaks.forEach(lunchBreak => {
+          const fakeBooking = createFakeLunchBooking(lunchBreak);
+          combinedBookings.push(fakeBooking);
+          console.log(`Added lunch break at ${lunchBreak.start_time} for ${lunchBreak.duration}min as a booking`);
+        });
+      }
+      
       // Fetch all possible time slots
       console.log(`Fetching time slots from service with duration: ${selectedService.duration}`);
       const fetchedTimeSlots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
         selectedService.duration,
-        existingBookings,
-        lunchBreaks || []
+        combinedBookings, // Use the combined bookings list
+        [] // Empty lunch breaks since we're treating them as bookings already
       );
       
       console.log(`Initial time slots (${fetchedTimeSlots.length}):`, fetchedTimeSlots);
       
-      // Critical: Additional manual filtering for lunch breaks directly in the hook
-      // This is a redundant check to ensure no lunch break slots slip through
-      const manuallyFilteredSlots = fetchedTimeSlots.filter(timeSlot => {
-        // Check if the time slot is during a lunch break
-        const hasLunchBreak = isLunchBreak(
-          timeSlot,
-          lunchBreaks || [],
-          selectedService.duration
-        );
-        
-        if (hasLunchBreak) {
-          console.log(`FINAL FILTER: Removing ${timeSlot} due to lunch break overlap in useTimeSlots hook`);
-          return false;
-        }
-        
-        return true;
-      });
-      
-      console.log(`After lunch break filtering (${manuallyFilteredSlots.length}):`, manuallyFilteredSlots);
-      
       // Filter out time slots that are in the past (for today only)
-      const finalSlots = manuallyFilteredSlots.filter(
+      const finalSlots = fetchedTimeSlots.filter(
         timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
       );
       

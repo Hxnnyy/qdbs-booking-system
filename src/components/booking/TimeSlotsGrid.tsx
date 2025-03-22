@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
@@ -29,6 +29,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
 }) => {
   // Use the filtered time slots directly from the hook
   const timeSlots = availableTimeSlots || [];
+  const [lunchBreakTimes, setLunchBreakTimes] = useState<string[]>([]);
 
   // Clear the selected time if it's now in the past or no longer available
   useEffect(() => {

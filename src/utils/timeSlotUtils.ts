@@ -1,3 +1,4 @@
+
 /**
  * Time Slot Utilities
  * 
@@ -24,6 +25,10 @@ export const isLunchBreak = (
 ): boolean => {
   if (!lunchBreaks || lunchBreaks.length === 0) return false;
   
+  // Only check active lunch breaks
+  const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
+  if (activeLunchBreaks.length === 0) return false;
+
   const [hours, minutes] = timeSlot.split(':').map(Number);
   const timeInMinutes = hours * 60 + minutes;
   const serviceEndMinutes = timeInMinutes + serviceDuration;
@@ -31,27 +36,28 @@ export const isLunchBreak = (
   // Log for debugging
   console.log(`LUNCH CHECK: Slot starts at ${timeInMinutes} minutes (${timeSlot}), ends at ${serviceEndMinutes} minutes, service duration: ${serviceDuration}min`);
   
-  for (const breakTime of lunchBreaks) {
-    if (!breakTime.is_active) continue;
-    
+  for (const breakTime of activeLunchBreaks) {
     const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
     const breakStartMinutes = breakHours * 60 + breakMinutes;
     const breakEndMinutes = breakStartMinutes + breakTime.duration;
     
     console.log(`LUNCH DATA: ${breakTime.start_time} (${breakStartMinutes} mins) to ${breakEndMinutes} mins, duration: ${breakTime.duration}min, active: ${breakTime.is_active}`);
     
-    // Improved overlap check with explicit conditions
-    const slotStartsDuringBreak = timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes;
-    const slotEndsDuringBreak = serviceEndMinutes > breakStartMinutes && serviceEndMinutes <= breakEndMinutes;
-    const slotContainsBreak = timeInMinutes < breakStartMinutes && serviceEndMinutes > breakEndMinutes;
-    const breakContainsSlot = timeInMinutes >= breakStartMinutes && serviceEndMinutes <= breakEndMinutes;
-    
-    const hasOverlap = slotStartsDuringBreak || slotEndsDuringBreak || slotContainsBreak || breakContainsSlot;
+    // Simple overlap check - if any part of the appointment overlaps with any part of the lunch break
+    const hasOverlap = (
+      // Appointment starts during lunch break
+      (timeInMinutes >= breakStartMinutes && timeInMinutes < breakEndMinutes) ||
+      // Appointment ends during lunch break
+      (serviceEndMinutes > breakStartMinutes && serviceEndMinutes <= breakEndMinutes) ||
+      // Appointment completely contains lunch break
+      (timeInMinutes <= breakStartMinutes && serviceEndMinutes >= breakEndMinutes) ||
+      // Lunch break completely contains appointment
+      (timeInMinutes >= breakStartMinutes && serviceEndMinutes <= breakEndMinutes)
+    );
     
     // Log for debugging
     if (hasOverlap) {
       console.log(`⛔ OVERLAP DETECTED: ${timeSlot} with service duration ${serviceDuration}min overlaps with lunch break at ${breakTime.start_time} for ${breakTime.duration}min`);
-      console.log(`Overlap reasons: StartsDuring=${slotStartsDuringBreak}, EndsDuring=${slotEndsDuringBreak}, Contains=${slotContainsBreak}, ContainedBy=${breakContainsSlot}`);
       return true;
     }
   }
@@ -147,9 +153,10 @@ export const filterAvailableTimeSlots = (
     
     if (isOnLunchBreak) {
       console.log(`❌ Slot ${slot.time} is during lunch break, skipping`);
+      continue;
     }
     
-    if (!isBooked && !isOnLunchBreak) {
+    if (!isBooked) {
       availableSlots.push(slot.time);
     }
   }
