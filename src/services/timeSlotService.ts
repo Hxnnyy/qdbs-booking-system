@@ -26,7 +26,7 @@ export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> =
       .eq('is_active', true);
       
     if (error) throw error;
-    console.log(`Fetched ${data?.length || 0} lunch breaks for barber ${barberId}`);
+    console.log(`Fetched ${data?.length || 0} lunch breaks for barber ${barberId}`, data);
     return data || [];
   } catch (err) {
     console.error('Error fetching lunch breaks:', err);
@@ -49,7 +49,11 @@ export const isLunchBreakOverlap = (
   lunchBreaks: any[],
   serviceDuration: number
 ): boolean => {
-  if (!lunchBreaks.length) return false;
+  if (!lunchBreaks || !lunchBreaks.length) {
+    return false;
+  }
+  
+  console.log(`Checking lunch break overlap for ${timeSlot} with duration ${serviceDuration}min`);
   
   const [hours, minutes] = timeSlot.split(':').map(Number);
   const slotStart = new Date(date);
@@ -58,8 +62,12 @@ export const isLunchBreakOverlap = (
   const slotEnd = new Date(slotStart);
   slotEnd.setMinutes(slotEnd.getMinutes() + serviceDuration);
   
-  return lunchBreaks.some(lunch => {
-    if (!lunch.is_active) return false;
+  // Log the active lunch breaks for debugging
+  const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
+  console.log(`Active lunch breaks:`, activeLunchBreaks);
+  
+  for (const lunch of lunchBreaks) {
+    if (!lunch.is_active) continue;
     
     const [lunchHours, lunchMinutes] = lunch.start_time.split(':').map(Number);
     const lunchStart = new Date(date);
@@ -70,18 +78,22 @@ export const isLunchBreakOverlap = (
     
     // Check for any overlap between the service time slot and the lunch break
     const hasOverlap = (
-      (slotStart < lunchEnd && slotEnd > lunchStart) ||
-      (slotStart.getTime() === lunchStart.getTime())
+      (slotStart < lunchEnd && slotEnd > lunchStart)
     );
     
-    if (hasOverlap) {
-      console.log(`Lunch break overlap detected: 
-        Slot: ${timeSlot}-${serviceDuration}min, 
-        Lunch: ${lunch.start_time}-${lunch.duration}min`);
-    }
+    // Log the calculation for debugging
+    console.log(`Lunch break: ${lunch.start_time} for ${lunch.duration}min`);
+    console.log(`Service: ${timeSlot} for ${serviceDuration}min`);
+    console.log(`Service slot: ${slotStart.toTimeString()} - ${slotEnd.toTimeString()}`);
+    console.log(`Lunch break: ${lunchStart.toTimeString()} - ${lunchEnd.toTimeString()}`);
+    console.log(`Overlap: ${hasOverlap ? 'YES' : 'NO'}`);
     
-    return hasOverlap;
-  });
+    if (hasOverlap) {
+      return true;
+    }
+  }
+  
+  return false;
 };
 
 /**
@@ -110,7 +122,7 @@ export const fetchBarberTimeSlots = async (
       .eq('barber_id', barberId)
       .eq('day_of_week', dayOfWeek)
       .maybeSingle();
-    
+      
     if (error) {
       throw error;
     }

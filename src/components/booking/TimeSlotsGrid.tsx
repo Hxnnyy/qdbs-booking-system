@@ -22,10 +22,8 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   isLoading,
   error
 }) => {
-  // Filter time slots to prevent booking in the past for today
-  const filteredTimeSlots = selectedDate ? 
-    availableTimeSlots.filter(time => !isTimeSlotInPast(selectedDate, time)) : 
-    [];
+  // Use the filtered time slots directly from the hook
+  const filteredTimeSlots = availableTimeSlots || [];
 
   // Clear the selected time if it's now in the past or no longer available
   useEffect(() => {
@@ -72,6 +70,9 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
       </div>
     );
   }
+
+  // Log the time slots that are being displayed
+  console.log('Time slots being displayed in grid:', filteredTimeSlots);
 
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">

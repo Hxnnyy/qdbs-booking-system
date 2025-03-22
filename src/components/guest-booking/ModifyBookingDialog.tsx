@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { addDays, isAfter, isBefore, addMonths } from 'date-fns';
@@ -134,17 +133,12 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     setCalendarPopoverOpen(false);
   };
 
-  // Filter available time slots to prevent booking in the past for today
-  const filteredTimeSlots = newBookingDate ? 
-    availableTimeSlots.filter(time => !isTimeSlotInPast(newBookingDate, time)) : 
-    [];
-
-  // Clear selected time if it becomes invalid
+  // Log available time slots for debugging
   useEffect(() => {
-    if (newBookingDate && newBookingTime && isTimeSlotInPast(newBookingDate, newBookingTime)) {
-      onTimeSelection('');
+    if (availableTimeSlots) {
+      console.log('Available time slots in ModifyBookingDialog:', availableTimeSlots);
     }
-  }, [newBookingDate, newBookingTime, onTimeSelection]);
+  }, [availableTimeSlots]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -230,7 +224,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </Button>
           <Button 
             onClick={onModifyBooking} 
-            disabled={isModifying || !newBookingDate || !newBookingTime || filteredTimeSlots.length === 0}
+            disabled={isModifying || !newBookingDate || !newBookingTime || availableTimeSlots.length === 0}
             className="bg-burgundy hover:bg-burgundy-light"
           >
             {isModifying ? (

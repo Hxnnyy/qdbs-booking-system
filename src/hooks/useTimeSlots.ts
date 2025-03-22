@@ -37,17 +37,25 @@ export const useTimeSlots = (
   // Cache to avoid recalculation
   const calculationCache = useRef<Map<string, string[]>>(new Map());
   
+  // Clear cache when barber or service changes
+  useEffect(() => {
+    calculationCache.current.clear();
+    setCachedLunchBreaks(null);
+  }, [selectedBarberId, selectedService?.id]);
+  
   // Pre-fetch lunch breaks for this barber
   useEffect(() => {
-    if (!selectedBarberId || cachedLunchBreaks !== null) return;
+    if (!selectedBarberId) return;
     
     const loadLunchBreaks = async () => {
+      console.log(`Fetching lunch breaks for barber ${selectedBarberId}`);
       const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+      console.log(`Fetched lunch breaks:`, lunchBreaks);
       setCachedLunchBreaks(lunchBreaks);
     };
     
     loadLunchBreaks();
-  }, [selectedBarberId, cachedLunchBreaks]);
+  }, [selectedBarberId]);
 
   // The main calculation function, optimized
   const calculateAvailableTimeSlots = useCallback(async () => {
@@ -66,12 +74,15 @@ export const useTimeSlots = (
     // Check if we have cached results
     if (calculationCache.current.has(cacheKey)) {
       const cachedResult = calculationCache.current.get(cacheKey) || [];
+      console.log(`Using cached time slots: ${cachedResult.length} slots`);
       setTimeSlots(cachedResult);
       setIsCalculating(false);
       return;
     }
     
     try {
+      console.log(`Calculating time slots for date: ${selectedDate.toISOString()}, barber: ${selectedBarberId}, service: ${selectedService.name}`);
+      
       // Check barber availability for the selected date
       const { isAvailable, errorMessage } = checkBarberAvailability(
         selectedDate, 
@@ -85,6 +96,8 @@ export const useTimeSlots = (
         return;
       }
       
+      // Fetch all possible time slots
+      console.log(`Fetching time slots from service with duration: ${selectedService.duration}`);
       const slots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
@@ -92,22 +105,34 @@ export const useTimeSlots = (
         existingBookings,
         cachedLunchBreaks || []
       );
-
+      
+      console.log(`Initial time slots (${slots.length}):`, slots);
+      
       // Filter out slots that overlap with lunch breaks
       const filteredSlots = slots.filter(timeSlot => {
+        // Check if this time slot overlaps with any lunch break
         const hasLunchBreakOverlap = isLunchBreakOverlap(
           timeSlot,
           selectedDate,
           cachedLunchBreaks || [],
           selectedService.duration
         );
+        
+        if (hasLunchBreakOverlap) {
+          console.log(`Filtering out time slot ${timeSlot} due to lunch break overlap`);
+        }
+        
         return !hasLunchBreakOverlap;
       });
+      
+      console.log(`After lunch break filtering (${filteredSlots.length}):`, filteredSlots);
       
       // Filter out time slots that are in the past (for today only)
       const finalSlots = filteredSlots.filter(
         timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
       );
+      
+      console.log(`Final available time slots (${finalSlots.length}):`, finalSlots);
       
       // Cache the result
       calculationCache.current.set(cacheKey, finalSlots);
@@ -122,18 +147,28 @@ export const useTimeSlots = (
     }
   }, [selectedDate, selectedBarberId, selectedService, existingBookings, calendarEvents, cachedLunchBreaks]);
 
+  // Recalculate when dependencies change
   useEffect(() => {
     calculateAvailableTimeSlots();
   }, [calculateAvailableTimeSlots]);
+
+  // Provide a method to force recalculation
+  const recalculate = useCallback(() => {
+    // Clear the cache for the current parameters
+    if (selectedDate && selectedBarberId && selectedService) {
+      const cacheKey = `${selectedDate.toISOString()}_${selectedBarberId}_${selectedService.id}`;
+      calculationCache.current.delete(cacheKey);
+    }
+    calculateAvailableTimeSlots();
+  }, [selectedDate, selectedBarberId, selectedService, calculateAvailableTimeSlots]);
 
   return {
     timeSlots,
     isCalculating,
     error,
-    recalculate: calculateAvailableTimeSlots
+    recalculate
   };
 };
 
 // Export for compatibility with existing code
 export { fetchBarberTimeSlots } from '@/services/timeSlotService';
-
