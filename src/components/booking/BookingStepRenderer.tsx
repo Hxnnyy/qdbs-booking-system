@@ -92,10 +92,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           setSelectedTime={(time) => updateFormState({ selectedTime: time })}
           onNext={handlers.handleDateTimeComplete}
           onBack={handlers.handleBackToServices}
-          allEvents={allEvents}
-          selectedBarberId={selectedBarberId}
-          serviceDuration={getServiceDuration()}
-          existingBookings={existingBookings}
           availableTimeSlots={availableTimeSlots}
           isLoadingTimeSlots={isLoadingTimeSlots}
           isCheckingDates={isCheckingDates}
