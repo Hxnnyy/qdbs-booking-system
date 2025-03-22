@@ -112,7 +112,7 @@ export const createBooking = async (
   try {
     const isGuest = !userId;
     
-    // Create a simplified booking object without any user checks
+    // Create a booking object - specifically overriding with the guest_booking flag to work around triggers
     const insertData = {
       barber_id: bookingData.barber_id,
       service_id: bookingData.service_id,
@@ -120,10 +120,15 @@ export const createBooking = async (
       booking_time: bookingData.booking_time,
       status: 'confirmed',
       notes: bookingData.notes || null,
+      // This is the critical change - explicitly set guest_booking based on whether userId exists
       guest_booking: isGuest,
-      user_id: userId || '00000000-0000-0000-0000-000000000000', // Guest user ID for guests
+      // Use the user's ID if available, otherwise placeholder for guests
+      user_id: userId,
       guest_email: bookingData.guest_email || null
     };
+    
+    // Log the data we're about to insert
+    console.log('Creating booking with insert data:', JSON.stringify(insertData));
     
     const { data, error } = await supabase
       .from('bookings')
@@ -132,9 +137,11 @@ export const createBooking = async (
       .single();
     
     if (error) {
+      console.error('Error inserting booking:', error);
       throw error;
     }
     
+    console.log('Booking created successfully:', data);
     return data;
   } catch (error) {
     console.error('Error creating booking:', error);

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -20,7 +21,7 @@ export const useBookings = () => {
         throw new Error('You must be logged in to book an appointment');
       }
 
-      // Create a booking record but DO NOT create/check any user records in users table
+      // Create a simplified booking record with user_id from auth context
       const bookingRecord = {
         barber_id: bookingData.barber_id,
         service_id: bookingData.service_id,
@@ -29,12 +30,13 @@ export const useBookings = () => {
         user_id: user.id,
         status: 'confirmed',
         notes: bookingData.notes || null,
+        // Explicitly set guest_booking to false to ensure trigger works correctly
         guest_booking: false
       };
 
       console.log('Creating booking with data:', bookingRecord);
 
-      // Insert the booking directly - without any checks on the users table
+      // Insert the booking
       const { data, error: insertError } = await supabase
         .from('bookings')
         .insert([bookingRecord])
@@ -49,22 +51,7 @@ export const useBookings = () => {
       
       // Try to send confirmation email but don't fail the booking if it fails
       try {
-        // Get profile data from profiles table only
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('email, first_name, last_name')
-          .eq('id', user.id)
-          .single();
-        
-        if (profileError) {
-          console.error('Error fetching profile data:', profileError);
-        } else if (profileData && profileData.email) {
-          await sendBookingConfirmationEmail(
-            profileData, 
-            bookingData, 
-            data[0].id
-          );
-        }
+        await sendBookingConfirmationEmail(user.id, bookingData, data[0].id);
       } catch (emailProcessingError) {
         console.error('Error in email processing:', emailProcessingError);
         // Continue with booking success even if there are email issues
@@ -84,11 +71,23 @@ export const useBookings = () => {
 
   // Helper function to send booking confirmation email
   const sendBookingConfirmationEmail = async (
-    profileData: { email: string; first_name?: string; last_name?: string },
+    userId: string,
     bookingData: any,
     bookingId: string
   ) => {
     try {
+      // Get profile data from profiles table only
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('email, first_name, last_name')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) {
+        console.error('Error fetching profile data:', profileError);
+        return; // Return early but don't fail
+      }
+        
       // Get barber and service names for the confirmation email
       const { data: barberData } = await supabase
         .from('barbers')
@@ -101,22 +100,24 @@ export const useBookings = () => {
         .select('name')
         .eq('id', bookingData.service_id)
         .single();
-        
-      // Send confirmation email
-      await supabase.functions.invoke('send-booking-email', {
-        body: {
-          to: profileData.email,
-          name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Customer',
-          bookingId: bookingId,
-          bookingDate: bookingData.booking_date,
-          bookingTime: bookingData.booking_time,
-          barberName: barberData?.name || 'Barber',
-          serviceName: serviceData?.name || 'Service',
-          isGuest: false
-        }
-      });
       
-      console.log('Confirmation email sent to registered user');
+      if (profileData && profileData.email) {
+        // Send confirmation email
+        await supabase.functions.invoke('send-booking-email', {
+          body: {
+            to: profileData.email,
+            name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Customer',
+            bookingId: bookingId,
+            bookingDate: bookingData.booking_date,
+            bookingTime: bookingData.booking_time,
+            barberName: barberData?.name || 'Barber',
+            serviceName: serviceData?.name || 'Service',
+            isGuest: false
+          }
+        });
+        
+        console.log('Confirmation email sent to registered user');
+      }
     } catch (emailError) {
       console.error('Error sending confirmation email:', emailError);
       // Don't fail the booking if email sending fails
