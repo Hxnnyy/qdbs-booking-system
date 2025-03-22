@@ -47,7 +47,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       // Upload file to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('barber_images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
       
       if (uploadError) {
         throw uploadError;
@@ -57,6 +60,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       const { data: { publicUrl } } = supabase.storage
         .from('barber_images')
         .getPublicUrl(filePath);
+      
+      console.log("Image uploaded successfully, public URL:", publicUrl);
       
       // Return the public URL to parent component
       onImageUploaded(publicUrl);
