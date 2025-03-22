@@ -47,10 +47,10 @@ export const isTimeSlotBooked = (
 
 export const getStepTitle = (step: string): string => {
   switch (step) {
-    case 'service':
-      return 'Select a Service';
     case 'barber':
       return 'Choose Your Barber';
+    case 'service':
+      return 'Select a Service';
     case 'datetime':
       return 'Pick Date & Time';
     case 'guest-info':

@@ -19,7 +19,6 @@ interface BookingStepRendererProps {
   barbers: Barber[];
   services: Service[];
   barberServices: Service[];
-  serviceBarbers?: Barber[];
   existingBookings: any[];
   bookingLoading: boolean;
   bookingResult: BookingResult | null;
@@ -31,7 +30,6 @@ interface BookingStepRendererProps {
   isCheckingDates: boolean;
   isDateDisabled: (date: Date) => boolean;
   timeSlotError?: string | null;
-  onRetry?: () => void;  // Added onRetry as an optional prop
 }
 
 const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
@@ -41,7 +39,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   barbers,
   services,
   barberServices,
-  serviceBarbers = [],
   existingBookings,
   bookingLoading,
   bookingResult,
@@ -52,8 +49,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   isLoadingTimeSlots = false,
   isCheckingDates = false,
   isDateDisabled = () => false,
-  timeSlotError = null,
-  onRetry
+  timeSlotError = null
 }) => {
   // Get the selected service duration
   const getServiceDuration = (): number => {
@@ -70,20 +66,20 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
   };
 
   switch (step) {
-    case 'service':
-      return (
-        <ServiceSelectionStep
-          services={services}
-          onSelectService={handlers.handleSelectService}
-          onNext={() => {}}
-        />
-      );
     case 'barber':
       return (
         <BarberSelectionStep
-          barbers={serviceBarbers.length > 0 ? serviceBarbers : barbers}
+          barbers={barbers}
           onSelectBarber={handlers.handleSelectBarber}
-          onBack={handlers.handleBackToServices}
+          onNext={() => {}}
+        />
+      );
+    case 'service':
+      return (
+        <ServiceSelectionStep
+          services={barberServices}
+          onSelectService={handlers.handleSelectService}
+          onBack={handlers.handleBackToBarbers}
           onNext={() => {}}
         />
       );
@@ -95,7 +91,7 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           selectedTime={formState.selectedTime}
           setSelectedTime={(time) => updateFormState({ selectedTime: time })}
           onNext={handlers.handleDateTimeComplete}
-          onBack={handlers.handleBackToBarbers}
+          onBack={handlers.handleBackToServices}
           allEvents={allEvents}
           selectedBarberId={selectedBarberId}
           serviceDuration={getServiceDuration()}
@@ -105,7 +101,6 @@ const BookingStepRenderer: React.FC<BookingStepRendererProps> = ({
           isCheckingDates={isCheckingDates}
           isDateDisabled={isDateDisabled}
           timeSlotError={timeSlotError}
-          onRetry={onRetry}  // Pass the onRetry prop to DateTimeSelectionStep
         />
       );
     case 'guest-info':

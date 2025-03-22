@@ -8,7 +8,8 @@ import { Service } from '@/supabase-types';
 import BookingStepRenderer from './BookingStepRenderer';
 import { useBookingWorkflow } from '@/hooks/useBookingWorkflow';
 import { CalendarEvent } from '@/types/calendar';
-import { useAvailability } from '@/hooks/useAvailability';
+import { useTimeSlots } from '@/hooks/useTimeSlots';
+import { useDateAvailability } from '@/hooks/useDateAvailability';
 
 interface GuestBookingWorkflowProps {
   barbers: Barber[];
@@ -16,18 +17,16 @@ interface GuestBookingWorkflowProps {
   formState: BookingFormState;
   updateFormState: (updates: Partial<BookingFormState>) => void;
   barberServices: Service[];
-  serviceBarbers: Barber[];
   existingBookings: any[];
   isLoading: boolean;
   fetchBarberServices: (barberId: string) => Promise<void>;
-  fetchBarbersForService: (serviceId: string) => Promise<void>;
   calendarEvents?: CalendarEvent[];
 }
 
 /**
  * GuestBookingWorkflow Component
  * 
- * Manages the guest booking flow including service selection, barber selection,
+ * Manages the guest booking flow including barber selection, service selection,
  * date and time selection, guest information, and confirmation
  */
 const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
@@ -36,11 +35,9 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
   formState,
   updateFormState,
   barberServices,
-  serviceBarbers,
   existingBookings,
   isLoading,
   fetchBarberServices,
-  fetchBarbersForService,
   calendarEvents = []
 }) => {
   const {
@@ -48,10 +45,10 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     showSuccess,
     bookingResult,
     bookingLoading,
-    handleSelectService,
     handleSelectBarber,
-    handleBackToServices,
+    handleSelectService,
     handleBackToBarbers,
+    handleBackToServices,
     handleDateTimeComplete,
     handleBackToDateTime,
     handleGuestInfoComplete,
@@ -59,28 +56,37 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleVerificationComplete,
     handleBackToVerification,
     handleSubmit
-  } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services, fetchBarbersForService);
+  } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services);
 
-  // Use our new availability hook
+  // Use the time slots hook
   const {
-    availableTimeSlots,
-    isLoadingTimeSlots,
-    timeSlotError,
-    isCheckingDates,
-    isDateDisabled,
-    refreshAvailability
-  } = useAvailability(
+    timeSlots: calculatedTimeSlots,
+    isCalculating: isCalculatingTimeSlots,
+    error: timeSlotError
+  } = useTimeSlots(
     formState.selectedDate,
     formState.selectedBarber,
     formState.selectedServiceDetails,
+    existingBookings,
     calendarEvents
   );
 
+  // Use the date availability hook
+  const {
+    isCheckingDates,
+    isDateDisabled
+  } = useDateAvailability(
+    formState.selectedBarber,
+    formState.selectedServiceDetails?.duration,
+    calendarEvents,
+    existingBookings
+  );
+
   const handlers = {
-    handleSelectService,
     handleSelectBarber,
-    handleBackToServices,
+    handleSelectService,
     handleBackToBarbers,
+    handleBackToServices,
     handleDateTimeComplete,
     handleBackToDateTime,
     handleGuestInfoComplete,
@@ -109,19 +115,17 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         barbers={barbers}
         services={services}
         barberServices={barberServices}
-        serviceBarbers={serviceBarbers}
         existingBookings={existingBookings}
         bookingLoading={bookingLoading}
         bookingResult={bookingResult}
         handlers={handlers}
         allEvents={calendarEvents}
         selectedBarberId={formState.selectedBarber}
-        availableTimeSlots={availableTimeSlots}
-        isLoadingTimeSlots={isLoadingTimeSlots}
+        availableTimeSlots={calculatedTimeSlots}
+        isLoadingTimeSlots={isCalculatingTimeSlots}
         isCheckingDates={isCheckingDates}
         isDateDisabled={isDateDisabled}
         timeSlotError={timeSlotError}
-        onRetry={refreshAvailability}
       />
     </div>
   );

@@ -11,13 +11,12 @@ export const useBookingWorkflow = (
   formState: BookingFormState,
   updateFormState: (updates: Partial<BookingFormState>) => void,
   fetchBarberServices: (barberId: string) => Promise<void>,
-  services: Service[],
-  fetchBarbersForService?: (serviceId: string) => Promise<void>
+  services: Service[]
 ) => {
   // Initialize step based on form state
   const getInitialStep = (): BookingStep => {
-    if (formState.selectedService === null) return 'service';
     if (formState.selectedBarber === null) return 'barber';
+    if (formState.selectedService === null) return 'service';
     if (formState.selectedDate === undefined || formState.selectedTime === null) return 'datetime';
     if (formState.guestName === '' || formState.guestPhone === '') return 'guest-info';
     if (!formState.isPhoneVerified) return 'verify-phone';
@@ -39,13 +38,13 @@ export const useBookingWorkflow = (
       return;
     }
     
-    if (formState.selectedService === null) {
-      setStep('service');
+    if (formState.selectedBarber === null) {
+      setStep('barber');
       return;
     }
     
-    if (formState.selectedBarber === null) {
-      setStep('barber');
+    if (formState.selectedService === null) {
+      setStep('service');
       return;
     }
     
@@ -75,24 +74,25 @@ export const useBookingWorkflow = (
   }, [formState, showSuccess, step]);
 
   // Step handlers
-  const handleSelectService = (serviceId: string) => {
-    const serviceDetails = services.find(s => s.id === serviceId) || null;
-    updateFormState({ 
-      selectedService: serviceId, 
-      selectedServiceDetails: serviceDetails,
-      selectedBarber: null  // Reset barber selection when service changes
-    });
-    
-    if (fetchBarbersForService) {
-      fetchBarbersForService(serviceId);
-    }
-    
-    setStep('barber');
+  const handleSelectBarber = (barberId: string) => {
+    updateFormState({ selectedBarber: barberId, selectedService: null, selectedServiceDetails: null });
+    fetchBarberServices(barberId);
+    setStep('service');
   };
 
-  const handleSelectBarber = (barberId: string) => {
-    updateFormState({ selectedBarber: barberId });
+  const handleSelectService = (serviceId: string) => {
+    const serviceDetails = services.find(s => s.id === serviceId) || null;
+    updateFormState({ selectedService: serviceId, selectedServiceDetails: serviceDetails });
     setStep('datetime');
+  };
+
+  const handleBackToBarbers = () => {
+    setStep('barber');
+    updateFormState({ 
+      selectedBarber: null, 
+      selectedService: null, 
+      selectedServiceDetails: null 
+    });
   };
 
   const handleBackToServices = () => {
@@ -100,16 +100,6 @@ export const useBookingWorkflow = (
     updateFormState({ 
       selectedService: null, 
       selectedServiceDetails: null, 
-      selectedBarber: null,
-      selectedDate: undefined, 
-      selectedTime: null 
-    });
-  };
-
-  const handleBackToBarbers = () => {
-    setStep('barber');
-    updateFormState({ 
-      selectedBarber: null,
       selectedDate: undefined, 
       selectedTime: null 
     });
@@ -292,10 +282,10 @@ export const useBookingWorkflow = (
     showSuccess,
     bookingResult,
     bookingLoading,
-    handleSelectService,
     handleSelectBarber,
-    handleBackToServices,
+    handleSelectService,
     handleBackToBarbers,
+    handleBackToServices,
     handleDateTimeComplete,
     handleBackToDateTime,
     handleGuestInfoComplete,

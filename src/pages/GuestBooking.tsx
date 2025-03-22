@@ -19,20 +19,17 @@ const GuestBooking = () => {
     formState,
     updateFormState,
     barberServices,
-    serviceBarbers,
     isLoadingBarberServices,
-    isLoadingServiceBarbers,
     existingBookings,
     isLoadingBookings,
-    fetchBarberServices,
-    fetchBarbersForService
+    fetchBarberServices
   } = useGuestBookingForm();
 
-  const isLoading = barbersLoading || servicesLoading || isLoadingBarberServices || isLoadingBookings || calendarLoading || isLoadingServiceBarbers;
+  const isLoading = barbersLoading || servicesLoading || isLoadingBarberServices || isLoadingBookings || calendarLoading;
   
   const getCurrentStep = (): BookingStep => {
-    if (formState.selectedService === null) return 'service';
     if (formState.selectedBarber === null) return 'barber';
+    if (formState.selectedService === null) return 'service';
     if (formState.selectedDate === undefined || formState.selectedTime === null) return 'datetime';
     if (formState.guestName === '' || formState.guestPhone === '') return 'guest-info';
     if (!formState.isPhoneVerified) return 'verify-phone';
@@ -76,11 +73,9 @@ const GuestBooking = () => {
           formState={formState}
           updateFormState={updateFormState}
           barberServices={barberServices}
-          serviceBarbers={serviceBarbers}
           existingBookings={existingBookings}
           isLoading={isLoading}
           fetchBarberServices={fetchBarberServices}
-          fetchBarbersForService={fetchBarbersForService}
           calendarEvents={allEvents}
         />
       </div>

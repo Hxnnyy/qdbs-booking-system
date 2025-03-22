@@ -22,46 +22,30 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (barberId) {
-      fetchLunchBreak();
-    }
+    fetchLunchBreak();
   }, [barberId]);
 
   const fetchLunchBreak = async () => {
     try {
       setIsLoading(true);
       
-      console.log(`Fetching lunch break for barber ${barberId}`);
-      
-      if (!barberId) {
-        console.error('No barber ID provided');
-        setIsLoading(false);
-        return;
-      }
-      
       // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('barber_lunch_breaks')
         .select('*')
         .eq('barber_id', barberId)
-        .maybeSingle();
+        .eq('is_active', true)
+        .single();
       
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
-        console.error('Error fetching lunch break:', error);
         throw error;
       }
-      
-      console.log('Fetched lunch break:', data);
       
       if (data) {
         setLunchBreak(data);
         setStartTime(data.start_time);
         setDuration(data.duration);
-        setIsActive(data.is_active === true);
-        
-        console.log(`Loaded lunch break settings: Start=${data.start_time}, Duration=${data.duration}, Active=${data.is_active}`);
-      } else {
-        console.log('No lunch break found for this barber');
+        setIsActive(data.is_active);
       }
     } catch (err: any) {
       console.error('Error loading lunch break:', err);
@@ -71,58 +55,20 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
     }
   };
 
-  const invalidateAllCaches = () => {
-    try {
-      // Clear availability cache
-      if (typeof window !== 'undefined') {
-        // Try global function first
-        if ((window as any).__clearAvailabilityCache) {
-          const clearResult = (window as any).__clearAvailabilityCache();
-          console.log('Global availability cache cleared');
-        }
-        
-        // Dispatch event for cache invalidation
-        const cacheInvalidationEvent = new CustomEvent('availability-cache-invalidated', {
-          detail: { timestamp: Date.now(), barberId }
-        });
-        window.dispatchEvent(cacheInvalidationEvent);
-        console.log('Cache invalidation event dispatched');
-        
-        // Also try old cache clearing method for backward compatibility
-        if ((window as any).__clearTimeSlotCache) {
-          (window as any).__clearTimeSlotCache();
-        }
-      }
-    } catch (err) {
-      console.error('Error clearing caches:', err);
-    }
-  };
-
   const handleSave = async () => {
     try {
       setIsSaving(true);
       
-      // Validate input data
+      // Convert duration to number to ensure correct data type
       const durationNum = Number(duration);
       
       if (isNaN(durationNum) || durationNum <= 0) {
         toast.error('Please enter a valid duration');
-        setIsSaving(false);
         return;
       }
-      
-      if (!startTime || !startTime.includes(':')) {
-        toast.error('Please enter a valid start time');
-        setIsSaving(false);
-        return;
-      }
-      
-      console.log(`Saving lunch break with start time ${startTime}, duration ${durationNum}, active: ${isActive}`);
       
       // If we already have a lunch break, update it
       if (lunchBreak) {
-        console.log(`Updating existing lunch break (ID: ${lunchBreak.id})`);
-        
         // @ts-ignore - Supabase types issue
         const { error } = await supabase
           .from('barber_lunch_breaks')
@@ -133,12 +79,7 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
           })
           .eq('id', lunchBreak.id);
           
-        if (error) {
-          console.error('Error updating lunch break:', error);
-          throw error;
-        }
-        
-        console.log('Successfully updated lunch break');
+        if (error) throw error;
       } else {
         // Create a new lunch break
         const newBreak: InsertableLunchBreak = {
@@ -148,37 +89,23 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
           is_active: isActive
         };
         
-        console.log('Creating new lunch break:', newBreak);
-        
         // @ts-ignore - Supabase types issue
         const { error } = await supabase
           .from('barber_lunch_breaks')
           .insert(newBreak);
           
-        if (error) {
-          console.error('Error creating lunch break:', error);
-          throw error;
-        }
-        
-        console.log('Successfully created new lunch break');
+        if (error) throw error;
       }
       
-      // Clear caches to ensure new bookings use the updated lunch break settings
-      invalidateAllCaches();
-      
       toast.success('Lunch break settings saved');
+      fetchLunchBreak(); // Reload to get the updated data
       
-      // Reload data to ensure we have the latest
-      await fetchLunchBreak();
-      
-      // Notify parent component if needed
       if (onSaved) {
-        console.log('Calling onSaved callback to refresh data');
         onSaved();
       }
     } catch (err: any) {
       console.error('Error saving lunch break:', err);
-      toast.error('Error saving lunch break settings: ' + (err.message || 'Unknown error'));
+      toast.error('Error saving lunch break settings');
     } finally {
       setIsSaving(false);
     }

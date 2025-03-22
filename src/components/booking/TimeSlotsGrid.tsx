@@ -22,21 +22,17 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   isLoading,
   error
 }) => {
-  // Clear the selected time if it's not in available slots
-  useEffect(() => {
-    if (selectedDate && selectedTime) {
-      if (!availableTimeSlots.includes(selectedTime)) {
-        console.log('Selected time is no longer valid, clearing selection');
-        setSelectedTime('');
-      }
-    }
-  }, [selectedDate, selectedTime, setSelectedTime, availableTimeSlots]);
+  // Filter time slots to prevent booking in the past for today
+  const filteredTimeSlots = selectedDate ? 
+    availableTimeSlots.filter(time => !isTimeSlotInPast(selectedDate, time)) : 
+    [];
 
-  // Log available time slots for debugging
+  // Clear the selected time if it's now in the past
   useEffect(() => {
-    console.log(`TimeSlotsGrid: Received ${availableTimeSlots.length} available slots`);
-    console.log(`Available slots: ${availableTimeSlots.join(', ')}`);
-  }, [availableTimeSlots]);
+    if (selectedDate && selectedTime && isTimeSlotInPast(selectedDate, selectedTime)) {
+      setSelectedTime('');
+    }
+  }, [selectedDate, selectedTime, setSelectedTime]);
 
   if (isLoading) {
     return (
@@ -55,7 +51,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     );
   }
 
-  if (availableTimeSlots.length === 0) {
+  if (filteredTimeSlots.length === 0) {
     return (
       <div className="text-center p-4 border rounded-md bg-muted">
         <p className="text-muted-foreground">
@@ -70,7 +66,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
 
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-      {availableTimeSlots.map((time) => (
+      {filteredTimeSlots.map((time) => (
         <TimeSlot 
           key={time} 
           time={time} 
