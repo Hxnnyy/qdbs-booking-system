@@ -26,7 +26,11 @@ export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> =
       .eq('barber_id', barberId)
       .eq('is_active', true);
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching lunch breaks:', error);
+      throw error;
+    }
+    
     console.log(`Fetched ${data?.length || 0} lunch breaks for barber ${barberId}`, data);
     return data || [];
   } catch (err) {
@@ -133,6 +137,7 @@ export const fetchBarberTimeSlots = async (
       .maybeSingle();
       
     if (error) {
+      console.error('Error fetching opening hours:', error);
       throw error;
     }
     
@@ -145,7 +150,13 @@ export const fetchBarberTimeSlots = async (
     let lunchBreaks = cachedLunchBreaks;
     
     if (!lunchBreaks || lunchBreaks.length === 0) {
-      lunchBreaks = await fetchBarberLunchBreaks(barberId);
+      try {
+        lunchBreaks = await fetchBarberLunchBreaks(barberId);
+      } catch (err) {
+        console.error('Error fetching lunch breaks:', err);
+        // Continue without lunch breaks rather than failing entirely
+        lunchBreaks = [];
+      }
     }
     
     console.log(`Processing time slots with ${lunchBreaks.length} lunch breaks for service duration ${serviceDuration}min`);
@@ -267,7 +278,10 @@ export const isDateSelectable = async (date: Date, barberId: string): Promise<bo
       .eq('day_of_week', dayOfWeek)
       .maybeSingle();
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error checking if date is selectable:', error);
+      throw error;
+    }
     
     const isSelectable = !!(data && !data.is_closed);
     

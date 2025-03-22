@@ -81,7 +81,11 @@ export const generatePossibleTimeSlots = (
   
   const closeTimeInMinutes = closeHours * 60 + closeMinutes;
   
-  while (true) {
+  // Safeguard against infinite loops
+  let safetyCounter = 0;
+  const maxIterations = 100; // Reasonable limit for a day's worth of 30-min slots
+  
+  while (safetyCounter < maxIterations) {
     const timeInMinutes = openHours * 60 + openMinutes;
     if (timeInMinutes >= closeTimeInMinutes) {
       break;
@@ -101,8 +105,11 @@ export const generatePossibleTimeSlots = (
       openHours += 1;
       openMinutes -= 60;
     }
+    
+    safetyCounter++;
   }
   
+  console.log(`Generated ${slots.length} possible time slots from ${openTime} to ${closeTime}`);
   return slots;
 };
 

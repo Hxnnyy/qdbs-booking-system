@@ -50,9 +50,15 @@ export const useTimeSlots = (
     
     const loadLunchBreaks = async () => {
       console.log(`Fetching lunch breaks for barber ${selectedBarberId}`);
-      const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-      console.log(`Fetched lunch breaks:`, lunchBreaks);
-      setCachedLunchBreaks(lunchBreaks);
+      try {
+        const lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+        console.log(`Fetched lunch breaks:`, lunchBreaks);
+        setCachedLunchBreaks(lunchBreaks);
+      } catch (err) {
+        console.error("Error fetching lunch breaks:", err);
+        // Don't block the flow on lunch break fetch errors
+        setCachedLunchBreaks([]);
+      }
     };
     
     loadLunchBreaks();
@@ -63,6 +69,7 @@ export const useTimeSlots = (
     if (!selectedDate || !selectedBarberId || !selectedService) {
       setTimeSlots([]);
       setError(null);
+      setIsCalculating(false);
       return;
     }
     
@@ -94,15 +101,22 @@ export const useTimeSlots = (
       if (!isAvailable) {
         setError(errorMessage);
         setTimeSlots([]);
+        setIsCalculating(false);
         return;
       }
       
       // Ensure we have lunch breaks loaded
       let lunchBreaks = cachedLunchBreaks;
-      if (!lunchBreaks || lunchBreaks.length === 0) {
+      if (!lunchBreaks) {
         console.log("No cached lunch breaks, fetching them...");
-        lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
-        setCachedLunchBreaks(lunchBreaks);
+        try {
+          lunchBreaks = await fetchBarberLunchBreaks(selectedBarberId);
+          setCachedLunchBreaks(lunchBreaks);
+        } catch (err) {
+          console.error("Error fetching lunch breaks:", err);
+          // Don't block on lunch break fetch errors
+          lunchBreaks = [];
+        }
       }
       
       // Fetch all possible time slots

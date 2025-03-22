@@ -28,7 +28,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   serviceDuration = 60
 }) => {
   // Use the filtered time slots directly from the hook
-  const filteredTimeSlots = availableTimeSlots || [];
+  const timeSlots = availableTimeSlots || [];
 
   // Clear the selected time if it's now in the past or no longer available
   useEffect(() => {
@@ -40,16 +40,17 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
       }
       
       // Clear if time slot is no longer in the available list
-      if (filteredTimeSlots.length > 0 && !filteredTimeSlots.includes(selectedTime)) {
+      if (timeSlots.length > 0 && !timeSlots.includes(selectedTime)) {
         setSelectedTime('');
       }
     }
-  }, [selectedDate, selectedTime, filteredTimeSlots, setSelectedTime]);
+  }, [selectedDate, selectedTime, timeSlots, setSelectedTime]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
         <Spinner className="h-8 w-8" />
+        <span className="ml-2 text-muted-foreground">Loading available times...</span>
       </div>
     );
   }
@@ -63,7 +64,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     );
   }
 
-  if (filteredTimeSlots.length === 0) {
+  if (timeSlots.length === 0) {
     return (
       <div className="text-center p-4 border rounded-md bg-muted">
         <p className="text-muted-foreground">
@@ -77,11 +78,11 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   }
 
   // Log the time slots that are being displayed
-  console.log('Time slots being displayed in grid:', filteredTimeSlots);
+  console.log('Time slots being displayed in grid:', timeSlots);
 
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-      {filteredTimeSlots.map((time) => (
+      {timeSlots.map((time) => (
         <TimeSlot 
           key={time} 
           time={time} 

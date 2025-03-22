@@ -39,8 +39,7 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   timeSlotError,
   onRetry,
   selectedBarberId,
-  serviceDuration,
-  // We don't need to destructure allEvents since it's not directly used in this component
+  serviceDuration
 }) => {
   const handleRetry = () => {
     // Re-trigger the date selection to refresh time slots
