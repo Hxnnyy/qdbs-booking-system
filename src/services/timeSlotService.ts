@@ -153,7 +153,7 @@ export const fetchBarberTimeSlots = async (
     // Generate all possible time slots
     const possibleSlots = generatePossibleTimeSlots(data.open_time, data.close_time);
     
-    // Filter slots based on availability
+    // First level filtering - booking conflicts and lunch breaks
     const availableSlots = filterAvailableTimeSlots(
       possibleSlots,
       serviceDuration,
@@ -161,10 +161,11 @@ export const fetchBarberTimeSlots = async (
       lunchBreaks
     );
     
-    // Further filter slots based on opening hours and lunch breaks
-    const filteredSlots = [];
+    // Second level filtering - additional checks
+    const finalSlots: string[] = [];
     
     for (const slot of availableSlots) {
+      // Check if within opening hours
       const withinHours = await isWithinOpeningHours(
         barberId,
         date,
@@ -172,7 +173,7 @@ export const fetchBarberTimeSlots = async (
         serviceDuration
       );
       
-      // Use both lunch break checking methods to be thorough
+      // Double-check lunch break overlap with both methods
       const directLunchOverlap = isLunchBreak(
         slot,
         lunchBreaks,
@@ -188,17 +189,20 @@ export const fetchBarberTimeSlots = async (
       
       const hasLunchOverlap = directLunchOverlap || contextualLunchOverlap;
       
+      // If there's a lunch break overlap, log it and skip this slot
       if (hasLunchOverlap) {
-        console.log(`⛔ Filtering out time slot ${slot} due to lunch break overlap`);
+        console.log(`⛔ FINAL CHECK: Filtering out time slot ${slot} due to lunch break overlap - serviceDuration: ${serviceDuration}`);
+        continue;
       }
       
+      // Only add the slot if it passes all checks
       if (withinHours && !hasLunchOverlap) {
-        filteredSlots.push(slot);
+        finalSlots.push(slot);
       }
     }
     
-    console.log(`Generated ${filteredSlots.length} available time slots for barber ${barberId} on date ${date.toDateString()}`);
-    return filteredSlots;
+    console.log(`Generated ${finalSlots.length} available time slots for barber ${barberId} on date ${date.toDateString()}`);
+    return finalSlots;
   } catch (error) {
     console.error('Error fetching barber time slots:', error);
     return [];

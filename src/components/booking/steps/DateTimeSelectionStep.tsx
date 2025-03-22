@@ -38,6 +38,8 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   isDateDisabled,
   timeSlotError,
   onRetry,
+  selectedBarberId,
+  serviceDuration,
   // We don't need to destructure allEvents since it's not directly used in this component
 }) => {
   const handleRetry = () => {
@@ -97,6 +99,8 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
                 availableTimeSlots={availableTimeSlots}
                 isLoading={isLoadingTimeSlots}
                 error={null}
+                selectedBarberId={selectedBarberId}
+                serviceDuration={serviceDuration}
               />
             )}
           </div>

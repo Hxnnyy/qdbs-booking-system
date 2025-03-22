@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { Service } from '@/supabase-types';
-import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability, isLunchBreakOverlap } from '@/services/timeSlotService';
+import { fetchBarberTimeSlots, fetchBarberLunchBreaks, checkBarberAvailability } from '@/services/timeSlotService';
 import { isLunchBreak } from '@/utils/timeSlotUtils';
 
 /**
@@ -117,7 +117,7 @@ export const useTimeSlots = (
       
       console.log(`Initial time slots (${slots.length}):`, slots);
       
-      // Additional manual filtering for lunch breaks
+      // Additional manual filtering for lunch breaks - this is a critical second check
       const filteredSlots = slots.filter(timeSlot => {
         // Check if the time slot is during a lunch break
         const hasLunchBreak = isLunchBreak(
@@ -127,7 +127,7 @@ export const useTimeSlots = (
         );
         
         if (hasLunchBreak) {
-          console.log(`Filtering out ${timeSlot} due to lunch break overlap`);
+          console.log(`Filtering out ${timeSlot} due to lunch break overlap in useTimeSlots hook`);
           return false;
         }
         

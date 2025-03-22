@@ -46,7 +46,9 @@ export const isLunchBreak = (
       // Service ends during lunch break
       (serviceEndMinutes > breakStartMinutes && serviceEndMinutes <= breakEndMinutes) ||
       // Service completely contains lunch break
-      (timeInMinutes < breakStartMinutes && serviceEndMinutes > breakEndMinutes)
+      (timeInMinutes < breakStartMinutes && serviceEndMinutes > breakEndMinutes) ||
+      // Service is completely contained by lunch break
+      (timeInMinutes >= breakStartMinutes && serviceEndMinutes <= breakEndMinutes)
     );
     
     // Log for debugging

@@ -4,6 +4,7 @@ import TimeSlot from '../TimeSlot';
 import { Spinner } from '@/components/ui/spinner';
 import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isSameDay } from 'date-fns';
+import { isLunchBreak } from '@/utils/timeSlotUtils';
 
 interface TimeSlotsGridProps {
   selectedDate: Date | undefined;
@@ -12,6 +13,8 @@ interface TimeSlotsGridProps {
   availableTimeSlots: string[];
   isLoading: boolean;
   error: string | null;
+  selectedBarberId?: string | null;
+  serviceDuration?: number;
 }
 
 const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
@@ -20,7 +23,9 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   setSelectedTime,
   availableTimeSlots,
   isLoading,
-  error
+  error,
+  selectedBarberId,
+  serviceDuration = 60
 }) => {
   // Use the filtered time slots directly from the hook
   const filteredTimeSlots = availableTimeSlots || [];
