@@ -144,6 +144,7 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
           selected={selectedTime === time}
           onClick={() => setSelectedTime(time)}
           disabled={false} // Already filtered out unavailable slots
+          data-lunch-filtered="true" // For debugging
         />
       ))}
     </div>

@@ -118,42 +118,54 @@ export const useTimeSlots = (
         }
       }
       
+      // Log lunch break details to help debugging
+      if (lunchBreaks && lunchBreaks.length > 0) {
+        console.log("Detailed lunch break information:");
+        lunchBreaks.forEach((lb, index) => {
+          console.log(`Lunch break #${index + 1}: starts at ${lb.start_time}, duration: ${lb.duration} minutes, is_active: ${lb.is_active}`);
+        });
+      } else {
+        console.log("No lunch breaks found for this barber");
+      }
+      
       // Check if any lunch breaks are active
       const activeLunchBreaks = lunchBreaks?.filter(lb => lb.is_active) || [];
       console.log(`Active lunch breaks: ${activeLunchBreaks.length}`);
-      
-      // Create fake bookings from lunch breaks to simplify our logic
-      const combinedBookings = [...existingBookings];
-      
-      // Add lunch breaks as fake bookings
-      if (activeLunchBreaks.length > 0) {
-        activeLunchBreaks.forEach(lunch => {
-          const fakeBooking = {
-            booking_time: lunch.start_time,
-            services: {
-              duration: lunch.duration
-            }
-          };
-          combinedBookings.push(fakeBooking);
-          console.log(`Added lunch break at ${lunch.start_time} for ${lunch.duration}min as a booking`);
-        });
-      }
       
       // Fetch time slots
       const fetchedTimeSlots = await fetchBarberTimeSlots(
         selectedBarberId, 
         selectedDate, 
         selectedService.duration,
-        combinedBookings,
+        existingBookings,
         lunchBreaks
       );
       
       console.log(`Initial time slots (${fetchedTimeSlots.length}):`, fetchedTimeSlots);
       
       // Filter out time slots that are in the past (for today only)
-      const finalSlots = fetchedTimeSlots.filter(
+      const pastFilteredSlots = fetchedTimeSlots.filter(
         timeSlot => !isTimeSlotInPast(selectedDate, timeSlot)
       );
+      
+      console.log(`After filtering past slots: ${pastFilteredSlots.length} slots remain`);
+      
+      // Additional filter for lunch breaks, as a safety measure
+      const finalSlots = pastFilteredSlots.filter(timeSlot => {
+        // Double-check for lunch break conflicts
+        const hasLunchConflict = hasLunchBreakConflict(
+          timeSlot, 
+          activeLunchBreaks, 
+          selectedService.duration
+        );
+        
+        if (hasLunchConflict) {
+          console.log(`Secondary filter: Slot ${timeSlot} conflicts with lunch break, filtering out`);
+          return false;
+        }
+        
+        return true;
+      });
       
       console.log(`Final available time slots (${finalSlots.length}):`, finalSlots);
       
