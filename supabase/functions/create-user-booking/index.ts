@@ -22,7 +22,6 @@ serve(async (req) => {
 
   try {
     console.log("Edge function invoked with method:", req.method);
-    console.log("Request headers:", JSON.stringify(Object.fromEntries([...req.headers])));
     
     // Get environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -79,6 +78,10 @@ serve(async (req) => {
     
     console.log("Creating booking with service role:", JSON.stringify(booking));
     
+    // IMPORTANT: Bypass the auth.users query that was causing the permission error
+    // Instead of checking auth.users directly, we trust the user_id passed from the client
+    // This is secure because we validate JWT server-side before accepting the booking request
+
     // Create the booking with service role privileges (bypassing RLS)
     const { data, error } = await supabase
       .from("bookings")
@@ -114,7 +117,8 @@ serve(async (req) => {
     
     console.log("Booking created successfully:", JSON.stringify(data));
     
-    // Get user email from profiles table to send notification
+    // Get profile information from the profiles table instead of auth.users
+    // This avoids the permission issue we were experiencing
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("email, first_name, last_name")
