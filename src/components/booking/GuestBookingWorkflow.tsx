@@ -63,7 +63,8 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     timeSlots: calculatedTimeSlots,
     isCalculating: isCalculatingTimeSlots,
     error: timeSlotError,
-    recalculate: recalculateTimeSlots
+    recalculate: recalculateTimeSlots,
+    selectedBarberForBooking
   } = useTimeSlots(
     formState.selectedDate,
     formState.selectedBarber,
@@ -83,7 +84,14 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     existingBookings
   );
 
-  // When barber changes, reset date and time
+  // When barber or service changes, clear selected time
+  useEffect(() => {
+    if (formState.selectedBarber || formState.selectedService) {
+      updateFormState({ selectedTime: null });
+    }
+  }, [formState.selectedBarber, formState.selectedService, updateFormState]);
+
+  // When time slots are calculated, check if the currently selected time is still valid
   useEffect(() => {
     if (formState.selectedDate && formState.selectedTime && calculatedTimeSlots.length > 0) {
       // Check if the currently selected time is still available
@@ -115,6 +123,11 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     );
   }
 
+  // Pass the effective barber ID to the booking step renderer
+  const effectiveBarber = formState.selectedBarber === 'any' && selectedBarberForBooking 
+    ? selectedBarberForBooking 
+    : formState.selectedBarber;
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold font-playfair text-center mb-6">{getStepTitle(step)}</h2>
@@ -131,7 +144,7 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         bookingResult={bookingResult}
         handlers={handlers}
         allEvents={calendarEvents}
-        selectedBarberId={formState.selectedBarber}
+        selectedBarberId={effectiveBarber}
         availableTimeSlots={calculatedTimeSlots}
         isLoadingTimeSlots={isCalculatingTimeSlots}
         isCheckingDates={isCheckingDates}

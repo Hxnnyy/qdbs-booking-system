@@ -25,11 +25,14 @@ export const isLunchBreak = (
 ): boolean => {
   if (!lunchBreaks || lunchBreaks.length === 0) return false;
   
+  console.log(`Checking lunch break for time slot ${timeSlot}, service duration: ${serviceDuration}`);
+  console.log(`Number of lunch breaks to check: ${lunchBreaks.length}`);
+  
   const [hours, minutes] = timeSlot.split(':').map(Number);
   const slotStartMinutes = hours * 60 + minutes;
   const slotEndMinutes = slotStartMinutes + serviceDuration;
   
-  return lunchBreaks.some(breakTime => {
+  for (const breakTime of lunchBreaks) {
     // Get lunch break start time in minutes
     const [breakHours, breakMinutes] = breakTime.start_time.split(':').map(Number);
     const breakStartMinutes = breakHours * 60 + breakMinutes;
@@ -37,18 +40,29 @@ export const isLunchBreak = (
     // Calculate lunch break end time in minutes
     const breakEndMinutes = breakStartMinutes + breakTime.duration;
     
+    // Log for debugging
+    console.log(`Lunch break: ${breakTime.start_time} to ${breakHours}:${breakMinutes + breakTime.duration}, duration: ${breakTime.duration}`);
+    console.log(`Service slot: ${timeSlot} to ${Math.floor(slotEndMinutes/60)}:${slotEndMinutes%60}, duration: ${serviceDuration}`);
+    
     // Check various overlap scenarios
     // 1. Service starts during lunch break
     // 2. Service ends during lunch break
     // 3. Service completely contains lunch break
     // 4. Service is completely within lunch break
-    return (
+    const overlaps = (
       (slotStartMinutes >= breakStartMinutes && slotStartMinutes < breakEndMinutes) || // Start during break
       (slotEndMinutes > breakStartMinutes && slotEndMinutes <= breakEndMinutes) || // End during break
       (slotStartMinutes <= breakStartMinutes && slotEndMinutes >= breakEndMinutes) || // Contains break
       (slotStartMinutes >= breakStartMinutes && slotEndMinutes <= breakEndMinutes) // Within break
     );
-  });
+    
+    if (overlaps) {
+      console.log(`OVERLAP DETECTED for time slot ${timeSlot} with lunch break ${breakTime.start_time}`);
+      return true;
+    }
+  }
+  
+  return false;
 };
 
 /**
@@ -68,6 +82,8 @@ export const generatePossibleTimeSlots = (
   const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
   
   const closeTimeInMinutes = closeHours * 60 + closeMinutes;
+  
+  console.log(`Generating time slots from ${openTime} to ${closeTime}`);
   
   while (true) {
     const timeInMinutes = openHours * 60 + openMinutes;
@@ -91,6 +107,7 @@ export const generatePossibleTimeSlots = (
     }
   }
   
+  console.log(`Generated ${slots.length} possible time slots`);
   return slots;
 };
 
@@ -109,6 +126,11 @@ export const filterAvailableTimeSlots = (
   existingBookings: any[],
   lunchBreaks: any[]
 ): string[] => {
+  console.log(`Filtering ${possibleSlots.length} time slots`);
+  console.log(`Service duration: ${serviceDuration} minutes`);
+  console.log(`Existing bookings: ${existingBookings.length}`);
+  console.log(`Lunch breaks: ${lunchBreaks.length}`);
+  
   const availableSlots: string[] = [];
   
   for (const slot of possibleSlots) {
@@ -120,10 +142,19 @@ export const filterAvailableTimeSlots = (
     
     const isOnLunchBreak = isLunchBreak(slot.time, lunchBreaks, serviceDuration);
     
+    if (isBooked) {
+      console.log(`Slot ${slot.time} is already booked`);
+    }
+    
+    if (isOnLunchBreak) {
+      console.log(`Slot ${slot.time} overlaps with lunch break`);
+    }
+    
     if (!isBooked && !isOnLunchBreak) {
       availableSlots.push(slot.time);
     }
   }
   
+  console.log(`Found ${availableSlots.length} available slots after filtering`);
   return availableSlots;
 };
