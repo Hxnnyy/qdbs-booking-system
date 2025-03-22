@@ -61,10 +61,25 @@ const getClientName = (booking: Booking): string => {
   return 'Unknown Client';
 };
 
+// Get client phone number from booking (either guest or registered user)
+const getClientPhone = (booking: Booking): string | null => {
+  if (booking.guest_booking) {
+    const guestInfo = extractGuestInfo(booking.notes);
+    return guestInfo.phone;
+  }
+  
+  if (booking.profile && booking.profile.phone) {
+    return booking.profile.phone;
+  }
+  
+  return null;
+};
+
 export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking }) => {
   const isGuestBooking = booking.guest_booking === true;
   const guestInfo = isGuestBooking ? extractGuestInfo(booking.notes) : null;
   const clientName = getClientName(booking);
+  const clientPhone = getClientPhone(booking);
   
   return (
     <Card>
@@ -100,10 +115,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
                 <span className="text-gray-700">{clientName}</span>
               </div>
               
-              {isGuestBooking && guestInfo && (
+              {clientPhone && (
                 <div className="flex items-center gap-1">
                   <Phone className="h-3 w-3 text-gray-500" />
-                  <span className="text-gray-700">{guestInfo.phone}</span>
+                  <span className="text-gray-700">{clientPhone}</span>
                 </div>
               )}
               

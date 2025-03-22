@@ -39,6 +39,14 @@ export interface Booking {
     price: number;
     duration: number;
   };
+  profile?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    is_admin?: boolean;
+    is_super_admin?: boolean;
+  };
 }
 
 export interface Profile {
