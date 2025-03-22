@@ -16,14 +16,28 @@ export const processOverlappingEvents = (events: CalendarEvent[]) => {
   const holidays = events.filter(event => event.status === 'holiday');
   const nonHolidayEvents = events.filter(event => event.status !== 'holiday');
   
+  // Filter out duplicate lunch breaks
+  // This ensures lunch breaks with the same barber and time are only shown once
+  const uniqueLunchBreaks = new Map();
+  nonHolidayEvents.forEach(event => {
+    if (event.status === 'lunch-break') {
+      const key = `${event.barberId}-${event.start.getHours()}:${event.start.getMinutes()}-${event.end.getHours()}:${event.end.getMinutes()}`;
+      uniqueLunchBreaks.set(key, event);
+    }
+  });
+  
+  // Create a new array with unique lunch breaks and other events
+  const uniqueEvents = nonHolidayEvents.filter(event => event.status !== 'lunch-break')
+    .concat(Array.from(uniqueLunchBreaks.values()));
+  
   // Sort events by start time to ensure consistent processing
-  nonHolidayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+  uniqueEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
   
   // Create a map to track overlapping events
   const overlappingGroups: Map<string, { appointments: CalendarEvent[], lunchBreaks: CalendarEvent[] }> = new Map();
   
   // Group overlapping events
-  nonHolidayEvents.forEach(event => {
+  uniqueEvents.forEach(event => {
     let foundGroup = false;
     
     // Check existing groups for overlap

@@ -1,10 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
-import { bookingToCalendarEvent, formatNewBookingDate, formatNewBookingTime } from '@/utils/calendarUtils';
-import { createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
+import { bookingToCalendarEvent, createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -76,7 +76,14 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      const lunchEvents = (lunchData || []).map(lunchBreak => {
+      // Process lunch breaks, making sure to only include one instance per barber
+      const processedLunchBreaks = new Map<string, LunchBreak>();
+      (lunchData || []).forEach(lunchBreak => {
+        // Use barber_id as key to ensure one lunch break per barber
+        processedLunchBreaks.set(lunchBreak.barber_id, lunchBreak);
+      });
+      
+      const lunchEvents = Array.from(processedLunchBreaks.values()).map(lunchBreak => {
         try {
           return createLunchBreakEvent(lunchBreak);
         } catch (err) {
@@ -84,6 +91,8 @@ export const useCalendarBookings = () => {
           return null;
         }
       }).filter(Boolean) as CalendarEvent[];
+      
+      console.log(`Generated ${lunchEvents.length} lunch break events from ${lunchData?.length} lunch break records`);
       
       const holidayEvents = (holidaysData || []).map(holiday => {
         try {

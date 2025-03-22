@@ -27,12 +27,21 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
     availableTimeSlots.filter(time => !isTimeSlotInPast(selectedDate, time)) : 
     [];
 
-  // Clear the selected time if it's now in the past
+  // Clear the selected time if it's now in the past or no longer available
   useEffect(() => {
-    if (selectedDate && selectedTime && isTimeSlotInPast(selectedDate, selectedTime)) {
-      setSelectedTime('');
+    if (selectedDate && selectedTime) {
+      // Clear if time slot is in the past
+      if (isTimeSlotInPast(selectedDate, selectedTime)) {
+        setSelectedTime('');
+        return;
+      }
+      
+      // Clear if time slot is no longer in the available list
+      if (filteredTimeSlots.length > 0 && !filteredTimeSlots.includes(selectedTime)) {
+        setSelectedTime('');
+      }
     }
-  }, [selectedDate, selectedTime, setSelectedTime]);
+  }, [selectedDate, selectedTime, filteredTimeSlots, setSelectedTime]);
 
   if (isLoading) {
     return (
