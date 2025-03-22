@@ -1,2 +1,5 @@
 
 project_id = "mvcqywuqkeerlmodohgw"
+
+[hooks]
+invoke = true

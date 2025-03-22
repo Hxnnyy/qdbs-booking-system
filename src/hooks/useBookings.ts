@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -32,13 +33,18 @@ export const useBookings = () => {
 
       console.log('Creating booking with data:', bookingRecord);
 
-      // Use the service function that delegates to edge function for registered users
-      const data = await createBookingService(bookingRecord, user.id);
-      
-      console.log('Booking created successfully:', data);
-      
-      toast.success('Booking created successfully!');
-      return data;
+      try {
+        // Use the service function that delegates to edge function for registered users
+        const data = await createBookingService(bookingRecord, user.id);
+        
+        console.log('Booking created successfully:', data);
+        
+        toast.success('Booking created successfully!');
+        return data;
+      } catch (serviceError: any) {
+        console.error('Service error in createBooking:', serviceError);
+        throw new Error(serviceError.message || 'Failed to create booking');
+      }
     } catch (err: any) {
       console.error('Error in createBooking:', err);
       setError(err.message);

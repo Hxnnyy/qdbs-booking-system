@@ -143,30 +143,40 @@ export const createBooking = async (
       
       return data;
     } else {
-      // For logged-in users - use RPC to bypass the trigger function
-      // Use a special edge function to create the booking securely
+      // For logged-in users - use edge function to create the booking securely
       console.log('Creating user booking via edge function');
       
-      const { data, error } = await supabase.functions.invoke('create-user-booking', {
-        body: {
-          booking: {
-            barber_id: bookingData.barber_id,
-            service_id: bookingData.service_id,
-            booking_date: bookingData.booking_date,
-            booking_time: bookingData.booking_time,
-            status: 'confirmed',
-            notes: bookingData.notes || null,
-            user_id: userId
+      try {
+        const { data, error } = await supabase.functions.invoke('create-user-booking', {
+          body: {
+            booking: {
+              barber_id: bookingData.barber_id,
+              service_id: bookingData.service_id,
+              booking_date: bookingData.booking_date,
+              booking_time: bookingData.booking_time,
+              status: 'confirmed',
+              notes: bookingData.notes || null,
+              user_id: userId
+            }
           }
+        });
+        
+        if (error) {
+          console.error('Error creating booking via edge function:', error);
+          throw new Error(error.message || 'Failed to create booking');
         }
-      });
-      
-      if (error) {
-        console.error('Error creating booking via edge function:', error);
-        throw new Error(error.message || 'Failed to create booking');
+        
+        if (!data) {
+          console.error('No data returned from edge function');
+          throw new Error('Failed to create booking: No data returned');  
+        }
+        
+        console.log('Booking created successfully via edge function:', data);
+        return data;
+      } catch (edgeFunctionError) {
+        console.error('Edge function error details:', edgeFunctionError);
+        throw edgeFunctionError;
       }
-      
-      return data;
     }
   } catch (error) {
     console.error('Error creating booking:', error);

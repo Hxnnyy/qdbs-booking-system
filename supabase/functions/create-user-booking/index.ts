@@ -21,9 +21,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Edge function invoked with method:", req.method);
+    console.log("Request headers:", JSON.stringify(Object.fromEntries([...req.headers])));
+    
     // Get environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    console.log("Supabase URL defined:", !!supabaseUrl);
+    console.log("Supabase Service Role Key defined:", !!supabaseServiceKey);
     
     // Validate environment variables
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -36,10 +42,20 @@ serve(async (req) => {
     
     // Create Supabase client with service role key (has admin privileges)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log("Supabase client created");
     
     // Parse request body
-    const requestData = await req.json();
-    console.log("Request data:", JSON.stringify(requestData));
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log("Request data:", JSON.stringify(requestData));
+    } catch (parseError) {
+      console.error("Error parsing request JSON:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
     
     const booking = requestData.booking;
     
@@ -80,7 +96,16 @@ serve(async (req) => {
       .single();
     
     if (error) {
-      console.error("Error creating booking:", error.message, error.details, error.hint);
+      console.error("Error creating booking:", error.message);
+      
+      if (error.details) {
+        console.error("Error details:", error.details);
+      }
+      
+      if (error.hint) {
+        console.error("Error hint:", error.hint);
+      }
+      
       return new Response(
         JSON.stringify({ error: error.message, details: error.details }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
@@ -146,7 +171,8 @@ serve(async (req) => {
     );
     
   } catch (err) {
-    console.error("Unexpected error processing request:", err.message, err.stack);
+    console.error("Unexpected error processing request:", err.message);
+    console.error("Error stack:", err.stack);
     return new Response(
       JSON.stringify({ error: "Internal Server Error", details: err.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
