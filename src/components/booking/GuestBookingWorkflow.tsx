@@ -8,8 +8,7 @@ import { Service } from '@/supabase-types';
 import BookingStepRenderer from './BookingStepRenderer';
 import { useBookingWorkflow } from '@/hooks/useBookingWorkflow';
 import { CalendarEvent } from '@/types/calendar';
-import { useTimeSlots } from '@/hooks/useTimeSlots';
-import { useDateAvailability } from '@/hooks/useDateAvailability';
+import { useAvailability } from '@/hooks/useAvailability';
 
 interface GuestBookingWorkflowProps {
   barbers: Barber[];
@@ -62,28 +61,19 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
     handleSubmit
   } = useBookingWorkflow(formState, updateFormState, fetchBarberServices, services, fetchBarbersForService);
 
-  // Use the time slots hook
+  // Use our new availability hook
   const {
-    timeSlots: calculatedTimeSlots,
-    isCalculating: isCalculatingTimeSlots,
-    error: timeSlotError
-  } = useTimeSlots(
+    availableTimeSlots,
+    isLoadingTimeSlots,
+    timeSlotError,
+    isCheckingDates,
+    isDateDisabled,
+    refreshAvailability
+  } = useAvailability(
     formState.selectedDate,
     formState.selectedBarber,
     formState.selectedServiceDetails,
-    existingBookings,
     calendarEvents
-  );
-
-  // Use the date availability hook
-  const {
-    isCheckingDates,
-    isDateDisabled
-  } = useDateAvailability(
-    formState.selectedBarber,
-    formState.selectedServiceDetails?.duration,
-    calendarEvents,
-    existingBookings
   );
 
   const handlers = {
@@ -126,11 +116,12 @@ const GuestBookingWorkflow: React.FC<GuestBookingWorkflowProps> = ({
         handlers={handlers}
         allEvents={calendarEvents}
         selectedBarberId={formState.selectedBarber}
-        availableTimeSlots={calculatedTimeSlots}
-        isLoadingTimeSlots={isCalculatingTimeSlots}
+        availableTimeSlots={availableTimeSlots}
+        isLoadingTimeSlots={isLoadingTimeSlots}
         isCheckingDates={isCheckingDates}
         isDateDisabled={isDateDisabled}
         timeSlotError={timeSlotError}
+        onRetry={refreshAvailability}
       />
     </div>
   );

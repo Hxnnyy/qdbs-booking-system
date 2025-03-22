@@ -7,22 +7,23 @@ import { BookingStepProps } from '@/types/booking';
 import { Spinner } from '@/components/ui/spinner';
 import TimeSlotsGrid from '../TimeSlotsGrid';
 import { CalendarEvent } from '@/types/calendar';
+import { useAvailability } from '@/hooks/useAvailability';
 
 interface DateTimeSelectionStepProps extends BookingStepProps {
   selectedDate: Date | undefined;
   setSelectedDate: (date: Date | undefined) => void;
   selectedTime: string | null;
   setSelectedTime: (time: string) => void;
-  availableTimeSlots: string[];
-  isLoadingTimeSlots: boolean;
-  isCheckingDates: boolean;
-  isDateDisabled: (date: Date) => boolean;
-  timeSlotError?: string | null;
   onRetry?: () => void;
   selectedBarberId?: string | null;
   serviceDuration?: number;
   existingBookings?: any[];
   allEvents?: CalendarEvent[];
+  availableTimeSlots?: string[];
+  isLoadingTimeSlots?: boolean;
+  isCheckingDates?: boolean;
+  isDateDisabled?: (date: Date) => boolean;
+  timeSlotError?: string | null;
 }
 
 const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({ 
@@ -32,37 +33,41 @@ const DateTimeSelectionStep: React.FC<DateTimeSelectionStepProps> = ({
   setSelectedTime, 
   onNext,
   onBack,
-  availableTimeSlots,
-  isLoadingTimeSlots,
-  isCheckingDates,
-  isDateDisabled,
-  timeSlotError,
-  onRetry,
-  // We don't need to destructure allEvents since it's not directly used in this component
+  selectedBarberId,
+  allEvents = [],
+  serviceDuration = 60,
+  onRetry
 }) => {
+  // Get the selected service
+  const selectedServiceDetails = {
+    duration: serviceDuration,
+    id: 'temp-id'
+  };
+
+  // Use our new availability hook
+  const {
+    availableTimeSlots,
+    isLoadingTimeSlots,
+    timeSlotError,
+    isCheckingDates,
+    isDateDisabled,
+    refreshAvailability,
+    clearCache
+  } = useAvailability(
+    selectedDate,
+    selectedBarberId || null,
+    selectedServiceDetails as any,
+    allEvents
+  );
+
   const handleRetry = () => {
-    // Force clear any cached time slots to ensure fresh data
-    try {
-      // Access any global cache clearing functions
-      const clearCacheFn = (window as any).__clearTimeSlotCache;
-      if (typeof clearCacheFn === 'function') {
-        clearCacheFn();
-        console.log('Time slot cache cleared successfully');
-      }
-    } catch (e) {
-      console.log('Cache clearing not available');
-    }
+    // Clear cache and refresh availability
+    clearCache();
+    refreshAvailability();
     
-    // Re-trigger the date selection to refresh time slots
+    // Call onRetry if provided
     if (onRetry) {
-      console.log('Calling onRetry to refresh time slots');
       onRetry();
-    } else if (selectedDate) {
-      // Force a refresh by briefly clearing and resetting the date
-      console.log('Forcing refresh by resetting date temporarily');
-      const refreshDate = new Date(selectedDate);
-      setSelectedDate(undefined);
-      setTimeout(() => setSelectedDate(refreshDate), 100);
     }
   };
 

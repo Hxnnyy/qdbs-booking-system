@@ -71,23 +71,27 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
     }
   };
 
-  const clearAllTimeslotCaches = () => {
+  const invalidateAllCaches = () => {
     try {
-      // Clear the global cache
-      if (typeof window !== 'undefined' && (window as any).__clearTimeSlotCache) {
-        const clearResult = (window as any).__clearTimeSlotCache();
-        console.log('Global time slot cache cleared:', clearResult);
-      } else {
-        console.log('Global cache clearing function not available');
-      }
-      
-      // Immediately broadcast a custom event that hooks can listen for
+      // Clear availability cache
       if (typeof window !== 'undefined') {
-        const cacheInvalidationEvent = new CustomEvent('timeslot-cache-invalidated', {
+        // Try global function first
+        if ((window as any).__clearAvailabilityCache) {
+          const clearResult = (window as any).__clearAvailabilityCache();
+          console.log('Global availability cache cleared');
+        }
+        
+        // Dispatch event for cache invalidation
+        const cacheInvalidationEvent = new CustomEvent('availability-cache-invalidated', {
           detail: { timestamp: Date.now(), barberId }
         });
         window.dispatchEvent(cacheInvalidationEvent);
         console.log('Cache invalidation event dispatched');
+        
+        // Also try old cache clearing method for backward compatibility
+        if ((window as any).__clearTimeSlotCache) {
+          (window as any).__clearTimeSlotCache();
+        }
       }
     } catch (err) {
       console.error('Error clearing caches:', err);
@@ -159,8 +163,8 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
         console.log('Successfully created new lunch break');
       }
       
-      // Clear all caches to ensure new bookings use the updated lunch break settings
-      clearAllTimeslotCaches();
+      // Clear caches to ensure new bookings use the updated lunch break settings
+      invalidateAllCaches();
       
       toast.success('Lunch break settings saved');
       
@@ -174,7 +178,7 @@ export const LunchBreakForm: React.FC<LunchBreakFormProps> = ({ barberId, onSave
       }
     } catch (err: any) {
       console.error('Error saving lunch break:', err);
-      toast.error('Error saving lunch break settings');
+      toast.error('Error saving lunch break settings: ' + (err.message || 'Unknown error'));
     } finally {
       setIsSaving(false);
     }
