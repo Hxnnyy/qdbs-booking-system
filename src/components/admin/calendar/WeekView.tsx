@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarViewProps } from '@/types/calendar';
 import { filterEventsByWeek } from '@/utils/eventFilterUtils';
@@ -35,14 +35,18 @@ export const WeekView: React.FC<CalendarViewProps> = ({
     handleDragOver,
     handleDragEnd,
     handleDragCancel,
-    setDragPreview
+    setDragPreview,
+    isEventDragging
   } = useCalendarDragDrop(events, onEventDrop, startHour);
 
+  // Update display events whenever events or date changes
   useEffect(() => {
-    const filtered = filterEventsByWeek(events, date);
-    console.log(`Week view: Generated ${filtered.length} events, including lunch breaks`);
-    setDisplayEvents(filtered);
-  }, [events, date, setDisplayEvents]);
+    if (!draggingEvent) {
+      const filtered = filterEventsByWeek(events, date);
+      console.log(`Week view: Generated ${filtered.length} events, including lunch breaks`);
+      setDisplayEvents(filtered);
+    }
+  }, [events, date, setDisplayEvents, draggingEvent]);
 
   useEffect(() => {
     if (!autoScrollToCurrentTime) return;
@@ -68,39 +72,22 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   }, [date, weekDays, startHour, endHour, autoScrollToCurrentTime]);
 
   // Enhanced drag handlers
-  const handleDragOverWithDay = (e: React.DragEvent, dayIndex: number) => {
+  const handleDragOverWithDay = useCallback((e: React.DragEvent, dayIndex: number) => {
     handleDragOver(e, dayIndex);
-  };
+  }, [handleDragOver]);
 
-  const handleDragEndWithDay = (e: React.DragEvent, dayIndex: number) => {
+  const handleDragEndWithDay = useCallback((e: React.DragEvent, dayIndex: number) => {
     const selectedDate = weekDays[dayIndex];
     handleDragEnd(e, selectedDate, dayIndex);
-  };
+  }, [handleDragEnd, weekDays]);
 
-  const isEventDragging = (eventId: string) => {
-    return draggingEvent?.id === eventId;
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     // Only clear preview if dragging outside the calendar area
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
       setDragPreview(null);
     }
-  };
-
-  // Add handler for when drag operation is cancelled
-  useEffect(() => {
-    const handleDocumentDragEnd = () => {
-      handleDragCancel();
-    };
-
-    document.addEventListener('dragend', handleDocumentDragEnd);
-    
-    return () => {
-      document.removeEventListener('dragend', handleDocumentDragEnd);
-    };
-  }, [handleDragCancel]);
+  }, [setDragPreview]);
 
   const hasHolidayEvents = weekDays.some(day => 
     getHolidayEventsForDate(events, day).length > 0

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { CalendarEvent, DragPreview } from '@/types/calendar';
 
 export const useCalendarDragDrop = (
@@ -11,18 +11,23 @@ export const useCalendarDragDrop = (
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const dragSourceId = useRef<string | null>(null);
+  const isDraggingRef = useRef<boolean>(false);
 
   // Initialize display events from props
   useEffect(() => {
-    if (!draggingEvent) {
-      // Only update display events when not dragging to prevent flicker
+    // Only update display events when not dragging to prevent flicker
+    if (!isDraggingRef.current) {
+      console.log('Updating display events from props, count:', events.length);
       const deepCopiedEvents = events.map(event => ({...event}));
       setDisplayEvents(deepCopiedEvents);
     }
-  }, [events, draggingEvent]);
+  }, [events]);
 
-  const handleDragStart = (event: CalendarEvent) => {
+  const handleDragStart = useCallback((event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.status === 'holiday') return;
+    
+    // Set dragging flag
+    isDraggingRef.current = true;
     
     // Store the ID of the event being dragged
     dragSourceId.current = event.id;
@@ -33,9 +38,11 @@ export const useCalendarDragDrop = (
     
     // Immediately remove the event from display to prevent duplicates
     setDisplayEvents(prev => prev.filter(e => e.id !== event.id));
-  };
+    
+    console.log(`Started dragging event: ${event.id}, removed from display`);
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent, dayIndex?: number) => {
+  const handleDragOver = useCallback((e: React.DragEvent, dayIndex?: number) => {
     e.preventDefault();
     if (!draggingEvent) return;
     
@@ -53,14 +60,17 @@ export const useCalendarDragDrop = (
       top: Math.floor(totalMinutes / 15) * 15,
       columnIndex: dayIndex
     });
-  };
+  }, [draggingEvent, startHour]);
 
-  const handleDragEnd = (e: React.DragEvent, date: Date, dayIndex?: number) => {
+  const handleDragEnd = useCallback((e: React.DragEvent, date: Date, dayIndex?: number) => {
+    console.log('Drag end triggered');
+    
     if (!draggingEvent || !dragSourceId.current) {
       // Clear states just in case
       setDraggingEvent(null);
       setDragPreview(null);
       dragSourceId.current = null;
+      isDraggingRef.current = false;
       return;
     }
     
@@ -92,20 +102,47 @@ export const useCalendarDragDrop = (
     setDragPreview(null);
     const sourceId = dragSourceId.current;
     dragSourceId.current = null;
+    isDraggingRef.current = false;
     
     // Double-check removal of the event from display events
     setDisplayEvents(prev => prev.filter(e => e.id !== sourceId));
     
     // Let the parent component handle the actual update
     onEventDrop(eventCopy, newStart, newEnd);
-  };
+  }, [draggingEvent, onEventDrop, startHour]);
 
   // Handler to cancel drag operation
-  const handleDragCancel = () => {
+  const handleDragCancel = useCallback(() => {
+    console.log('Drag cancelled, cleaning up');
     setDraggingEvent(null);
     setDragPreview(null);
     dragSourceId.current = null;
-  };
+    isDraggingRef.current = false;
+    
+    // Force refresh display events from main events prop
+    const deepCopiedEvents = events.map(event => ({...event}));
+    setDisplayEvents(deepCopiedEvents);
+  }, [events]);
+
+  // Global drag end handler to ensure cleanup even if drop happens outside calendar
+  useEffect(() => {
+    const handleGlobalDragEnd = () => {
+      if (isDraggingRef.current) {
+        console.log('Global drag end detected, cleaning up');
+        handleDragCancel();
+      }
+    };
+
+    document.addEventListener('dragend', handleGlobalDragEnd);
+    
+    return () => {
+      document.removeEventListener('dragend', handleGlobalDragEnd);
+    };
+  }, [handleDragCancel]);
+
+  const isEventDragging = useCallback((eventId: string) => {
+    return dragSourceId.current === eventId;
+  }, []);
 
   return {
     draggingEvent,
@@ -117,6 +154,7 @@ export const useCalendarDragDrop = (
     handleDragEnd,
     handleDragCancel,
     setDragPreview,
-    dragSourceId: dragSourceId.current
+    dragSourceId: dragSourceId.current,
+    isEventDragging
   };
 };

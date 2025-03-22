@@ -3,6 +3,7 @@ import React, { memo } from 'react';
 import { CalendarEvent as CalendarEventType } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
 import { processOverlappingEvents } from '@/utils/processOverlappingEvents';
+import { format } from 'date-fns';
 
 interface CalendarEventRendererProps {
   events: CalendarEventType[];
@@ -45,8 +46,8 @@ export const CalendarEventRenderer: React.FC<CalendarEventRendererProps> = memo(
         const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
         const height = Math.max(durationMinutes, 15);
         
-        // Create a truly unique key that includes both the event ID and date
-        const dateStr = date ? date.toISOString().split('T')[0] : 'day-view';
+        // Create a truly unique key that includes both the event ID, date and timestamp to prevent duplicates
+        const dateStr = date ? format(date, 'yyyy-MM-dd') : 'day-view';
         const uniqueKey = `${event.id}-${dateStr}-${slotIndex}`;
         
         const dragging = isDragging(event.id);

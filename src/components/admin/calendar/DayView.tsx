@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { isToday } from 'date-fns';
 import { CalendarViewProps } from '@/types/calendar';
 import { filterEventsByDate } from '@/utils/calendarUtils';
@@ -34,13 +34,16 @@ export const DayView: React.FC<CalendarViewProps> = ({
     handleDragOver,
     handleDragEnd,
     handleDragCancel,
-    setDragPreview
+    setDragPreview,
+    isEventDragging
   } = useCalendarDragDrop(events, onEventDrop, startHour);
 
   useEffect(() => {
-    const filtered = filterEventsByDate(events, date);
-    setDisplayEvents(filtered);
-  }, [events, date, setDisplayEvents]);
+    if (!draggingEvent) {
+      const filtered = filterEventsByDate(events, date);
+      setDisplayEvents(filtered);
+    }
+  }, [events, date, setDisplayEvents, draggingEvent]);
 
   useEffect(() => {
     if (isToday(date) && autoScrollToCurrentTime) {
@@ -62,35 +65,18 @@ export const DayView: React.FC<CalendarViewProps> = ({
   }, [date, startHour, endHour, autoScrollToCurrentTime]);
 
   // Enhanced drag event handlers
-  const handleDragEndWithDate = (e: React.DragEvent) => {
+  const handleDragEndWithDate = useCallback((e: React.DragEvent) => {
     handleDragEnd(e, date);
-  };
-
-  const isEventDragging = (eventId: string) => {
-    return draggingEvent?.id === eventId;
-  };
+  }, [handleDragEnd, date]);
 
   // Handler for drag leaving the drop area
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     // Only clear preview if dragging outside the calendar area
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
       setDragPreview(null);
     }
-  };
-
-  // Add handler for when drag operation is cancelled
-  useEffect(() => {
-    const handleDocumentDragEnd = () => {
-      handleDragCancel();
-    };
-
-    document.addEventListener('dragend', handleDocumentDragEnd);
-    
-    return () => {
-      document.removeEventListener('dragend', handleDocumentDragEnd);
-    };
-  }, [handleDragCancel]);
+  }, [setDragPreview]);
 
   return (
     <div className="h-full calendar-view day-view">
