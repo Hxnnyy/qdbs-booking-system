@@ -38,11 +38,28 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       }
     }
     
+    // For registered users, try to get their name from the user_profiles or create a title
+    let clientName = '';
+    if (booking.guest_booking) {
+      clientName = `Guest: ${guestName}`;
+    } else {
+      // Check if we have profile information available from the booking join
+      if (booking.profile) {
+        const firstName = booking.profile.first_name || '';
+        const lastName = booking.profile.last_name || '';
+        if (firstName || lastName) {
+          clientName = `${firstName} ${lastName}`.trim();
+        }
+      }
+      // If we still don't have a name, use a generic title
+      if (!clientName) {
+        clientName = 'Client Booking';
+      }
+    }
+    
     return {
       id: booking.id,
-      title: booking.guest_booking 
-        ? `Guest: ${guestName}`
-        : `Client Booking`,
+      title: clientName,
       start: startDate,
       end: endDate,
       barber: booking.barber?.name || 'Unknown',

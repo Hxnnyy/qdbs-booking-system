@@ -42,9 +42,29 @@ const getStatusBadgeClass = (status: string) => {
   }
 };
 
+// Get client name from the booking (either guest or registered user)
+const getClientName = (booking: Booking): string => {
+  if (booking.guest_booking) {
+    const guestInfo = extractGuestInfo(booking.notes);
+    return guestInfo.name;
+  }
+  
+  // If we have profile data joined to the booking
+  if (booking.profile) {
+    const firstName = booking.profile.first_name || '';
+    const lastName = booking.profile.last_name || '';
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
+    }
+  }
+  
+  return 'Unknown Client';
+};
+
 export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking }) => {
   const isGuestBooking = booking.guest_booking === true;
   const guestInfo = isGuestBooking ? extractGuestInfo(booking.notes) : null;
+  const clientName = getClientName(booking);
   
   return (
     <Card>
@@ -74,21 +94,25 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
               £{booking.service?.price?.toFixed(2)} • {booking.service?.duration} min
             </p>
             
-            {isGuestBooking && guestInfo && (
-              <div className="mt-2 text-sm space-y-1">
-                <div className="flex items-center gap-1">
-                  <User className="h-3 w-3 text-gray-500" />
-                  <span className="text-gray-700">{guestInfo.name}</span>
-                </div>
+            <div className="mt-2 text-sm">
+              <div className="flex items-center gap-1">
+                <User className="h-3 w-3 text-gray-500" />
+                <span className="text-gray-700">{clientName}</span>
+              </div>
+              
+              {isGuestBooking && guestInfo && (
                 <div className="flex items-center gap-1">
                   <Phone className="h-3 w-3 text-gray-500" />
                   <span className="text-gray-700">{guestInfo.phone}</span>
                 </div>
+              )}
+              
+              {isGuestBooking && guestInfo && (
                 <div className="text-xs text-gray-500">
                   Booking Code: <span className="font-mono">{guestInfo.code}</span>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           
           <div className="flex gap-2">

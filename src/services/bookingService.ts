@@ -247,7 +247,8 @@ export const fetchPaginatedBookings = async (
       .select(`
         *,
         barber:barber_id(name),
-        service:service_id(name, price, duration)
+        service:service_id(name, price, duration),
+        profile:user_id(first_name, last_name, email)
       `)
       .order('booking_date', { ascending: false })
       .order('booking_time', { ascending: true })
