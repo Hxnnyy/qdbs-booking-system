@@ -143,9 +143,9 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      // Key Fix: Create entirely new array and use event ID to identify and update the specific event
+      // Fix for cross-day drag-and-drop: Create entirely new array to avoid stale closure issues
       setCalendarEvents(prevEvents => {
-        // First, remove the event being updated
+        // First, remove the event being updated completely
         const filteredEvents = prevEvents.filter(event => event.id !== eventId);
         
         // Find the original event to copy its properties
@@ -156,12 +156,19 @@ export const useCalendarBookings = () => {
           return prevEvents;
         }
         
-        // Create updated event with new times
+        // Create a completely new event object with updated times
         const updatedEvent = {
           ...originalEvent,
-          start: newStart,
-          end: newEnd
+          start: new Date(newStart),
+          end: new Date(newEnd)
         };
+        
+        console.log('Calendar update:', {
+          originalStart: originalEvent.start.toISOString(),
+          originalEnd: originalEvent.end.toISOString(),
+          newStart: updatedEvent.start.toISOString(),
+          newEnd: updatedEvent.end.toISOString()
+        });
         
         // Return new array with the updated event
         return [...filteredEvents, updatedEvent];
