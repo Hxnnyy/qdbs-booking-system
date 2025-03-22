@@ -51,23 +51,64 @@ export const processOverlappingEvents = (events: CalendarEvent[]) => {
     // Sort events by start time
     const sorted = [...slotEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
     
-    // Find slots for each event
-    const usedSlots: boolean[] = [];
+    // Find overlapping events
+    const overlappingSets: CalendarEvent[][] = [];
     
+    // Group overlapping events
     sorted.forEach(event => {
-      // Find first available slot index
-      let slotIndex = 0;
-      while (usedSlots[slotIndex]) {
-        slotIndex++;
+      // Find if this event overlaps with any existing set
+      let foundOverlap = false;
+      
+      for (const set of overlappingSets) {
+        // Check if this event overlaps with any event in the set
+        const overlapsWithSet = set.some(existingEvent => {
+          // Check for actual time overlap, not just same hour
+          // Two events overlap if one starts before the other ends
+          return (
+            event.start < existingEvent.end && 
+            event.end > existingEvent.start &&
+            // Same barber events shouldn't overlap (they should be sequential)
+            event.barberId !== existingEvent.barberId
+          );
+        });
+        
+        if (overlapsWithSet) {
+          set.push(event);
+          foundOverlap = true;
+          break;
+        }
       }
       
-      // Mark this slot as used
-      usedSlots[slotIndex] = true;
+      // If no overlap found, create a new set
+      if (!foundOverlap) {
+        overlappingSets.push([event]);
+      }
+    });
+    
+    // Process each set of overlapping events
+    overlappingSets.forEach(set => {
+      // For single events or non-overlapping events, use full width
+      if (set.length === 1) {
+        result.push({
+          event: set[0],
+          slotIndex: 0,
+          totalSlots: 1
+        });
+        return;
+      }
       
-      result.push({
-        event,
-        slotIndex,
-        totalSlots: sorted.length
+      // Sort by barber ID to ensure consistent ordering
+      const sortedByBarberId = [...set].sort((a, b) => 
+        a.barberId.localeCompare(b.barberId)
+      );
+      
+      // Assign slot indexes within the set
+      sortedByBarberId.forEach((event, index) => {
+        result.push({
+          event,
+          slotIndex: index,
+          totalSlots: sortedByBarberId.length
+        });
       });
     });
   });
