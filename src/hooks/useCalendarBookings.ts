@@ -132,6 +132,7 @@ export const useCalendarBookings = () => {
       
       console.log(`Updating booking ${eventId} to ${newBookingDate} ${newBookingTime}`);
       
+      // Update the booking in Supabase
       const { error } = await supabase
         .from('bookings')
         .update({
@@ -142,18 +143,31 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      // Fix: Filter out the event being updated to avoid duplication
-      const updatedEvents = calendarEvents.filter(event => event.id !== eventId);
+      // Key Fix: Create entirely new array and use event ID to identify and update the specific event
+      setCalendarEvents(prevEvents => {
+        // First, remove the event being updated
+        const filteredEvents = prevEvents.filter(event => event.id !== eventId);
+        
+        // Find the original event to copy its properties
+        const originalEvent = prevEvents.find(event => event.id === eventId);
+        
+        if (!originalEvent) {
+          console.error(`Could not find event with ID ${eventId}`);
+          return prevEvents;
+        }
+        
+        // Create updated event with new times
+        const updatedEvent = {
+          ...originalEvent,
+          start: newStart,
+          end: newEnd
+        };
+        
+        // Return new array with the updated event
+        return [...filteredEvents, updatedEvent];
+      });
       
-      // Then add the updated event
-      const updatedEvent = {
-        ...calendarEvents.find(event => event.id === eventId)!,
-        start: newStart,
-        end: newEnd
-      };
-      
-      setCalendarEvents([...updatedEvents, updatedEvent]);
-      
+      // Update local bookings state
       setBookings(prev => 
         prev.map(booking => 
           booking.id === eventId 
