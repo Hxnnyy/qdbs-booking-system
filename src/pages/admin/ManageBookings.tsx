@@ -37,22 +37,30 @@ const ManageBookings = () => {
       setIsLoading(true);
       setError(null);
       
-      // Switch to using the edge function for fetching bookings
       try {
         console.log('Attempting to use edge function for fetching bookings');
         const { data, error } = await supabase.functions.invoke('get-bookings-with-profiles', {
-          body: { page: 0, pageSize: 100 } // Fetch more to handle client-side filtering
+          body: { page: 0, pageSize: 100 }
         });
         
         if (error) throw error;
         
         console.log('Successfully fetched bookings with profiles from edge function:', data);
-        setBookings(data.bookings || []);
-        filterBookings(data.bookings || [], currentTab, statusFilter, typeFilter);
+        const typedBookings: Booking[] = data.bookings.map((booking: any) => ({
+          ...booking,
+          profile: booking.profile || {
+            first_name: booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest',
+            last_name: '',
+            email: booking.guest_email || '',
+            phone: booking.guest_phone || ''
+          }
+        }));
+        
+        setBookings(typedBookings);
+        filterBookings(typedBookings, currentTab, statusFilter, typeFilter);
         return;
       } catch (edgeFnError) {
         console.error('Error using edge function, falling back to direct query:', edgeFnError);
-        // Continue with the original query as fallback
       }
       
       // Fallback to direct query if edge function fails
