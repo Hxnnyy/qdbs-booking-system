@@ -98,8 +98,16 @@ serve(async (req) => {
         }
       }
       
-      // For guest bookings or if profile not found, just return the booking as is
-      return booking
+      // For guest bookings or if profile not found, add an empty profile object
+      return {
+        ...booking,
+        profile: booking.guest_booking ? null : {
+          first_name: undefined,
+          last_name: undefined,
+          email: undefined,
+          phone: undefined
+        }
+      }
     }) || []
     
     // Log profile data to debug

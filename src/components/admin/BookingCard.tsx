@@ -58,8 +58,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     // Guest email might be in guest_email field if available
     clientEmail = booking.guest_email || '';
   } else if (booking.profile) {
-    // Check if profile is an error message object
-    if (typeof booking.profile === 'string' || booking.profile?.error) {
+    // Check if profile is missing or invalid
+    if (typeof booking.profile === 'string' || 
+        booking.profile === null || 
+        Object.keys(booking.profile).length === 0) {
       clientName = 'User Profile Unavailable';
     } else {
       // For registered users, use profile information
