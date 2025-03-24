@@ -92,7 +92,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     
     // Set the drag image (optional)
     const dragElement = document.createElement('div');
-    dragElement.textContent = `${event.title} - ${event.barber}`;
+    dragElement.textContent = `${event.title} - ${event.barberName}`;
     dragElement.style.padding = '10px';
     dragElement.style.background = barberColor;
     dragElement.style.color = 'white';
@@ -146,11 +146,11 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
         )}
       </div>
       {isLunchBreak ? (
-        <div className="truncate opacity-90">{event.barber}'s Lunch</div>
+        <div className="truncate opacity-90">{event.barberName}'s Lunch</div>
       ) : isHoliday ? (
-        <div className="truncate opacity-90">{event.barber}</div>
+        <div className="truncate opacity-90">{event.barberName}</div>
       ) : (
-        <div className="truncate opacity-90">{event.barber} - {event.service}</div>
+        <div className="truncate opacity-90">{event.barberName} - {event.service}</div>
       )}
     </div>
   );

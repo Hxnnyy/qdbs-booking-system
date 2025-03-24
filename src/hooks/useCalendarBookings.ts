@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
-import { bookingToCalendarEvent, createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
+import { bookingToCalendarEvent, createLunchBreakEvent, createHolidayEvent } from '@/utils/eventCreationUtils';
 import { formatNewBookingDate, formatNewBookingTime } from '@/utils/bookingUpdateUtils';
+import { clearBarberColorCache } from '@/utils/barberColorUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
