@@ -99,7 +99,30 @@ serve(async (req) => {
       );
     }
     
+    // Get profile information from profiles table to include in notes
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("email, first_name, last_name, phone")
+      .eq("id", booking.user_id)
+      .single();
+    
+    if (profileError) {
+      console.error("Error fetching user profile:", profileError.message);
+      // Continue despite profile error - we'll still create the booking
+    }
+    
+    // Prepare user information for notes
+    let userInfoNotes = "";
+    if (profile) {
+      const userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Client';
+      userInfoNotes = `User Info: ${userName}\nEmail: ${profile.email || 'Not provided'}\nPhone: ${profile.phone || 'Not provided'}\n\n`;
+    }
+    
+    // Combine user information with any existing notes
+    const combinedNotes = userInfoNotes + (booking.notes || '');
+    
     console.log("Creating booking with service role:", JSON.stringify(booking));
+    console.log("Including user info in notes:", userInfoNotes);
     
     // Create the booking with service role privileges (bypassing RLS)
     const { data, error } = await supabase
@@ -110,7 +133,7 @@ serve(async (req) => {
         booking_date: booking.booking_date,
         booking_time: booking.booking_time,
         status: booking.status || "confirmed",
-        notes: booking.notes || null,
+        notes: combinedNotes, // Use the combined notes with user info
         user_id: booking.user_id,
         guest_booking: false
       })
@@ -135,18 +158,6 @@ serve(async (req) => {
     }
     
     console.log("Booking created successfully:", JSON.stringify(data));
-    
-    // Get profile information from profiles table
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("email, first_name, last_name")
-      .eq("id", booking.user_id)
-      .single();
-    
-    if (profileError) {
-      console.error("Error fetching user profile:", profileError.message);
-      // Continue despite profile error - we'll still return the booking
-    }
     
     // Try to send confirmation email but don't fail if it doesn't work
     try {
