@@ -217,6 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
+      // First, register the user with Supabase authentication
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -224,24 +225,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             first_name: userData.firstName,
             last_name: userData.lastName,
-            phone: userData.phone, // Add phone to user metadata
+            phone: userData.phone, // Store phone in user metadata
           },
         },
       });
       
       if (error) throw error;
       
-      // Create or update profile with phone number
-      if (supabase.auth.getUser) {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          await supabase.from('profiles').upsert({
-            id: userData.user.id,
-            first_name: userData.user.user_metadata.first_name,
-            last_name: userData.user.user_metadata.last_name,
-            email: userData.user.email,
-            phone: userData.user.user_metadata.phone,
-          });
+      // After signup is successful, get the newly created user
+      const { data: currentUser } = await supabase.auth.getUser();
+      
+      if (currentUser?.user) {
+        // Ensure the profile exists with complete information including phone number
+        const { error: profileError } = await supabase.from('profiles').upsert({
+          id: currentUser.user.id,
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          email: email,
+          phone: userData.phone, // Explicitly add phone to profile
+        }, { onConflict: 'id' });
+        
+        if (profileError) {
+          console.error('Error updating profile with phone number:', profileError);
+          // Still proceed with signup but log the error
         }
       }
       
