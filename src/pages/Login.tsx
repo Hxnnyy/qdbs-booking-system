@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -27,6 +26,7 @@ const Login = () => {
     try {
       setIsSubmitting(true);
       await signIn(email, password);
+      // The redirect will happen in the auth context
     } catch (error) {
       console.error('Login error:', error);
     } finally {
@@ -44,7 +44,7 @@ const Login = () => {
   }
 
   if (user) {
-    return <Navigate to="/" />;
+    return <Navigate to={from} />;
   }
 
   return (

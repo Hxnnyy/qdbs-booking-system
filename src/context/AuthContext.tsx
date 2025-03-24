@@ -1,7 +1,8 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, UNSAFE_NavigationContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Profile, UpdatableProfile } from '@/supabase-types';
 
@@ -25,8 +26,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const navigationContext = useContext(UNSAFE_NavigationContext);
-  const navigate = navigationContext ? useNavigate() : null;
+  // Remove the UNSAFE_NavigationContext usage, we'll handle navigation differently
+  const navigate = useNavigate();
   
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -36,16 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user || null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
+    // First set up auth state listener to ensure we don't miss any auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -60,6 +52,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user || null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -208,7 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      if (navigate) navigate('/');
+      navigate('/');
       toast.success('Logged in successfully');
     } catch (error: any) {
       toast.error(error.message);
@@ -256,7 +259,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      if (navigate) navigate('/');
+      
+      // Clear all auth state
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setIsAdmin(false);
+      setIsSuperAdmin(false);
+      
+      navigate('/');
       toast.success('Logged out successfully');
     } catch (error: any) {
       toast.error(error.message);
