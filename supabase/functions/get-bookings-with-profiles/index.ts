@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -27,14 +28,14 @@ serve(async (req) => {
     console.log('- Page Size:', pageSize)
     console.log('- Filters:', filters)
 
-    // Build the query with relations - use 'profiles' table instead of direct user_id
+    // Build the query with relations
     let query = supabaseClient
       .from('bookings')
       .select(`
         *,
         barber:barber_id(*),
         service:service_id(*),
-        profile:profiles!bookings_user_id_fkey(id, first_name, last_name, email, phone)
+        profile:user_id(id, first_name, last_name, email, phone)
       `, { count: 'exact' })
 
     // Apply filters if provided
@@ -64,48 +65,10 @@ serve(async (req) => {
       console.log(`Booking ${index} user_id: ${booking.user_id}, has profile:`, booking.profile !== null)
     })
 
-    // Handle guest bookings (they won't have a profile)
-    const processedBookings = bookings?.map(booking => {
-      // Make sure guest_phone is always available
-      const bookingWithGuestPhone = {
-        ...booking,
-        guest_phone: booking.guest_phone || ''
-      }
-      
-      if (booking.guest_booking) {
-        // For guest bookings, create a minimal profile structure
-        return {
-          ...bookingWithGuestPhone,
-          profile: {
-            // Extract name from notes if available, or use guest_email
-            first_name: booking.guest_name || (booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest'),
-            last_name: '',
-            email: booking.guest_email || '',
-            phone: booking.guest_phone || ''
-          }
-        }
-      }
-      
-      // For normal user bookings with no profile, create a default one
-      if (!booking.profile) {
-        return {
-          ...bookingWithGuestPhone,
-          profile: {
-            first_name: 'Unknown',
-            last_name: '',
-            email: '',
-            phone: ''
-          }
-        }
-      }
-      
-      return bookingWithGuestPhone
-    }) || []
-
     // Return the bookings with profiles
     return new Response(
       JSON.stringify({ 
-        bookings: processedBookings, 
+        bookings: bookings || [], 
         totalCount: count || 0 
       }),
       { 

@@ -31,7 +31,6 @@ export interface Booking {
   created_at?: string;
   guest_booking?: boolean;
   guest_email?: string;
-  guest_phone?: string; // Add guest_phone property
   barber?: {
     name: string;
     color?: string;

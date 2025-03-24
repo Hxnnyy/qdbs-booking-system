@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -7,8 +6,6 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { format, isToday, isPast, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { Booking } from '@/supabase-types';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 
 // Import our components
 import { BookingsList } from '@/components/admin/BookingsList';
@@ -18,8 +15,6 @@ import { CalendarEvent } from '@/types/calendar';
 import { bookingToCalendarEvent } from '@/utils/calendarUtils';
 
 const ManageBookings = () => {
-  const navigate = useNavigate();
-  
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,97 +33,21 @@ const ManageBookings = () => {
       setIsLoading(true);
       setError(null);
       
-      try {
-        console.log('Attempting to use edge function for fetching bookings');
-        const { data, error } = await supabase.functions.invoke('get-bookings-with-profiles', {
-          body: { page: 0, pageSize: 100 }
-        });
-        
-        if (error) throw error;
-        
-        console.log('Successfully fetched bookings with profiles from edge function:', data);
-        // Ensure we're creating properly typed Booking objects
-        const typedBookings: Booking[] = data.bookings.map((booking: any) => {
-          // Create a clean profile object that matches the expected type
-          const profileData = booking.profile && typeof booking.profile === 'object' 
-            ? {
-                first_name: booking.profile.first_name || '',
-                last_name: booking.profile.last_name || '',
-                email: booking.profile.email || '',
-                phone: booking.profile.phone || ''
-              }
-            : {
-                first_name: booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest',
-                last_name: '',
-                email: booking.guest_email || '',
-                phone: booking.guest_phone || ''
-              };
-          
-          // Return a properly typed booking object
-          return {
-            ...booking,
-            profile: profileData,
-            guest_phone: booking.guest_phone || '' // Add guest_phone property
-          } as Booking;
-        });
-        
-        setBookings(typedBookings);
-        filterBookings(typedBookings, currentTab, statusFilter, typeFilter);
-        return;
-      } catch (edgeFnError) {
-        console.error('Error using edge function, falling back to direct query:', edgeFnError);
-      }
-      
-      // Fallback to direct query if edge function fails
       // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
           barber:barber_id(name),
-          service:service_id(name, price, duration),
-          profile:user_id(first_name, last_name, email, phone)
+          service:service_id(name, price, duration)
         `)
         .order('booking_date', { ascending: false })
         .order('booking_time', { ascending: true });
       
       if (error) throw error;
       
-      const typedBookings: Booking[] = (data || []).map((booking: any) => {
-        // For direct query, ensure we handle errors with the profile relationship
-        // and create a consistent profile object
-        let profileData;
-        
-        if (booking.profile && typeof booking.profile === 'object' && 
-            !('error' in booking.profile)) {
-          profileData = {
-            first_name: booking.profile?.first_name || '',
-            last_name: booking.profile?.last_name || '',
-            email: booking.profile?.email || '',
-            phone: booking.profile?.phone || ''
-          };
-        } else {
-          // Handle case where profile is an error or doesn't exist
-          profileData = {
-            first_name: booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest',
-            last_name: '',
-            email: booking.guest_email || '',
-            phone: booking.guest_phone || ''
-          };
-        }
-            
-        // Cast the booking object to include any missing properties
-        const bookingWithGuestPhone = {
-          ...booking,
-          guest_phone: booking.guest_phone || '', // Ensure guest_phone exists
-          profile: profileData
-        } as Booking;
-        
-        return bookingWithGuestPhone;
-      });
-      
-      setBookings(typedBookings);
-      filterBookings(typedBookings, currentTab, statusFilter, typeFilter);
+      setBookings(data || []);
+      filterBookings(data || [], currentTab, statusFilter, typeFilter);
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
@@ -236,15 +155,7 @@ const ManageBookings = () => {
     <Layout>
       <AdminLayout>
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Manage Bookings</h1>
-            <Button
-              onClick={() => navigate('/admin/bookings-query')}
-              variant="outline"
-            >
-              Switch to New Bookings UI
-            </Button>
-          </div>
+          <h1 className="text-3xl font-bold">Manage Bookings</h1>
           
           <div className="flex flex-col sm:flex-row gap-4">
             <Tabs 
