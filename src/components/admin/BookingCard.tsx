@@ -43,8 +43,15 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking }) => {
+  console.log('BookingCard rendering:', {
+    id: booking.id, 
+    userInfo: booking.profile,
+    isGuest: booking.guest_booking,
+    notes: booking.notes?.substring(0, 50)
+  });
+  
   const isGuestBooking = booking.guest_booking === true;
-  const hasProfile = !isGuestBooking && booking.profile;
+  const hasProfile = booking.profile && !isGuestBooking;
   
   // Get client information based on booking type
   let clientName = 'Unknown Client';
@@ -55,6 +62,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     const guestInfo = extractGuestInfo(booking.notes);
     clientName = guestInfo.name;
     clientPhone = guestInfo.phone !== 'Unknown' ? guestInfo.phone : null;
+    
+    console.log(`Guest booking ${booking.id}: Name: ${clientName}, Phone: ${clientPhone}`);
   } else if (hasProfile) {
     // For registered users with profile data
     const profile = booking.profile;
@@ -68,6 +77,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     }
     
     clientPhone = profile?.phone || null;
+    
+    console.log(`User booking ${booking.id}: Name: ${clientName}, Phone: ${clientPhone}`);
+  } else {
+    console.log(`No profile data for booking ${booking.id}. isGuest: ${isGuestBooking}, hasProfile: ${hasProfile}`);
   }
   
   return (

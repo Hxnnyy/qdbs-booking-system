@@ -8,12 +8,42 @@ export const useBookingsQuery = (page: number = 0, pageSize: number = 10) => {
     queryKey: ['bookings', page, pageSize],
     queryFn: async () => {
       try {
+        console.log('Calling edge function to get bookings with profiles');
+        
         const { data, error } = await supabase.functions.invoke('get-bookings-with-profiles', {
           body: { page, pageSize }
         });
         
-        if (error) throw new Error(error.message);
-        if (!data) throw new Error('No data returned from edge function');
+        if (error) {
+          console.error('Edge function error:', error);
+          throw new Error(error.message);
+        }
+        
+        if (!data) {
+          console.error('No data returned from edge function');
+          throw new Error('No data returned from edge function');
+        }
+        
+        console.log('Edge function returned data:', {
+          totalCount: data.totalCount,
+          bookingsCount: data.bookings?.length || 0
+        });
+        
+        // Log the first booking as a sample to verify profile data
+        if (data.bookings && data.bookings.length > 0) {
+          const sampleBooking = data.bookings[0];
+          console.log('Sample booking data:', {
+            id: sampleBooking.id,
+            userId: sampleBooking.user_id,
+            guestBooking: sampleBooking.guest_booking,
+            hasProfile: !!sampleBooking.profile,
+            profileData: sampleBooking.profile ? {
+              firstName: sampleBooking.profile.first_name,
+              lastName: sampleBooking.profile.last_name,
+              email: sampleBooking.profile.email
+            } : null
+          });
+        }
         
         return data;
       } catch (err: any) {

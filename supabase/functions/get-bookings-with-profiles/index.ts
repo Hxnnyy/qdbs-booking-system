@@ -65,13 +65,19 @@ export async function fetchPaginatedBookings(page = 0, pageSize = 10) {
     if (!bookingsData || bookingsData.length === 0) {
       return { bookings: [], totalCount: count || 0 }
     }
+
+    // Log some details about the bookings we found
+    console.log(`Found ${bookingsData.length} bookings`)
+    bookingsData.forEach(booking => {
+      console.log(`Booking ${booking.id}: userId=${booking.user_id}, guestBooking=${booking.guest_booking}`)
+    })
     
     // Extract user IDs for registered users
     const userIds = bookingsData
-      .filter(booking => booking.user_id && !booking.guest_booking)
+      .filter(booking => booking.user_id && booking.guest_booking !== true)
       .map(booking => booking.user_id)
     
-    console.log(`Found ${userIds.length} user IDs for registered bookings`)
+    console.log(`Found ${userIds.length} user IDs for registered bookings: ${JSON.stringify(userIds)}`)
     
     let profilesById = {}
     
@@ -85,13 +91,44 @@ export async function fetchPaginatedBookings(page = 0, pageSize = 10) {
       if (profilesError) {
         console.error('Profiles fetch error:', profilesError)
       } else if (profilesData) {
+        console.log(`Successfully fetched ${profilesData.length} profiles`)
+        
+        // Log profiles data for debugging
+        profilesData.forEach(profile => {
+          console.log(`Profile ${profile.id}: ${profile.first_name} ${profile.last_name}, ${profile.email}`)
+        })
+        
         // Create a map of user_id to profile
         profilesById = profilesData.reduce((acc, profile) => {
           acc[profile.id] = profile
           return acc
         }, {})
+      }
+    }
+    
+    // Fetch auth users to get emails if not available in profiles
+    if (userIds.length > 0) {
+      try {
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({
+          perPage: 1000,
+        })
         
-        console.log(`Successfully fetched ${profilesData.length} profiles`)
+        if (!authError && authUsers) {
+          console.log(`Got ${authUsers.users.length} auth users`)
+          
+          // Add email to profiles that don't have it
+          authUsers.users.forEach(user => {
+            if (userIds.includes(user.id) && profilesById[user.id]) {
+              if (!profilesById[user.id].email) {
+                profilesById[user.id].email = user.email
+                console.log(`Added email ${user.email} to profile ${user.id}`)
+              }
+            }
+          })
+        }
+      } catch (authErr) {
+        console.error('Error fetching auth users:', authErr)
+        // Non-blocking, continue with existing profile data
       }
     }
     
@@ -99,12 +136,15 @@ export async function fetchPaginatedBookings(page = 0, pageSize = 10) {
     const bookingsWithProfiles = bookingsData.map(booking => {
       const result = { ...booking }
       
-      if (!booking.guest_booking && booking.user_id && profilesById[booking.user_id]) {
-        result.profile = profilesById[booking.user_id]
+      if (booking.guest_booking !== true && booking.user_id && profilesById[booking.user_id]) {
+        const profile = profilesById[booking.user_id]
+        result.profile = profile
         console.log(`Attached profile to booking ${booking.id}:`, {
           userId: booking.user_id,
-          profileName: `${profilesById[booking.user_id].first_name || ''} ${profilesById[booking.user_id].last_name || ''}`.trim()
+          profileName: `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
         })
+      } else {
+        console.log(`No profile attached to booking ${booking.id}. Guest booking: ${booking.guest_booking}, userId: ${booking.user_id}`)
       }
       
       return result
