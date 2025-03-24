@@ -28,14 +28,13 @@ serve(async (req) => {
     console.log('- Page Size:', pageSize)
     console.log('- Filters:', filters)
 
-    // Build the query with relations
+    // Build the query for bookings with relations
     let query = supabaseClient
       .from('bookings')
       .select(`
         *,
         barber:barber_id(*),
-        service:service_id(*),
-        profile:profiles(id, first_name, last_name, email, phone)
+        service:service_id(*)
       `, { count: 'exact' })
 
     // Apply filters if provided
@@ -60,10 +59,46 @@ serve(async (req) => {
 
     console.log(`Fetched ${bookings?.length || 0} bookings out of ${count} total`)
     
+    // If we have bookings, fetch the corresponding profiles for non-guest bookings
+    if (bookings && bookings.length > 0) {
+      // Get all unique user_ids from non-guest bookings
+      const userIds = bookings
+        .filter(booking => !booking.guest_booking)
+        .map(booking => booking.user_id)
+        .filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+      
+      // If we have user_ids, fetch their profiles
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabaseClient
+          .from('profiles')
+          .select('id, first_name, last_name, email, phone')
+          .in('id', userIds);
+        
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+        } else if (profiles) {
+          console.log(`Fetched ${profiles.length} profiles`);
+          
+          // Create a map of user_id to profile for quick lookups
+          const profileMap = profiles.reduce((map, profile) => {
+            map[profile.id] = profile;
+            return map;
+          }, {});
+          
+          // Attach profiles to bookings
+          bookings.forEach(booking => {
+            if (!booking.guest_booking && booking.user_id) {
+              booking.profile = profileMap[booking.user_id] || null;
+            }
+          });
+        }
+      }
+    }
+    
     // Log profile data to debug
     bookings?.forEach((booking, index) => {
-      console.log(`Booking ${index} user_id: ${booking.user_id}, has profile:`, booking.profile !== null)
-    })
+      console.log(`Booking ${index} user_id: ${booking.user_id}, guest: ${booking.guest_booking}, has profile:`, booking.profile !== undefined);
+    });
 
     // Return the bookings with profiles
     return new Response(
