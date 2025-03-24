@@ -42,70 +42,33 @@ const getStatusBadgeClass = (status: string) => {
   }
 };
 
-// Get client name from the booking (either guest or registered user)
-const getClientName = (booking: Booking): string => {
-  // Check if this is a registered user with profile data
-  if (!booking.guest_booking && (booking as any).profile) {
-    const profile = (booking as any).profile;
-    
-    if (profile.first_name || profile.last_name) {
-      const firstName = profile.first_name || '';
-      const lastName = profile.last_name || '';
-      return `${firstName} ${lastName}`.trim();
-    }
-    
-    // If no name but email exists, use that
-    if (profile.email) {
-      return profile.email.split('@')[0]; // Use username part of email
-    }
-  }
-  
-  // For guest bookings, extract from notes
-  if (booking.guest_booking && booking.notes) {
-    const guestInfo = extractGuestInfo(booking.notes);
-    return guestInfo.name;
-  }
-  
-  return 'Unknown Client';
-};
-
-// Get client phone number from booking (either guest or registered user)
-const getClientPhone = (booking: Booking): string | null => {
-  // For registered users with profile data
-  if (!booking.guest_booking && (booking as any).profile && (booking as any).profile.phone) {
-    return (booking as any).profile.phone;
-  }
-  
-  // For guest bookings, extract from notes
-  if (booking.guest_booking && booking.notes) {
-    const guestInfo = extractGuestInfo(booking.notes);
-    return guestInfo.phone !== 'Unknown' ? guestInfo.phone : null;
-  }
-  
-  return null;
-};
-
 export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking }) => {
   const isGuestBooking = booking.guest_booking === true;
-  const guestInfo = isGuestBooking ? extractGuestInfo(booking.notes) : null;
-  const clientName = getClientName(booking);
-  const clientPhone = getClientPhone(booking);
+  const hasProfile = !isGuestBooking && booking.profile;
   
-  // Debug logging to help troubleshoot profile data
-  console.log('Rendering booking card:', {
-    id: booking.id,
-    clientName,
-    clientPhone,
-    isGuest: booking.guest_booking,
-    hasProfile: !!(booking as any).profile,
-    profileData: (booking as any).profile ? {
-      firstName: (booking as any).profile.first_name,
-      lastName: (booking as any).profile.last_name,
-      phone: (booking as any).profile.phone,
-      email: (booking as any).profile.email
-    } : null,
-    userId: booking.user_id
-  });
+  // Get client information based on booking type
+  let clientName = 'Unknown Client';
+  let clientPhone = null;
+  
+  if (isGuestBooking && booking.notes) {
+    // For guest bookings, extract from notes
+    const guestInfo = extractGuestInfo(booking.notes);
+    clientName = guestInfo.name;
+    clientPhone = guestInfo.phone !== 'Unknown' ? guestInfo.phone : null;
+  } else if (hasProfile) {
+    // For registered users with profile data
+    const profile = booking.profile;
+    const firstName = profile?.first_name || '';
+    const lastName = profile?.last_name || '';
+    
+    if (firstName || lastName) {
+      clientName = `${firstName} ${lastName}`.trim();
+    } else if (profile?.email) {
+      clientName = profile.email.split('@')[0]; // Use username part of email
+    }
+    
+    clientPhone = profile?.phone || null;
+  }
   
   return (
     <Card>
@@ -148,9 +111,9 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
                 </div>
               )}
               
-              {isGuestBooking && guestInfo && (
+              {isGuestBooking && booking.notes && (
                 <div className="text-xs text-gray-500">
-                  Booking Code: <span className="font-mono">{guestInfo.code}</span>
+                  Booking Code: <span className="font-mono">{extractGuestInfo(booking.notes).code}</span>
                 </div>
               )}
             </div>

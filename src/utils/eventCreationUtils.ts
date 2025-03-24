@@ -1,4 +1,3 @@
-
 import { format, parseISO, addMinutes } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -33,8 +32,8 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     let clientName = 'Unknown Client';
     
     // For registered users with profile
-    if (!booking.guest_booking && (booking as any).profile) {
-      const profile = (booking as any).profile;
+    if (!booking.guest_booking && booking.profile) {
+      const profile = booking.profile;
       const firstName = profile.first_name || '';
       const lastName = profile.last_name || '';
       
@@ -58,10 +57,10 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       id: booking.id,
       clientName,
       isGuest: booking.guest_booking,
-      hasProfile: !!(booking as any).profile,
-      profileName: (booking as any).profile ? 
-        `${(booking as any).profile.first_name || ''} ${(booking as any).profile.last_name || ''}`.trim() : null,
-      profileEmail: (booking as any).profile?.email || null
+      hasProfile: !!booking.profile,
+      profileName: booking.profile ? 
+        `${booking.profile.first_name || ''} ${booking.profile.last_name || ''}`.trim() : null,
+      profileEmail: booking.profile?.email || null
     });
     
     return {
