@@ -1,4 +1,3 @@
-
 import { format, parseISO, addMinutes } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -29,41 +28,34 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     const duration = booking.service?.duration || 30; // Default to 30 minutes if no duration
     const endDate = addMinutes(startDate, duration);
     
-    // Extract guest name from notes if it's a guest booking
-    let guestName = 'Guest';
-    if (booking.guest_booking && booking.notes) {
+    // Get client name based on whether it's a guest booking or a registered user
+    let clientName = 'Unknown Client';
+    
+    // For registered users with profile
+    if (!booking.guest_booking && booking.profile) {
+      const firstName = booking.profile.first_name || '';
+      const lastName = booking.profile.last_name || '';
+      if (firstName || lastName) {
+        clientName = `${firstName} ${lastName}`.trim();
+      }
+    }
+    // For guest bookings
+    else if (booking.guest_booking && booking.notes) {
       const guestMatch = booking.notes.match(/Guest booking by ([^(]+)/);
       if (guestMatch && guestMatch[1]) {
-        guestName = guestMatch[1].trim();
+        clientName = `Guest: ${guestMatch[1].trim()}`;
+      } else {
+        clientName = 'Guest Booking';
       }
     }
     
-    console.log('Creating calendar event from booking:', {
+    console.log('Creating calendar event for client:', {
       id: booking.id,
+      clientName,
       isGuest: booking.guest_booking,
       hasProfile: !!booking.profile,
-      profileData: booking.profile,
-      userId: booking.user_id
+      profileName: booking.profile ? `${booking.profile.first_name || ''} ${booking.profile.last_name || ''}`.trim() : null
     });
-    
-    // For registered users, try to get their name from the user_profiles or create a title
-    let clientName = '';
-    if (booking.guest_booking) {
-      clientName = `Guest: ${guestName}`;
-    } else {
-      // Check if we have profile information available from the booking join
-      if (booking.profile) {
-        const firstName = booking.profile.first_name || '';
-        const lastName = booking.profile.last_name || '';
-        if (firstName || lastName) {
-          clientName = `${firstName} ${lastName}`.trim();
-        }
-      }
-      // If we still don't have a name, use a generic title
-      if (!clientName) {
-        clientName = 'Client Booking';
-      }
-    }
     
     return {
       id: booking.id,

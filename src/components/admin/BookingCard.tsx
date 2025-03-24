@@ -44,13 +44,8 @@ const getStatusBadgeClass = (status: string) => {
 
 // Get client name from the booking (either guest or registered user)
 const getClientName = (booking: Booking): string => {
-  if (booking.guest_booking) {
-    const guestInfo = extractGuestInfo(booking.notes);
-    return guestInfo.name;
-  }
-  
-  // If we have profile data joined to the booking
-  if (booking.profile) {
+  // For registered users with profile data
+  if (!booking.guest_booking && booking.profile) {
     const firstName = booking.profile.first_name || '';
     const lastName = booking.profile.last_name || '';
     if (firstName || lastName) {
@@ -58,18 +53,26 @@ const getClientName = (booking: Booking): string => {
     }
   }
   
+  // For guest bookings, extract from notes
+  if (booking.guest_booking && booking.notes) {
+    const guestInfo = extractGuestInfo(booking.notes);
+    return guestInfo.name;
+  }
+  
   return 'Unknown Client';
 };
 
 // Get client phone number from booking (either guest or registered user)
 const getClientPhone = (booking: Booking): string | null => {
-  if (booking.guest_booking) {
-    const guestInfo = extractGuestInfo(booking.notes);
-    return guestInfo.phone;
+  // For registered users with profile data
+  if (!booking.guest_booking && booking.profile && booking.profile.phone) {
+    return booking.profile.phone;
   }
   
-  if (booking.profile && booking.profile.phone) {
-    return booking.profile.phone;
+  // For guest bookings, extract from notes
+  if (booking.guest_booking && booking.notes) {
+    const guestInfo = extractGuestInfo(booking.notes);
+    return guestInfo.phone;
   }
   
   return null;
@@ -81,13 +84,18 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
   const clientName = getClientName(booking);
   const clientPhone = getClientPhone(booking);
   
-  console.log('Rendering booking card with data:', {
+  // Debug logging to help troubleshoot profile data
+  console.log('Rendering booking card:', {
     id: booking.id,
     clientName,
     clientPhone,
     isGuest: booking.guest_booking,
     hasProfile: !!booking.profile,
-    profileData: booking.profile,
+    profileData: booking.profile ? {
+      firstName: booking.profile.first_name,
+      lastName: booking.profile.last_name,
+      phone: booking.profile.phone
+    } : null,
     userId: booking.user_id
   });
   
