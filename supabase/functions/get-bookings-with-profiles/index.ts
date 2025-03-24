@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -58,7 +57,7 @@ serve(async (req) => {
       throw error
     }
 
-    console.log(`Fetched ${bookings?.length || a0} bookings out of ${count} total`)
+    console.log(`Fetched ${bookings?.length || 0} bookings out of ${count} total`)
     
     // Log profile data to debug
     bookings?.forEach((booking, index) => {
