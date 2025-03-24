@@ -1,4 +1,3 @@
-
 /**
  * Booking Service
  * 
@@ -224,45 +223,22 @@ export const updateBooking = async (
  * @param pageSize - Number of items per page
  * @returns Paginated bookings array and total count
  */
-export const fetchPaginatedBookings = async (
-  page: number = 0,
-  pageSize: number = 10
-): Promise<{ bookings: any[], totalCount: number }> => {
+export const fetchPaginatedBookings = async (page = 0, pageSize = 10, filters = {}) => {
   try {
-    // Get the total count first
-    const { count, error: countError } = await supabase
-      .from('bookings')
-      .select('*', { count: 'exact', head: true });
-    
-    if (countError) {
-      throw countError;
-    }
-    
-    // Then get the paginated data
-    const from = page * pageSize;
-    const to = from + pageSize - 1;
-    
-    const { data, error } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        barber:barber_id(name),
-        service:service_id(name, price, duration)
-      `)
-      .order('booking_date', { ascending: false })
-      .order('booking_time', { ascending: true })
-      .range(from, to);
-    
+    console.log('Calling get-bookings-with-profiles edge function');
+    const { data, error } = await supabase.functions.invoke('get-bookings-with-profiles', {
+      body: { page, pageSize, filters }
+    });
+
     if (error) {
-      throw error;
+      console.error('Error fetching bookings from edge function:', error);
+      throw new Error(error.message || 'Failed to fetch bookings');
     }
     
-    return {
-      bookings: data || [],
-      totalCount: count || 0
-    };
-  } catch (error) {
-    console.error('Error fetching paginated bookings:', error);
-    return { bookings: [], totalCount: 0 };
+    console.log('Bookings fetched successfully from edge function:', data);
+    return data;
+  } catch (err) {
+    console.error('Unexpected error in fetchPaginatedBookings:', err);
+    throw err;
   }
 };

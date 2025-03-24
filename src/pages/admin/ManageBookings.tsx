@@ -6,6 +6,8 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { format, isToday, isPast, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { Booking } from '@/supabase-types';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 // Import our components
 import { BookingsList } from '@/components/admin/BookingsList';
@@ -15,6 +17,8 @@ import { CalendarEvent } from '@/types/calendar';
 import { bookingToCalendarEvent } from '@/utils/calendarUtils';
 
 const ManageBookings = () => {
+  const navigate = useNavigate();
+  
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,13 +37,33 @@ const ManageBookings = () => {
       setIsLoading(true);
       setError(null);
       
+      // Switch to using the edge function for fetching bookings
+      try {
+        console.log('Attempting to use edge function for fetching bookings');
+        const { data, error } = await supabase.functions.invoke('get-bookings-with-profiles', {
+          body: { page: 0, pageSize: 100 } // Fetch more to handle client-side filtering
+        });
+        
+        if (error) throw error;
+        
+        console.log('Successfully fetched bookings with profiles from edge function:', data);
+        setBookings(data.bookings || []);
+        filterBookings(data.bookings || [], currentTab, statusFilter, typeFilter);
+        return;
+      } catch (edgeFnError) {
+        console.error('Error using edge function, falling back to direct query:', edgeFnError);
+        // Continue with the original query as fallback
+      }
+      
+      // Fallback to direct query if edge function fails
       // @ts-ignore - Supabase types issue
       const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
           barber:barber_id(name),
-          service:service_id(name, price, duration)
+          service:service_id(name, price, duration),
+          profile:user_id(first_name, last_name, email, phone)
         `)
         .order('booking_date', { ascending: false })
         .order('booking_time', { ascending: true });
@@ -155,7 +179,15 @@ const ManageBookings = () => {
     <Layout>
       <AdminLayout>
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold">Manage Bookings</h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">Manage Bookings</h1>
+            <Button
+              onClick={() => navigate('/admin/bookings-query')}
+              variant="outline"
+            >
+              Switch to New Bookings UI
+            </Button>
+          </div>
           
           <div className="flex flex-col sm:flex-row gap-4">
             <Tabs 
