@@ -38,11 +38,14 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       }
     }
     
+    // For registered users, use the proper client name
+    const clientName = booking.profile 
+      ? `${booking.profile.first_name || ''} ${booking.profile.last_name || ''}`.trim() 
+      : (booking.guest_booking ? `Guest: ${guestName}` : 'Client Booking');
+    
     return {
       id: booking.id,
-      title: booking.guest_booking 
-        ? `Guest: ${guestName}`
-        : `Client Booking`,
+      title: clientName,
       start: startDate,
       end: endDate,
       barber: booking.barber?.name || 'Unknown',
