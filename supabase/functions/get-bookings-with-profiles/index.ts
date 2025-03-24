@@ -28,7 +28,7 @@ serve(async (req) => {
     console.log('- Page Size:', pageSize)
     console.log('- Filters:', filters)
 
-    // Build the query with relations
+    // Build the query with relations - use 'profiles' table instead of direct user_id
     let query = supabaseClient
       .from('bookings')
       .select(`
@@ -71,6 +71,7 @@ serve(async (req) => {
         // For guest bookings, create a minimal profile structure
         return {
           ...booking,
+          guest_phone: booking.guest_phone || '', // Ensure guest_phone is available
           profile: {
             // Extract name from notes if available, or use guest_email
             first_name: booking.guest_name || (booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest'),
@@ -80,6 +81,20 @@ serve(async (req) => {
           }
         }
       }
+      
+      // For normal user bookings with no profile, create a default one
+      if (!booking.profile) {
+        return {
+          ...booking,
+          profile: {
+            first_name: 'Unknown',
+            last_name: '',
+            email: '',
+            phone: ''
+          }
+        }
+      }
+      
       return booking
     }) || []
 

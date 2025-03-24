@@ -16,4 +16,5 @@ export const NotificationTemplates = () => {
   );
 };
 
-export default NotificationSettings;
+// Fix the export name to match the component name
+export default NotificationTemplates;

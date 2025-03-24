@@ -67,7 +67,8 @@ const ManageBookings = () => {
           // Return a properly typed booking object
           return {
             ...booking,
-            profile: profileData
+            profile: profileData,
+            guest_phone: booking.guest_phone || '' // Add guest_phone property
           } as Booking;
         });
         
@@ -94,24 +95,32 @@ const ManageBookings = () => {
       if (error) throw error;
       
       const typedBookings: Booking[] = (data || []).map(booking => {
-        // Ensure the profile data is in the correct format
-        const profileData = booking.profile 
-          ? {
-              first_name: booking.profile.first_name || '',
-              last_name: booking.profile.last_name || '',
-              email: booking.profile.email || '',
-              phone: booking.profile.phone || ''
-            }
-          : {
-              first_name: booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest',
-              last_name: '',
-              email: booking.guest_email || '',
-              phone: booking.guest_phone || ''
-            };
+        // For direct query, ensure we handle errors with the profile relationship
+        // and create a consistent profile object
+        let profileData;
+        
+        if (booking.profile && typeof booking.profile === 'object' && 
+            !('error' in booking.profile)) {
+          profileData = {
+            first_name: booking.profile.first_name || '',
+            last_name: booking.profile.last_name || '',
+            email: booking.profile.email || '',
+            phone: booking.profile.phone || ''
+          };
+        } else {
+          // Handle case where profile is an error or doesn't exist
+          profileData = {
+            first_name: booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest',
+            last_name: '',
+            email: booking.guest_email || '',
+            phone: booking.guest_phone || ''
+          };
+        }
             
         return {
           ...booking,
-          profile: profileData
+          profile: profileData,
+          guest_phone: booking.guest_phone || '' // Add guest_phone property 
         } as Booking;
       });
       
