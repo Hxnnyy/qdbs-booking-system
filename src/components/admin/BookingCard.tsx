@@ -45,11 +45,17 @@ const getStatusBadgeClass = (status: string) => {
 // Get client name from the booking (either guest or registered user)
 const getClientName = (booking: Booking): string => {
   // For registered users with profile data
-  if (!booking.guest_booking && booking.profile) {
-    const firstName = booking.profile.first_name || '';
-    const lastName = booking.profile.last_name || '';
+  if (!booking.guest_booking && (booking as any).profile) {
+    const profile = (booking as any).profile;
+    const firstName = profile.first_name || '';
+    const lastName = profile.last_name || '';
     if (firstName || lastName) {
       return `${firstName} ${lastName}`.trim();
+    }
+    
+    // If no name but email exists, use that
+    if (profile.email) {
+      return profile.email.split('@')[0]; // Use username part of email
     }
   }
   
@@ -65,8 +71,8 @@ const getClientName = (booking: Booking): string => {
 // Get client phone number from booking (either guest or registered user)
 const getClientPhone = (booking: Booking): string | null => {
   // For registered users with profile data
-  if (!booking.guest_booking && booking.profile && booking.profile.phone) {
-    return booking.profile.phone;
+  if (!booking.guest_booking && (booking as any).profile && (booking as any).profile.phone) {
+    return (booking as any).profile.phone;
   }
   
   // For guest bookings, extract from notes
@@ -90,11 +96,12 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     clientName,
     clientPhone,
     isGuest: booking.guest_booking,
-    hasProfile: !!booking.profile,
-    profileData: booking.profile ? {
-      firstName: booking.profile.first_name,
-      lastName: booking.profile.last_name,
-      phone: booking.profile.phone
+    hasProfile: !!(booking as any).profile,
+    profileData: (booking as any).profile ? {
+      firstName: (booking as any).profile.first_name,
+      lastName: (booking as any).profile.last_name,
+      phone: (booking as any).profile.phone,
+      email: (booking as any).profile.email
     } : null,
     userId: booking.user_id
   });

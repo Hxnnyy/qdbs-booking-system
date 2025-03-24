@@ -1,4 +1,3 @@
-
 /**
  * Booking Service
  * 
@@ -249,16 +248,7 @@ export const fetchPaginatedBookings = async (
     const { data: bookingsData, error } = await supabase
       .from('bookings')
       .select(`
-        id,
-        user_id,
-        barber_id,
-        service_id,
-        booking_date,
-        booking_time,
-        status,
-        notes,
-        created_at,
-        guest_booking,
+        *,
         barber:barber_id(name, color),
         service:service_id(name, price, duration)
       `)
@@ -270,61 +260,68 @@ export const fetchPaginatedBookings = async (
       throw error;
     }
     
-    // For registered users (not guest bookings), get their profiles in a single query
+    if (!bookingsData) {
+      return { bookings: [], totalCount: count || 0 };
+    }
+    
+    // For registered users (not guest bookings), get their profiles in a separate query
     const registeredUserIds = bookingsData
-      ?.filter(booking => booking.user_id && !booking.guest_booking)
-      .map(booking => booking.user_id) || [];
+      .filter(booking => booking.user_id && !booking.guest_booking)
+      .map(booking => booking.user_id);
     
     console.log(`Found ${registeredUserIds.length} registered user bookings. Fetching their profiles...`);
     
-    let userProfiles: Record<string, Profile> = {};
+    let profilesById: Record<string, Profile> = {};
     
     if (registeredUserIds.length > 0) {
       // Fetch all profiles in a single query
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, phone')
+        .select('*')
         .in('id', registeredUserIds);
       
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
-      } else if (profilesData && profilesData.length > 0) {
+      } else if (profilesData) {
         // Create a map of user_id to profile
-        userProfiles = profilesData.reduce((acc: Record<string, Profile>, profile) => {
+        profilesById = profilesData.reduce((acc: Record<string, Profile>, profile) => {
           acc[profile.id] = profile;
           return acc;
         }, {});
         
         console.log(`Successfully fetched ${profilesData.length} user profiles`);
-      } else {
-        console.log('No profiles found for the registered users');
+        console.log('Sample profile data:', profilesData[0]);
       }
     }
     
     // Attach profile information to each booking
-    const bookingsWithProfiles = bookingsData?.map(booking => {
-      if (!booking.guest_booking && booking.user_id && userProfiles[booking.user_id]) {
+    const bookingsWithProfiles = bookingsData.map(booking => {
+      if (!booking.guest_booking && booking.user_id && profilesById[booking.user_id]) {
+        // Make a copy of the booking with the profile attached
         return {
           ...booking,
-          profile: userProfiles[booking.user_id]
+          profile: profilesById[booking.user_id]
         };
       }
       return booking;
-    }) || [];
+    });
     
-    // Log some debug data
-    const debugSample = bookingsWithProfiles.slice(0, 3).map(b => ({
-      id: b.id,
-      user_id: b.user_id,
-      guest_booking: b.guest_booking,
-      hasProfile: !!(b as any).profile,
-      profileName: (b as any).profile 
-        ? `${(b as any).profile.first_name || ''} ${(b as any).profile.last_name || ''}`.trim() 
-        : null,
-      profilePhone: (b as any).profile?.phone || null
-    }));
-    
-    console.log('Sample of bookings with profiles:', JSON.stringify(debugSample, null, 2));
+    // Debug output for troubleshooting
+    const samplesForLogging = bookingsWithProfiles.slice(0, 3);
+    samplesForLogging.forEach(booking => {
+      console.log('Booking with profile data:', {
+        id: booking.id,
+        userId: booking.user_id,
+        isGuest: booking.guest_booking,
+        hasProfile: !!(booking as any).profile,
+        profileData: (booking as any).profile ? {
+          firstName: (booking as any).profile.first_name,
+          lastName: (booking as any).profile.last_name,
+          phone: (booking as any).profile.phone,
+          email: (booking as any).profile.email
+        } : null
+      });
+    });
     
     return {
       bookings: bookingsWithProfiles as (Booking & { profile?: Profile })[],
