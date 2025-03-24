@@ -35,7 +35,7 @@ serve(async (req) => {
         *,
         barber:barber_id(*),
         service:service_id(*),
-        profile:user_id(id, first_name, last_name, email, phone)
+        profile:profiles!bookings_user_id_fkey(id, first_name, last_name, email, phone)
       `, { count: 'exact' })
 
     // Apply filters if provided
@@ -65,10 +65,28 @@ serve(async (req) => {
       console.log(`Booking ${index} user_id: ${booking.user_id}, has profile:`, booking.profile !== null)
     })
 
+    // Handle guest bookings (they won't have a profile)
+    const processedBookings = bookings?.map(booking => {
+      if (booking.guest_booking) {
+        // For guest bookings, create a minimal profile structure
+        return {
+          ...booking,
+          profile: {
+            // Extract name from notes if available, or use guest_email
+            first_name: booking.guest_name || (booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest'),
+            last_name: '',
+            email: booking.guest_email || '',
+            phone: booking.guest_phone || ''
+          }
+        }
+      }
+      return booking
+    }) || []
+
     // Return the bookings with profiles
     return new Response(
       JSON.stringify({ 
-        bookings: bookings || [], 
+        bookings: processedBookings, 
         totalCount: count || 0 
       }),
       { 
