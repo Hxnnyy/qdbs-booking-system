@@ -55,7 +55,6 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     const guestInfo = extractGuestInfo(booking.notes);
     clientName = guestInfo.name;
     clientPhone = guestInfo.phone !== 'Unknown' ? guestInfo.phone : null;
-    clientEmail = booking.guest_email || null;
   } else if (booking.profile) {
     // For registered users with profile data
     const profile = booking.profile;
