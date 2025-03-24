@@ -35,7 +35,7 @@ serve(async (req) => {
         *,
         barber:barber_id(*),
         service:service_id(*),
-        profile:profiles!bookings_user_id_fkey(*)
+        profile:user_id(id, first_name, last_name, email, phone)
       `, { count: 'exact' })
 
     // Apply filters if provided
@@ -59,6 +59,11 @@ serve(async (req) => {
     }
 
     console.log(`Fetched ${bookings?.length || 0} bookings out of ${count} total`)
+    
+    // Log profile data to debug
+    bookings?.forEach((booking, index) => {
+      console.log(`Booking ${index} user_id: ${booking.user_id}, has profile:`, booking.profile !== null)
+    })
 
     // Return the bookings with profiles
     return new Response(

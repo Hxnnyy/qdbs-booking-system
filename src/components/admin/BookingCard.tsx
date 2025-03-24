@@ -46,7 +46,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
   const isGuestBooking = booking.guest_booking === true;
   
   // Client information based on booking type
-  let clientName = 'Unknown Client';
+  let clientName = '';
   let clientPhone = '';
   let clientEmail = '';
   
@@ -63,15 +63,15 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     clientPhone = booking.profile.phone || '';
     clientEmail = booking.profile.email || '';
     
-    // Log if we have missing profile data
-    if (!clientName) {
-      console.warn(`Missing name data for booking ${booking.id}`);
-      clientName = 'Unnamed User';
+    // If name is still empty, try to use email
+    if (!clientName && clientEmail) {
+      clientName = clientEmail.split('@')[0];
     }
-  } else {
-    // Log error if profile is missing for a registered user
-    console.error(`Profile data missing for booking ${booking.id} with user_id ${booking.user_id}`);
-    clientName = 'Profile Missing';
+  }
+  
+  // If we still don't have a name, use a default
+  if (!clientName) {
+    clientName = 'Unknown Client';
   }
   
   return (
