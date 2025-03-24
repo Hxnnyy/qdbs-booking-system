@@ -51,11 +51,11 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
   });
   
   const isGuestBooking = booking.guest_booking === true;
-  const hasProfile = booking.profile && !isGuestBooking;
   
   // Get client information based on booking type
   let clientName = 'Unknown Client';
   let clientPhone = null;
+  let clientEmail = null;
   
   if (isGuestBooking && booking.notes) {
     // For guest bookings, extract from notes
@@ -64,7 +64,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     clientPhone = guestInfo.phone !== 'Unknown' ? guestInfo.phone : null;
     
     console.log(`Guest booking ${booking.id}: Name: ${clientName}, Phone: ${clientPhone}`);
-  } else if (hasProfile) {
+  } else if (booking.profile) {
     // For registered users with profile data
     const profile = booking.profile;
     const firstName = profile?.first_name || '';
@@ -77,10 +77,11 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     }
     
     clientPhone = profile?.phone || null;
+    clientEmail = profile?.email || null;
     
-    console.log(`User booking ${booking.id}: Name: ${clientName}, Phone: ${clientPhone}`);
+    console.log(`User booking ${booking.id}: Name: ${clientName}, Phone: ${clientPhone}, Email: ${clientEmail}`);
   } else {
-    console.log(`No profile data for booking ${booking.id}. isGuest: ${isGuestBooking}, hasProfile: ${hasProfile}`);
+    console.log(`No profile data for booking ${booking.id}. isGuest: ${isGuestBooking}`);
   }
   
   return (
@@ -124,8 +125,18 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
                 </div>
               )}
               
+              {clientEmail && !isGuestBooking && (
+                <div className="flex items-center gap-1">
+                  <svg className="h-3 w-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                  <span className="text-gray-700">{clientEmail}</span>
+                </div>
+              )}
+              
               {isGuestBooking && booking.notes && (
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 mt-1">
                   Booking Code: <span className="font-mono">{extractGuestInfo(booking.notes).code}</span>
                 </div>
               )}
