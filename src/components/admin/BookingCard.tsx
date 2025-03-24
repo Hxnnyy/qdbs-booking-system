@@ -44,12 +44,13 @@ const getStatusBadgeClass = (status: string) => {
 
 // Get client name from the booking (either guest or registered user)
 const getClientName = (booking: Booking): string => {
-  // For registered users with profile data
+  // Check if this is a registered user with profile data
   if (!booking.guest_booking && (booking as any).profile) {
     const profile = (booking as any).profile;
-    const firstName = profile.first_name || '';
-    const lastName = profile.last_name || '';
-    if (firstName || lastName) {
+    
+    if (profile.first_name || profile.last_name) {
+      const firstName = profile.first_name || '';
+      const lastName = profile.last_name || '';
       return `${firstName} ${lastName}`.trim();
     }
     
@@ -78,7 +79,7 @@ const getClientPhone = (booking: Booking): string | null => {
   // For guest bookings, extract from notes
   if (booking.guest_booking && booking.notes) {
     const guestInfo = extractGuestInfo(booking.notes);
-    return guestInfo.phone;
+    return guestInfo.phone !== 'Unknown' ? guestInfo.phone : null;
   }
   
   return null;

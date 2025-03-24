@@ -29,7 +29,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     const duration = booking.service?.duration || 30; // Default to 30 minutes if no duration
     const endDate = addMinutes(startDate, duration);
     
-    // Get client name based on whether it's a guest booking or a registered user
+    // Get client name based on booking type and availability of profile data
     let clientName = 'Unknown Client';
     
     // For registered users with profile
@@ -37,6 +37,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
       const profile = (booking as any).profile;
       const firstName = profile.first_name || '';
       const lastName = profile.last_name || '';
+      
       if (firstName || lastName) {
         clientName = `${firstName} ${lastName}`.trim();
       } else if (profile.email) {
