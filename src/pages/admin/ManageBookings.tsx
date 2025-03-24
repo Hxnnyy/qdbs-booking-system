@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -46,15 +47,29 @@ const ManageBookings = () => {
         if (error) throw error;
         
         console.log('Successfully fetched bookings with profiles from edge function:', data);
-        const typedBookings: Booking[] = data.bookings.map((booking: any) => ({
-          ...booking,
-          profile: booking.profile || {
-            first_name: booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest',
-            last_name: '',
-            email: booking.guest_email || '',
-            phone: booking.guest_phone || ''
-          }
-        }));
+        // Ensure we're creating properly typed Booking objects
+        const typedBookings: Booking[] = data.bookings.map((booking: any) => {
+          // Create a clean profile object that matches the expected type
+          const profileData = booking.profile && typeof booking.profile === 'object' 
+            ? {
+                first_name: booking.profile.first_name || '',
+                last_name: booking.profile.last_name || '',
+                email: booking.profile.email || '',
+                phone: booking.profile.phone || ''
+              }
+            : {
+                first_name: booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest',
+                last_name: '',
+                email: booking.guest_email || '',
+                phone: booking.guest_phone || ''
+              };
+          
+          // Return a properly typed booking object
+          return {
+            ...booking,
+            profile: profileData
+          } as Booking;
+        });
         
         setBookings(typedBookings);
         filterBookings(typedBookings, currentTab, statusFilter, typeFilter);
@@ -78,8 +93,30 @@ const ManageBookings = () => {
       
       if (error) throw error;
       
-      setBookings(data || []);
-      filterBookings(data || [], currentTab, statusFilter, typeFilter);
+      const typedBookings: Booking[] = (data || []).map(booking => {
+        // Ensure the profile data is in the correct format
+        const profileData = booking.profile 
+          ? {
+              first_name: booking.profile.first_name || '',
+              last_name: booking.profile.last_name || '',
+              email: booking.profile.email || '',
+              phone: booking.profile.phone || ''
+            }
+          : {
+              first_name: booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest',
+              last_name: '',
+              email: booking.guest_email || '',
+              phone: booking.guest_phone || ''
+            };
+            
+        return {
+          ...booking,
+          profile: profileData
+        } as Booking;
+      });
+      
+      setBookings(typedBookings);
+      filterBookings(typedBookings, currentTab, statusFilter, typeFilter);
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
