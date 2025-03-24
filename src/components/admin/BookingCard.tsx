@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { format, parseISO } from 'date-fns';
-import { User, Phone, Edit } from 'lucide-react';
+import { User, Phone, Edit, Mail } from 'lucide-react';
 import { Booking } from '@/supabase-types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,35 @@ const getStatusBadgeClass = (status: string) => {
 
 export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking }) => {
   const isGuestBooking = booking.guest_booking === true;
-  const guestInfo = isGuestBooking ? extractGuestInfo(booking.notes) : null;
+  
+  // Client information based on booking type
+  let clientName = 'Unknown Client';
+  let clientPhone = '';
+  let clientEmail = '';
+  
+  if (isGuestBooking) {
+    // For guest bookings, extract info from notes
+    const guestInfo = extractGuestInfo(booking.notes);
+    clientName = guestInfo.name;
+    clientPhone = guestInfo.phone;
+    // Guest email might be in guest_email field if available
+    clientEmail = booking.guest_email || '';
+  } else if (booking.profile) {
+    // For registered users, use profile information
+    clientName = `${booking.profile.first_name || ''} ${booking.profile.last_name || ''}`.trim();
+    clientPhone = booking.profile.phone || '';
+    clientEmail = booking.profile.email || '';
+    
+    // Log if we have missing profile data
+    if (!clientName) {
+      console.warn(`Missing name data for booking ${booking.id}`);
+      clientName = 'Unnamed User';
+    }
+  } else {
+    // Log error if profile is missing for a registered user
+    console.error(`Profile data missing for booking ${booking.id} with user_id ${booking.user_id}`);
+    clientName = 'Profile Missing';
+  }
   
   return (
     <Card>
@@ -74,21 +102,29 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
               £{booking.service?.price?.toFixed(2)} • {booking.service?.duration} min
             </p>
             
-            {isGuestBooking && guestInfo && (
-              <div className="mt-2 text-sm space-y-1">
-                <div className="flex items-center gap-1">
-                  <User className="h-3 w-3 text-gray-500" />
-                  <span className="text-gray-700">{guestInfo.name}</span>
-                </div>
+            <div className="mt-2 text-sm space-y-1">
+              <div className="flex items-center gap-1">
+                <User className="h-3 w-3 text-gray-500" />
+                <span className="text-gray-700">{clientName}</span>
+              </div>
+              {clientPhone && (
                 <div className="flex items-center gap-1">
                   <Phone className="h-3 w-3 text-gray-500" />
-                  <span className="text-gray-700">{guestInfo.phone}</span>
+                  <span className="text-gray-700">{clientPhone}</span>
                 </div>
+              )}
+              {clientEmail && (
+                <div className="flex items-center gap-1">
+                  <Mail className="h-3 w-3 text-gray-500" />
+                  <span className="text-gray-700">{clientEmail}</span>
+                </div>
+              )}
+              {isGuestBooking && extractGuestInfo(booking.notes).code !== 'Unknown' && (
                 <div className="text-xs text-gray-500">
-                  Booking Code: <span className="font-mono">{guestInfo.code}</span>
+                  Booking Code: <span className="font-mono">{extractGuestInfo(booking.notes).code}</span>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           
           <div className="flex gap-2">

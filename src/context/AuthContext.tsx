@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -223,11 +224,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             first_name: userData.firstName,
             last_name: userData.lastName,
+            phone: userData.phone, // Add phone to user metadata
           },
         },
       });
       
       if (error) throw error;
+      
+      // Create or update profile with phone number
+      if (supabase.auth.getUser) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          await supabase.from('profiles').upsert({
+            id: userData.user.id,
+            first_name: userData.user.user_metadata.first_name,
+            last_name: userData.user.user_metadata.last_name,
+            email: userData.user.email,
+            phone: userData.user.user_metadata.phone,
+          });
+        }
+      }
       
       toast.success('Account created! Please check your email for verification.');
     } catch (error: any) {

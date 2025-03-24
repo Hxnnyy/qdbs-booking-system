@@ -14,27 +14,43 @@ const Signup = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { signUp, user, isLoading } = useAuth();
 
+  const validatePhone = (phoneNumber: string) => {
+    // Basic phone validation - at least 10 digits
+    const phoneRegex = /^\+?[0-9]{10,15}$/;
+    return phoneRegex.test(phoneNumber.replace(/[\s-()]/g, ''));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset errors
+    setPasswordError('');
+    setPhoneError('');
     
     // Validate passwords match
     if (password !== confirmPassword) {
       setPasswordError('Passwords do not match');
       return;
     }
-    
-    setPasswordError('');
+
+    // Validate phone
+    if (!validatePhone(phone)) {
+      setPhoneError('Please enter a valid phone number (at least 10 digits)');
+      return;
+    }
     
     try {
       setIsSubmitting(true);
-      await signUp(email, password, { firstName, lastName });
+      await signUp(email, password, { firstName, lastName, phone });
     } catch (error) {
       console.error('Signup error:', error);
     } finally {
@@ -107,6 +123,21 @@ const Signup = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="font-playfair">Phone Number</Label>
+                  <Input 
+                    id="phone" 
+                    type="tel" 
+                    placeholder="+44 7700 900000" 
+                    className="rounded-none" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                  />
+                  {phoneError && (
+                    <p className="text-red-500 text-sm mt-1">{phoneError}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password" className="font-playfair">Password</Label>
