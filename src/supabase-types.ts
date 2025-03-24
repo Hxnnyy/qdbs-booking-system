@@ -30,6 +30,7 @@ export interface Booking {
   notes?: string;
   created_at?: string;
   guest_booking?: boolean;
+  guest_email?: string;
   barber?: {
     name: string;
     color?: string;
