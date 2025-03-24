@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -253,7 +254,7 @@ export const useCalendarBookings = () => {
 
   const handleEventClick = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.id.startsWith('lunch-')) {
-      toast.info(`${event.barber}'s lunch break: ${event.title}`);
+      toast.info(`${event.barberName}'s lunch break: ${event.title}`);
       return;
     }
     

@@ -19,7 +19,7 @@ export const HolidayIndicator: React.FC<HolidayIndicatorProps> = ({ holidayEvent
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="font-medium text-red-800 flex items-center">
-                {holidayEvents.map(event => `${event.barber} - ${event.title}`).join(', ')}
+                {holidayEvents.map(event => `${event.barberName} - ${event.title}`).join(', ')}
                 <Info className="inline-block ml-1 w-3.5 h-3.5 text-red-800" />
               </div>
             </TooltipTrigger>
@@ -27,7 +27,7 @@ export const HolidayIndicator: React.FC<HolidayIndicatorProps> = ({ holidayEvent
               <div className="max-w-xs">
                 {holidayEvents.map((event, index) => (
                   <div key={event.id} className={index > 0 ? "mt-1 pt-1 border-t border-gray-200" : ""}>
-                    <span className="font-semibold">{event.barber}:</span> {event.notes || event.title}
+                    <span className="font-semibold">{event.barberName}:</span> {event.notes || event.title}
                   </div>
                 ))}
               </div>
