@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { format, parseISO } from 'date-fns';
-import { User, Phone, Edit } from 'lucide-react';
+import { User, Phone, Edit, Mail } from 'lucide-react';
 import { Booking } from '@/supabase-types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,45 +43,37 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking }) => {
-  console.log('BookingCard rendering:', {
-    id: booking.id, 
-    userInfo: booking.profile,
-    isGuest: booking.guest_booking,
-    notes: booking.notes?.substring(0, 50)
-  });
-  
   const isGuestBooking = booking.guest_booking === true;
   
   // Get client information based on booking type
-  let clientName = 'Unknown Client';
+  let clientName = '';
   let clientPhone = null;
   let clientEmail = null;
   
   if (isGuestBooking && booking.notes) {
-    // For guest bookings, extract from notes
+    // For guest bookings, extract info from notes
     const guestInfo = extractGuestInfo(booking.notes);
     clientName = guestInfo.name;
     clientPhone = guestInfo.phone !== 'Unknown' ? guestInfo.phone : null;
-    
-    console.log(`Guest booking ${booking.id}: Name: ${clientName}, Phone: ${clientPhone}`);
+    clientEmail = booking.guest_email || null;
   } else if (booking.profile) {
     // For registered users with profile data
     const profile = booking.profile;
-    const firstName = profile?.first_name || '';
-    const lastName = profile?.last_name || '';
     
-    if (firstName || lastName) {
-      clientName = `${firstName} ${lastName}`.trim();
-    } else if (profile?.email) {
-      clientName = profile.email.split('@')[0]; // Use username part of email
+    // Get full name from profile
+    if (profile.first_name || profile.last_name) {
+      clientName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    } else if (profile.email) {
+      // If no name is available, use the username part of the email
+      clientName = profile.email.split('@')[0];
+    } else {
+      clientName = 'Unknown Client';
     }
     
-    clientPhone = profile?.phone || null;
-    clientEmail = profile?.email || null;
-    
-    console.log(`User booking ${booking.id}: Name: ${clientName}, Phone: ${clientPhone}, Email: ${clientEmail}`);
+    clientPhone = profile.phone || null;
+    clientEmail = profile.email || null;
   } else {
-    console.log(`No profile data for booking ${booking.id}. isGuest: ${isGuestBooking}`);
+    clientName = 'Unknown Client';
   }
   
   return (
@@ -112,26 +104,23 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
               £{booking.service?.price?.toFixed(2)} • {booking.service?.duration} min
             </p>
             
-            <div className="mt-2 text-sm">
-              <div className="flex items-center gap-1">
-                <User className="h-3 w-3 text-gray-500" />
-                <span className="text-gray-700">{clientName}</span>
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-500" />
+                <span className="text-gray-700 font-medium">{clientName || 'Unknown Client'}</span>
               </div>
               
-              {clientPhone && (
-                <div className="flex items-center gap-1">
-                  <Phone className="h-3 w-3 text-gray-500" />
-                  <span className="text-gray-700">{clientPhone}</span>
+              {clientEmail && (
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-700">{clientEmail}</span>
                 </div>
               )}
               
-              {clientEmail && !isGuestBooking && (
-                <div className="flex items-center gap-1">
-                  <svg className="h-3 w-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="20" height="16" x="2" y="4" rx="2" />
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                  </svg>
-                  <span className="text-gray-700">{clientEmail}</span>
+              {clientPhone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-700">{clientPhone}</span>
                 </div>
               )}
               
