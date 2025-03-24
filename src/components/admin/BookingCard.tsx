@@ -27,38 +27,6 @@ const extractGuestInfo = (notes: string | undefined | null) => {
   };
 };
 
-// Extract user info from notes field (for registered users)
-const extractUserInfo = (notes: string | undefined | null) => {
-  if (!notes) return { name: null, email: null, phone: null };
-  
-  const nameMatch = notes.match(/User Info: (.+?)\n/);
-  const emailMatch = notes.match(/Email: (.+?)\n/);
-  const phoneMatch = notes.match(/Phone: (.+?)\n/);
-  
-  return {
-    name: nameMatch ? nameMatch[1] : null,
-    email: emailMatch ? emailMatch[1] : null,
-    phone: phoneMatch ? phoneMatch[1] : null,
-  };
-};
-
-// Extracts user notes excluding the contact info section
-const extractUserNotes = (notes: string | undefined | null) => {
-  if (!notes) return '';
-  
-  // If notes contain user info section, only return content after it
-  if (notes.includes('User Info:')) {
-    const parts = notes.split('\n\n');
-    if (parts.length > 1) {
-      return parts.slice(1).join('\n\n');
-    }
-    return '';
-  }
-  
-  // For guest bookings or notes without user info, return as is
-  return notes;
-};
-
 const getStatusBadgeClass = (status: string) => {
   switch(status) {
     case 'confirmed':
@@ -90,24 +58,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     // Guest email might be in guest_email field if available
     clientEmail = booking.guest_email || '';
   } else if (booking.profile) {
-    // For registered users, first try to use profile information
+    // For registered users, use profile information
     clientName = `${booking.profile?.first_name || ''} ${booking.profile?.last_name || ''}`.trim();
     clientPhone = booking.profile?.phone || '';
     clientEmail = booking.profile?.email || '';
-    
-    // If profile information is incomplete, try extracting from notes
-    const userInfo = extractUserInfo(booking.notes);
-    if (!clientName && userInfo.name) {
-      clientName = userInfo.name;
-    }
-    
-    if (!clientPhone && userInfo.phone && userInfo.phone !== 'Not provided') {
-      clientPhone = userInfo.phone;
-    }
-    
-    if (!clientEmail && userInfo.email && userInfo.email !== 'Not provided') {
-      clientEmail = userInfo.email;
-    }
     
     // If name is still empty, try to use email
     if (!clientName && clientEmail) {
@@ -119,9 +73,6 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
   if (!clientName) {
     clientName = 'Unknown Client';
   }
-  
-  // Extract actual notes without the user info section
-  const actualNotes = isGuestBooking ? booking.notes : extractUserNotes(booking.notes);
   
   return (
     <Card>
@@ -188,10 +139,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
           </div>
         </div>
         
-        {actualNotes && (
+        {booking.notes && !isGuestBooking && (
           <div className="mt-4 p-2 bg-gray-50 rounded text-sm">
             <p className="font-medium">Notes:</p>
-            <p>{actualNotes}</p>
+            <p>{booking.notes}</p>
           </div>
         )}
       </CardContent>
