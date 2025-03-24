@@ -39,6 +39,12 @@ export interface Booking {
     price: number;
     duration: number;
   };
+  profile?: {
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    email?: string;
+  };
 }
 
 export interface Profile {
@@ -77,7 +83,7 @@ export type UpdatableBarber = Partial<InsertableBarber>;
 export type InsertableService = Omit<Service, 'id'>;
 export type UpdatableService = Partial<InsertableService>;
 
-export type InsertableBooking = Omit<Booking, 'id' | 'created_at' | 'barber' | 'service'>;
+export type InsertableBooking = Omit<Booking, 'id' | 'created_at' | 'barber' | 'service' | 'profile'>;
 export type UpdatableBooking = Partial<Omit<InsertableBooking, 'user_id'>>;
 
 export type InsertableProfile = Omit<Profile, 'id'>;

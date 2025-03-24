@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -17,6 +18,7 @@ export const useCalendarBookings = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
 
+  // Filter events based on selected barber
   const filteredEvents = selectedBarberId 
     ? calendarEvents.filter(event => event.barberId === selectedBarberId)
     : calendarEvents;
@@ -305,7 +307,7 @@ export const useCalendarBookings = () => {
   return {
     bookings,
     holidays,
-    calendarEvents: filteredEvents,
+    calendarEvents: filteredEvents, // Return filtered events based on selected barber
     isLoading,
     error,
     fetchBookings: fetchData,

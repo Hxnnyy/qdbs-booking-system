@@ -12,7 +12,7 @@ import { format, addDays, addWeeks, subDays, subWeeks } from 'date-fns';
 import { CalendarSettings } from './CalendarSettings';
 
 interface CalendarViewComponentProps {
-  events: CalendarEvent[];
+  events: CalendarEvent[]; // This should already be filtered by barber in the parent component
   isLoading: boolean;
   onEventDrop: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
@@ -100,7 +100,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
           <DayView
             date={currentDate}
             onDateChange={handleDateChange}
-            events={events}
+            events={events} // Pass the filtered events
             onEventDrop={onEventDrop}
             onEventClick={onEventClick}
           />
@@ -108,7 +108,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
           <WeekView
             date={currentDate}
             onDateChange={handleDateChange}
-            events={events}
+            events={events} // Pass the filtered events
             onEventDrop={onEventDrop}
             onEventClick={onEventClick}
           />

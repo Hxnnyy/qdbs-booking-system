@@ -10,7 +10,7 @@ import { CalendarSettingsProvider } from '@/context/CalendarSettingsContext';
 
 const CalendarView = () => {
   const {
-    calendarEvents,
+    calendarEvents, // This is already filtered based on selectedBarberId
     isLoading,
     handleEventDrop,
     handleEventClick,
@@ -40,7 +40,7 @@ const CalendarView = () => {
             />
             
             <CalendarViewComponent
-              events={calendarEvents}
+              events={calendarEvents} // Pass the filtered events
               isLoading={isLoading}
               onEventDrop={handleEventDrop}
               onEventClick={handleEventClick}

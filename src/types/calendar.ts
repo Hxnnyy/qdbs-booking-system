@@ -27,5 +27,5 @@ export interface CalendarViewProps {
   onEventClick: (event: CalendarEvent) => void;
 }
 
-// Add the missing ViewMode type
+// ViewMode type for calendar view (day or week)
 export type ViewMode = 'day' | 'week';
