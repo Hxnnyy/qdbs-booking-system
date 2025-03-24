@@ -26,9 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Remove the UNSAFE_NavigationContext usage, we'll handle navigation differently
   const navigate = useNavigate();
-  
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -37,7 +35,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
-    // First set up auth state listener to ensure we don't miss any auth events
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user || null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -52,17 +59,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     );
-
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user || null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
 
     return () => {
       subscription.unsubscribe();
@@ -200,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.auth.signOut();
       
       toast.success('Your account has been deleted');
-      if (navigate) navigate('/');
+      navigate('/');
     } catch (error: any) {
       toast.error(`Failed to delete account: ${error.message}`);
       throw error;
@@ -228,13 +224,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             first_name: userData.firstName,
             last_name: userData.lastName,
-            phone: userData.phone,
+            phone: userData.phone, // Add phone to user metadata
           },
         },
       });
       
       if (error) throw error;
       
+      // Create or update profile with phone number
       if (supabase.auth.getUser) {
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
@@ -259,14 +256,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
-      // Clear all auth state
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setIsAdmin(false);
-      setIsSuperAdmin(false);
-      
       navigate('/');
       toast.success('Logged out successfully');
     } catch (error: any) {

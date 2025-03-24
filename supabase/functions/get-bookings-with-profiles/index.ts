@@ -34,7 +34,8 @@ serve(async (req) => {
       .select(`
         *,
         barber:barber_id(*),
-        service:service_id(*)
+        service:service_id(*),
+        profile:user_id(id, first_name, last_name, email, phone)
       `, { count: 'exact' })
 
     // Apply filters if provided
@@ -59,66 +60,15 @@ serve(async (req) => {
 
     console.log(`Fetched ${bookings?.length || 0} bookings out of ${count} total`)
     
-    // Now separately fetch user profiles to avoid the RLS issues with the join
-    const userIds = bookings
-      ?.filter(booking => booking.user_id && !booking.guest_booking)
-      .map(booking => booking.user_id) || []
-    
-    console.log(`Fetching profiles for ${userIds.length} users`)
-    
-    // Create a map of user profiles
-    const userProfiles = {}
-    
-    if (userIds.length > 0) {
-      // Get profiles from the profiles table (which should have RLS that allows the admin role)
-      const { data: profiles, error: profilesError } = await supabaseClient
-        .from('profiles')
-        .select('id, first_name, last_name, email, phone')
-        .in('id', userIds)
-      
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError)
-        // Don't throw here, just log and continue with what we have
-      } else {
-        console.log(`Fetched ${profiles?.length || 0} user profiles`)
-        
-        // Create a map for faster lookup
-        profiles?.forEach(profile => {
-          userProfiles[profile.id] = profile
-        })
-      }
-    }
-    
-    // Attach profiles to bookings
-    const bookingsWithProfiles = bookings?.map(booking => {
-      if (!booking.guest_booking && booking.user_id && userProfiles[booking.user_id]) {
-        return {
-          ...booking,
-          profile: userProfiles[booking.user_id]
-        }
-      }
-      
-      // For guest bookings or if profile not found, add an empty profile object
-      return {
-        ...booking,
-        profile: booking.guest_booking ? null : {
-          first_name: undefined,
-          last_name: undefined,
-          email: undefined,
-          phone: undefined
-        }
-      }
-    }) || []
-    
     // Log profile data to debug
-    bookingsWithProfiles?.forEach((booking, index) => {
-      console.log(`Booking ${index} user_id: ${booking.user_id}, guest: ${booking.guest_booking}, has profile:`, booking.profile !== null)
+    bookings?.forEach((booking, index) => {
+      console.log(`Booking ${index} user_id: ${booking.user_id}, has profile:`, booking.profile !== null)
     })
 
     // Return the bookings with profiles
     return new Response(
       JSON.stringify({ 
-        bookings: bookingsWithProfiles || [], 
+        bookings: bookings || [], 
         totalCount: count || 0 
       }),
       { 

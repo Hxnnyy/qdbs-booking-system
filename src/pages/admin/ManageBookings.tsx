@@ -47,23 +47,8 @@ const ManageBookings = () => {
         if (error) throw error;
         
         console.log('Successfully fetched bookings with profiles from edge function:', data);
-        
-        // Process the data to ensure it conforms to our expected Booking type
-        const processedBookings = data.bookings.map((booking: any) => {
-          // Handle profile error or missing profile
-          if (!booking.profile || typeof booking.profile === 'string') {
-            booking.profile = {
-              first_name: undefined,
-              last_name: undefined,
-              email: undefined,
-              phone: undefined
-            };
-          }
-          return booking as Booking;
-        });
-        
-        setBookings(processedBookings);
-        filterBookings(processedBookings, currentTab, statusFilter, typeFilter);
+        setBookings(data.bookings || []);
+        filterBookings(data.bookings || [], currentTab, statusFilter, typeFilter);
         return;
       } catch (edgeFnError) {
         console.error('Error using edge function, falling back to direct query:', edgeFnError);
@@ -85,21 +70,8 @@ const ManageBookings = () => {
       
       if (error) throw error;
       
-      // Process the data to ensure profile is properly typed
-      const processedBookings = (data || []).map((booking: any) => {
-        if (!booking.profile) {
-          booking.profile = {
-            first_name: undefined,
-            last_name: undefined,
-            email: undefined,
-            phone: undefined
-          };
-        }
-        return booking as Booking;
-      });
-      
-      setBookings(processedBookings);
-      filterBookings(processedBookings, currentTab, statusFilter, typeFilter);
+      setBookings(data || []);
+      filterBookings(data || [], currentTab, statusFilter, typeFilter);
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
