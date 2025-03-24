@@ -94,7 +94,7 @@ const ManageBookings = () => {
       
       if (error) throw error;
       
-      const typedBookings: Booking[] = (data || []).map(booking => {
+      const typedBookings: Booking[] = (data || []).map((booking: any) => {
         // For direct query, ensure we handle errors with the profile relationship
         // and create a consistent profile object
         let profileData;
@@ -102,10 +102,10 @@ const ManageBookings = () => {
         if (booking.profile && typeof booking.profile === 'object' && 
             !('error' in booking.profile)) {
           profileData = {
-            first_name: booking.profile.first_name || '',
-            last_name: booking.profile.last_name || '',
-            email: booking.profile.email || '',
-            phone: booking.profile.phone || ''
+            first_name: booking.profile?.first_name || '',
+            last_name: booking.profile?.last_name || '',
+            email: booking.profile?.email || '',
+            phone: booking.profile?.phone || ''
           };
         } else {
           // Handle case where profile is an error or doesn't exist
@@ -117,11 +117,14 @@ const ManageBookings = () => {
           };
         }
             
-        return {
+        // Cast the booking object to include any missing properties
+        const bookingWithGuestPhone = {
           ...booking,
-          profile: profileData,
-          guest_phone: booking.guest_phone || '' // Add guest_phone property 
+          guest_phone: booking.guest_phone || '', // Ensure guest_phone exists
+          profile: profileData
         } as Booking;
+        
+        return bookingWithGuestPhone;
       });
       
       setBookings(typedBookings);

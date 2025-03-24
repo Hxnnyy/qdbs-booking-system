@@ -58,7 +58,7 @@ serve(async (req) => {
       throw error
     }
 
-    console.log(`Fetched ${bookings?.length || 0} bookings out of ${count} total`)
+    console.log(`Fetched ${bookings?.length || a0} bookings out of ${count} total`)
     
     // Log profile data to debug
     bookings?.forEach((booking, index) => {
@@ -67,11 +67,16 @@ serve(async (req) => {
 
     // Handle guest bookings (they won't have a profile)
     const processedBookings = bookings?.map(booking => {
+      // Make sure guest_phone is always available
+      const bookingWithGuestPhone = {
+        ...booking,
+        guest_phone: booking.guest_phone || ''
+      }
+      
       if (booking.guest_booking) {
         // For guest bookings, create a minimal profile structure
         return {
-          ...booking,
-          guest_phone: booking.guest_phone || '', // Ensure guest_phone is available
+          ...bookingWithGuestPhone,
           profile: {
             // Extract name from notes if available, or use guest_email
             first_name: booking.guest_name || (booking.guest_email ? booking.guest_email.split('@')[0] : 'Guest'),
@@ -85,7 +90,7 @@ serve(async (req) => {
       // For normal user bookings with no profile, create a default one
       if (!booking.profile) {
         return {
-          ...booking,
+          ...bookingWithGuestPhone,
           profile: {
             first_name: 'Unknown',
             last_name: '',
@@ -95,7 +100,7 @@ serve(async (req) => {
         }
       }
       
-      return booking
+      return bookingWithGuestPhone
     }) || []
 
     // Return the bookings with profiles
