@@ -12,7 +12,7 @@ interface BookingCardProps {
   onEditBooking: (booking: Booking) => void;
 }
 
-// Extract guest info from notes field
+// Extract guest info from notes field for guest bookings
 const extractGuestInfo = (notes: string | null) => {
   if (!notes) return { name: 'Unknown', phone: 'Unknown', code: 'Unknown' };
   
@@ -45,34 +45,35 @@ const getStatusBadgeClass = (status: string) => {
 export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking }) => {
   const isGuestBooking = booking.guest_booking === true;
   
-  // Get client information based on booking type
-  let clientName = '';
-  let clientPhone = null;
-  let clientEmail = null;
+  // Client information container - will be populated differently for guest vs registered users
+  let clientInfo = {
+    name: 'Unknown Client',
+    email: null,
+    phone: null
+  };
   
   if (isGuestBooking && booking.notes) {
-    // For guest bookings, extract info from notes
+    // For guest bookings, extract info from notes field
     const guestInfo = extractGuestInfo(booking.notes);
-    clientName = guestInfo.name;
-    clientPhone = guestInfo.phone !== 'Unknown' ? guestInfo.phone : null;
+    clientInfo = {
+      name: guestInfo.name,
+      phone: guestInfo.phone !== 'Unknown' ? guestInfo.phone : null,
+      email: booking.guest_email || null
+    };
   } else if (booking.profile) {
-    // For registered users with profile data
+    // For registered users, get info from profile data
     const profile = booking.profile;
     
     // Get full name from profile
     if (profile.first_name || profile.last_name) {
-      clientName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-    } else if (profile.email) {
-      // If no name is available, use the username part of the email
-      clientName = profile.email.split('@')[0];
-    } else {
-      clientName = 'Unknown Client';
+      clientInfo.name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
     }
     
-    clientPhone = profile.phone || null;
-    clientEmail = profile.email || null;
-  } else {
-    clientName = 'Unknown Client';
+    // Get email from profile (should always exist for registered users)
+    clientInfo.email = profile.email || null;
+    
+    // Get phone from profile (optional)
+    clientInfo.phone = profile.phone || null;
   }
   
   return (
@@ -106,20 +107,20 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
             <div className="mt-3 space-y-1.5">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-700 font-medium">{clientName || 'Unknown Client'}</span>
+                <span className="text-gray-700 font-medium">{clientInfo.name}</span>
               </div>
               
-              {clientEmail && (
+              {clientInfo.email && (
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700">{clientEmail}</span>
+                  <span className="text-gray-700">{clientInfo.email}</span>
                 </div>
               )}
               
-              {clientPhone && (
+              {clientInfo.phone && (
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700">{clientPhone}</span>
+                  <span className="text-gray-700">{clientInfo.phone}</span>
                 </div>
               )}
               

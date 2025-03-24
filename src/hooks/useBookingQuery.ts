@@ -29,22 +29,6 @@ export const useBookingsQuery = (page: number = 0, pageSize: number = 10) => {
           bookingsCount: data.bookings?.length || 0
         });
         
-        // Log the first booking as a sample to verify profile data
-        if (data.bookings && data.bookings.length > 0) {
-          const sampleBooking = data.bookings[0];
-          console.log('Sample booking data:', {
-            id: sampleBooking.id,
-            userId: sampleBooking.user_id,
-            guestBooking: sampleBooking.guest_booking,
-            hasProfile: !!sampleBooking.profile,
-            profileData: sampleBooking.profile ? {
-              firstName: sampleBooking.profile.first_name,
-              lastName: sampleBooking.profile.last_name,
-              email: sampleBooking.profile.email
-            } : null
-          });
-        }
-        
         return data;
       } catch (err: any) {
         console.error('Error fetching bookings:', err);
