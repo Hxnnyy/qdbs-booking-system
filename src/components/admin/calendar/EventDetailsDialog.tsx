@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -87,22 +88,20 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
     try {
       setIsLoading(true);
       
-      const updates: Record<string, any> = {};
+      const updates = {
+        title: editForm.title !== event.title.replace('Guest: ', '') ? 
+          (event.isGuest ? `Guest: ${editForm.title}` : editForm.title) : undefined,
+        barber_id: editForm.barber_id !== event.barberId ? editForm.barber_id : undefined,
+        service_id: editForm.service_id !== event.serviceId ? editForm.service_id : undefined,
+        notes: editForm.notes !== event.notes ? editForm.notes : undefined,
+        booking_date: editForm.booking_date !== format(event.start, 'yyyy-MM-dd') ? 
+          editForm.booking_date : undefined,
+        booking_time: editForm.booking_time !== format(event.start, 'HH:mm') ? 
+          editForm.booking_time : undefined,
+        status: editForm.status !== event.status ? editForm.status : undefined
+      };
       
-      // Only include title for guest bookings
-      if (event.isGuest && editForm.title !== event.title.replace('Guest: ', '')) {
-        updates.title = `Guest: ${editForm.title}`;
-      }
-      
-      // Other fields that can be edited for all booking types
-      if (editForm.barber_id !== event.barberId) updates.barber_id = editForm.barber_id;
-      if (editForm.service_id !== event.serviceId) updates.service_id = editForm.service_id;
-      if (editForm.notes !== event.notes) updates.notes = editForm.notes;
-      if (editForm.booking_date !== format(event.start, 'yyyy-MM-dd')) updates.booking_date = editForm.booking_date;
-      if (editForm.booking_time !== format(event.start, 'HH:mm')) updates.booking_time = editForm.booking_time;
-      if (editForm.status !== event.status) updates.status = editForm.status;
-      
-      const hasChanges = Object.keys(updates).length > 0;
+      const hasChanges = Object.values(updates).some(value => value !== undefined);
       
       if (!hasChanges) {
         toast.info('No changes to save');
@@ -110,7 +109,11 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
         return;
       }
       
-      const success = await onUpdateBooking(event.id, updates);
+      const success = await onUpdateBooking(event.id, 
+        Object.fromEntries(
+          Object.entries(updates).filter(([_, v]) => v !== undefined)
+        )
+      );
       
       if (success) {
         toast.success('Booking updated successfully');
@@ -151,30 +154,16 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
         {isEditing ? (
           <div className="space-y-6 py-4">
             <div className="space-y-4">
-              {/* Only show client name field for guest bookings */}
-              {event.isGuest ? (
-                <div className="space-y-2">
-                  <label htmlFor="title" className="text-sm font-medium">Guest Client Name</label>
-                  <Input 
-                    id="title" 
-                    name="title" 
-                    value={editForm.title} 
-                    onChange={handleInputChange} 
-                    placeholder="Guest Client Name"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Client Name</label>
-                  <div className="p-2 bg-gray-50 rounded flex items-center">
-                    <User className="h-4 w-4 mr-2 text-gray-500" />
-                    <span className="text-gray-700">{event.title}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Client information is pulled from their user profile and cannot be edited here.
-                  </p>
-                </div>
-              )}
+              <div className="space-y-2">
+                <label htmlFor="title" className="text-sm font-medium">Client Name</label>
+                <Input 
+                  id="title" 
+                  name="title" 
+                  value={editForm.title} 
+                  onChange={handleInputChange} 
+                  placeholder="Client Name"
+                />
+              </div>
               
               <div className="space-y-2">
                 <label htmlFor="barber_id" className="text-sm font-medium">Barber</label>

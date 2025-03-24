@@ -6,14 +6,14 @@ export interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
+  barber: string;
   barberId: string;
-  barberName: string; // Add the barberName property
   barberColor?: string;
   service: string;
   serviceId: string;
   status: 'confirmed' | 'cancelled' | 'completed' | 'lunch-break' | 'holiday' | 'error';
   isGuest: boolean;
-  notes?: string;
+  notes: string;
   userId: string;
   resourceId?: string;
   allDay?: boolean;

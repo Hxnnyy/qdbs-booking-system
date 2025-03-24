@@ -1,12 +1,10 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
-import { bookingToCalendarEvent, createLunchBreakEvent, createHolidayEvent } from '@/utils/eventCreationUtils';
+import { bookingToCalendarEvent, createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
 import { formatNewBookingDate, formatNewBookingTime } from '@/utils/bookingUpdateUtils';
-import { clearBarberColorCache } from '@/utils/barberColorUtils';
 
 export const useCalendarBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -254,7 +252,7 @@ export const useCalendarBookings = () => {
 
   const handleEventClick = (event: CalendarEvent) => {
     if (event.status === 'lunch-break' || event.id.startsWith('lunch-')) {
-      toast.info(`${event.barberName}'s lunch break: ${event.title}`);
+      toast.info(`${event.barber}'s lunch break: ${event.title}`);
       return;
     }
     
