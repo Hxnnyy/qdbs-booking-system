@@ -1,4 +1,10 @@
+
 // Re-export all calendar utilities from separate files
+import { format, parseISO } from 'date-fns';
+import { Booking } from '@/supabase-types';
+import { CalendarEvent } from '@/types/calendar';
+import { getRandomColor } from './barberColorUtils';
+
 export * from './barberColorUtils';
 export * from './eventColorUtils';
 export * from './eventCreationUtils';
@@ -97,3 +103,4 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     throw error;
   }
 };
+

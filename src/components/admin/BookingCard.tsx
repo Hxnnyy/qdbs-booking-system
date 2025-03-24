@@ -27,6 +27,21 @@ const extractGuestInfo = (notes: string | undefined | null) => {
   };
 };
 
+// Extract registered user info from notes field
+const extractUserInfo = (notes: string | undefined | null) => {
+  if (!notes) return { name: 'Unknown', phone: 'Unknown', email: 'Unknown' };
+  
+  const userMatch = notes.match(/User: (.+?)\n/);
+  const phoneMatch = notes.match(/Phone: (.+?)\n/);
+  const emailMatch = notes.match(/Email: (.+?)(\n|$)/);
+  
+  return {
+    name: userMatch ? userMatch[1] : 'Unknown',
+    phone: phoneMatch ? phoneMatch[1] : 'Unknown',
+    email: emailMatch ? emailMatch[1] : 'Unknown'
+  };
+};
+
 const getStatusBadgeClass = (status: string) => {
   switch(status) {
     case 'confirmed':
@@ -69,20 +84,18 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     }
   } else {
     // Try to extract user info from notes for registered users without profile data
-    const userMatch = booking.notes?.match(/User: (.+?)\n/);
-    const phoneMatch = booking.notes?.match(/Phone: (.+?)\n/);
-    const emailMatch = booking.notes?.match(/Email: (.+?)(\n|$)/);
+    const userInfo = extractUserInfo(booking.notes);
     
-    if (userMatch) {
-      clientName = userMatch[1];
+    if (userInfo.name !== 'Unknown') {
+      clientName = userInfo.name;
     }
     
-    if (phoneMatch) {
-      clientPhone = phoneMatch[1];
+    if (userInfo.phone !== 'Unknown') {
+      clientPhone = userInfo.phone;
     }
     
-    if (emailMatch) {
-      clientEmail = emailMatch[1];
+    if (userInfo.email !== 'Unknown') {
+      clientEmail = userInfo.email;
     }
   }
   

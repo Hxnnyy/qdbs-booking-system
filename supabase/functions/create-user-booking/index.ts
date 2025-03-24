@@ -108,10 +108,17 @@ serve(async (req) => {
       .single();
     
     // Create formatted notes with user info if profile exists and no notes provided
-    let bookingNotes = booking.notes || null;
-    if (profile && !bookingNotes) {
+    let bookingNotes = booking.notes || "";
+    if (profile) {
       const userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-      bookingNotes = `User: ${userName}\nPhone: ${profile.phone || 'Not provided'}\nEmail: ${profile.email || 'Not provided'}`;
+      
+      // If there are existing notes, append the user info
+      if (bookingNotes) {
+        bookingNotes += "\n\n";
+      }
+      
+      // Add user info to the notes
+      bookingNotes += `User: ${userName}\nPhone: ${profile.phone || 'Not provided'}\nEmail: ${profile.email || 'Not provided'}`;
     }
     
     console.log("Creating booking with service role:", JSON.stringify(booking));
