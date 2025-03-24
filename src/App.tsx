@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   createBrowserRouter,
@@ -6,14 +7,14 @@ import {
 import './App.css';
 import { AuthProvider } from './context/AuthContext';
 import { QueryProvider } from './context/QueryProvider';
-import { CalendarView } from './components/calendar/CalendarView';
-import { BarberList } from './components/admin/BarberList';
-import { ServiceList } from './components/admin/ServiceList';
+import { CalendarView } from './pages/admin/CalendarView';
+import { BarberList } from './pages/admin/ManageBarbers';
+import { ServiceList } from './pages/admin/ManageServices';
 import AdminRoute from './components/AdminRoute';
 import Dashboard from './pages/admin/Dashboard';
 import ManageBookings from './pages/admin/ManageBookings';
 import ManageBookingsWithQuery from './pages/admin/ManageBookingsWithQuery';
-import { NotificationTemplates } from './components/admin/NotificationTemplates';
+import { NotificationTemplates } from './pages/admin/NotificationSettings';
 
 const router = createBrowserRouter([
   {

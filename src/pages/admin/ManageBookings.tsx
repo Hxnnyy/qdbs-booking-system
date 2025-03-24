@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -47,8 +48,23 @@ const ManageBookings = () => {
         if (error) throw error;
         
         console.log('Successfully fetched bookings with profiles from edge function:', data);
-        setBookings(data.bookings || []);
-        filterBookings(data.bookings || [], currentTab, statusFilter, typeFilter);
+        
+        // Process the data to ensure it conforms to our expected Booking type
+        const processedBookings = data.bookings.map((booking: any) => {
+          // Handle profile error or missing profile
+          if (!booking.profile || typeof booking.profile === 'string' || booking.profile.error) {
+            booking.profile = {
+              first_name: undefined,
+              last_name: undefined,
+              email: undefined,
+              phone: undefined
+            };
+          }
+          return booking as Booking;
+        });
+        
+        setBookings(processedBookings);
+        filterBookings(processedBookings, currentTab, statusFilter, typeFilter);
         return;
       } catch (edgeFnError) {
         console.error('Error using edge function, falling back to direct query:', edgeFnError);
