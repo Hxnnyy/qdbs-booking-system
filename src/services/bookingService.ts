@@ -143,7 +143,30 @@ export const createBooking = async (
       
       return data;
     } else {
-      // For logged-in users - use edge function to create the booking securely
+      // For logged-in users - get their profile info to add to notes
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, phone, email')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+      }
+      
+      // Create notes with user profile information
+      let userProfileNotes = '';
+      if (profileData) {
+        const userName = `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim();
+        userProfileNotes = `User: ${userName}\nPhone: ${profileData.phone || 'Not provided'}\nEmail: ${profileData.email || 'Not provided'}`;
+        
+        // Append original notes if any
+        if (bookingData.notes) {
+          userProfileNotes += `\n\nAdditional notes: ${bookingData.notes}`;
+        }
+      }
+      
+      // Use edge function to create the booking securely
       console.log('Creating user booking via edge function');
       
       try {
@@ -155,7 +178,7 @@ export const createBooking = async (
               booking_date: bookingData.booking_date,
               booking_time: bookingData.booking_time,
               status: 'confirmed',
-              notes: bookingData.notes || null,
+              notes: userProfileNotes || bookingData.notes || null,
               user_id: userId
             }
           }

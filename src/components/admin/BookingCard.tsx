@@ -67,6 +67,23 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     if (!clientName && clientEmail) {
       clientName = clientEmail.split('@')[0];
     }
+  } else {
+    // Try to extract user info from notes for registered users without profile data
+    const userMatch = booking.notes?.match(/User: (.+?)\n/);
+    const phoneMatch = booking.notes?.match(/Phone: (.+?)\n/);
+    const emailMatch = booking.notes?.match(/Email: (.+?)(\n|$)/);
+    
+    if (userMatch) {
+      clientName = userMatch[1];
+    }
+    
+    if (phoneMatch) {
+      clientPhone = phoneMatch[1];
+    }
+    
+    if (emailMatch) {
+      clientEmail = emailMatch[1];
+    }
   }
   
   // If we still don't have a name, use a default
@@ -87,9 +104,13 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
                 {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
               </span>
               
-              {isGuestBooking && (
+              {isGuestBooking ? (
                 <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
                   Guest Booking
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  Client Booking
                 </Badge>
               )}
             </div>
