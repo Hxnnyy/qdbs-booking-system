@@ -55,7 +55,7 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     start: bookingDateTime,
     end: endDateTime,
     resourceId: booking.barber_id,
-    status: booking.status,
+    status: booking.status as "confirmed" | "cancelled" | "completed" | "error",
     notes: booking.notes || undefined,
     barberId: booking.barber_id,
     barberName: booking.barber?.name || 'Unknown Barber',
@@ -64,5 +64,68 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     isGuest: booking.guest_booking || false,
     userId: booking.user_id,
     allDay: false
+  };
+};
+
+/**
+ * Creates a calendar event for a lunch break
+ */
+export const createLunchBreakEvent = (lunchBreak: any): CalendarEvent => {
+  // Parse lunch break time
+  const today = new Date();
+  const formattedDate = format(today, 'yyyy-MM-dd');
+  
+  const startDateTime = parseISO(`${formattedDate}T${lunchBreak.start_time}`);
+  const endDateTime = addMinutes(startDateTime, lunchBreak.duration);
+  
+  // Create a unique ID for the lunch break
+  const lunchBreakId = `lunch-${lunchBreak.barber_id}`;
+  
+  return {
+    id: lunchBreakId,
+    title: 'Lunch Break',
+    start: startDateTime,
+    end: endDateTime,
+    barberId: lunchBreak.barber_id,
+    barberName: lunchBreak.barber?.name || 'Unknown Barber',
+    barberColor: lunchBreak.barber?.color,
+    service: 'Lunch Break',
+    serviceId: 'lunch',
+    status: 'lunch-break',
+    isGuest: false,
+    notes: 'Barber lunch break - not available for bookings',
+    userId: '',
+    resourceId: lunchBreak.barber_id,
+    allDay: false
+  };
+};
+
+/**
+ * Creates a calendar event for a holiday
+ */
+export const createHolidayEvent = (holiday: any, barber: any): CalendarEvent => {
+  // Parse holiday dates
+  const startDate = parseISO(holiday.start_date);
+  const endDate = parseISO(holiday.end_date);
+  
+  // Create a unique ID for the holiday
+  const holidayId = `holiday-${holiday.id}`;
+  
+  return {
+    id: holidayId,
+    title: holiday.title || 'Holiday',
+    start: startDate,
+    end: endDate,
+    barberId: holiday.barber_id,
+    barberName: barber?.name || 'Unknown Barber',
+    barberColor: barber?.color,
+    service: 'Holiday',
+    serviceId: 'holiday',
+    status: 'holiday',
+    isGuest: false,
+    notes: holiday.notes || 'Barber unavailable - holiday',
+    userId: '',
+    resourceId: holiday.barber_id,
+    allDay: true
   };
 };
