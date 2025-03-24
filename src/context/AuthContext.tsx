@@ -1,8 +1,7 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, UNSAFE_NavigationContext } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Profile, UpdatableProfile } from '@/supabase-types';
 
@@ -26,7 +25,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const navigate = useNavigate();
+  const navigationContext = useContext(UNSAFE_NavigationContext);
+  const navigate = navigationContext ? useNavigate() : null;
+  
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -196,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.auth.signOut();
       
       toast.success('Your account has been deleted');
-      navigate('/');
+      if (navigate) navigate('/');
     } catch (error: any) {
       toast.error(`Failed to delete account: ${error.message}`);
       throw error;
@@ -207,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      navigate('/');
+      if (navigate) navigate('/');
       toast.success('Logged in successfully');
     } catch (error: any) {
       toast.error(error.message);
@@ -224,14 +225,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             first_name: userData.firstName,
             last_name: userData.lastName,
-            phone: userData.phone, // Add phone to user metadata
+            phone: userData.phone,
           },
         },
       });
       
       if (error) throw error;
       
-      // Create or update profile with phone number
       if (supabase.auth.getUser) {
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
@@ -256,7 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      navigate('/');
+      if (navigate) navigate('/');
       toast.success('Logged out successfully');
     } catch (error: any) {
       toast.error(error.message);
