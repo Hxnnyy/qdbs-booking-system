@@ -13,7 +13,7 @@ interface BookingCardProps {
 }
 
 // Extract guest info from notes field
-const extractGuestInfo = (notes: string | null) => {
+const extractGuestInfo = (notes: string | undefined | null) => {
   if (!notes) return { name: 'Unknown', phone: 'Unknown', code: 'Unknown' };
   
   const nameMatch = notes.match(/Guest booking by (.+?) \(/);
@@ -59,9 +59,9 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     clientEmail = booking.guest_email || '';
   } else if (booking.profile) {
     // For registered users, use profile information
-    clientName = `${booking.profile.first_name || ''} ${booking.profile.last_name || ''}`.trim();
-    clientPhone = booking.profile.phone || '';
-    clientEmail = booking.profile.email || '';
+    clientName = `${booking.profile?.first_name || ''} ${booking.profile?.last_name || ''}`.trim();
+    clientPhone = booking.profile?.phone || '';
+    clientEmail = booking.profile?.email || '';
     
     // If name is still empty, try to use email
     if (!clientName && clientEmail) {

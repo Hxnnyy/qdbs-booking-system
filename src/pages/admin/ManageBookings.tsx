@@ -33,24 +33,41 @@ const ManageBookings = () => {
       setIsLoading(true);
       setError(null);
       
-      // @ts-ignore - Supabase types issue
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          barber:barber_id(name),
-          service:service_id(name, price, duration)
-        `)
-        .order('booking_date', { ascending: false })
-        .order('booking_time', { ascending: true });
+      // Use the edge function to get bookings with profile data
+      const { data, error } = await supabase.functions.invoke('get-bookings-with-profiles', {
+        body: { page: 0, pageSize: 100 } // Fetch a larger number to handle filtering client-side
+      });
       
       if (error) throw error;
       
-      setBookings(data || []);
-      filterBookings(data || [], currentTab, statusFilter, typeFilter);
+      setBookings(data.bookings || []);
+      filterBookings(data.bookings || [], currentTab, statusFilter, typeFilter);
     } catch (err: any) {
+      console.error('Error fetching bookings:', err);
       setError(err.message);
-      toast.error(err.message);
+      toast.error('Failed to fetch bookings: ' + err.message);
+      
+      // Fallback to direct query if edge function fails
+      try {
+        // @ts-ignore - Supabase types issue
+        const { data, error } = await supabase
+          .from('bookings')
+          .select(`
+            *,
+            barber:barber_id(name),
+            service:service_id(name, price, duration)
+          `)
+          .order('booking_date', { ascending: false })
+          .order('booking_time', { ascending: true });
+        
+        if (error) throw error;
+        
+        setBookings(data || []);
+        filterBookings(data || [], currentTab, statusFilter, typeFilter);
+      } catch (fallbackErr: any) {
+        setError(fallbackErr.message);
+        toast.error(fallbackErr.message);
+      }
     } finally {
       setIsLoading(false);
     }
