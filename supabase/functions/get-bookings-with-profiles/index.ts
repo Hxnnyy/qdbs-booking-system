@@ -35,7 +35,7 @@ serve(async (req) => {
         *,
         barber:barber_id(*),
         service:service_id(*),
-        profile:profiles!bookings_user_id_fkey(id, first_name, last_name, email, phone)
+        profile:profiles(id, first_name, last_name, email, phone)
       `, { count: 'exact' })
 
     // Apply filters if provided
