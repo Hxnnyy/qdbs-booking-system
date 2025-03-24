@@ -1,3 +1,4 @@
+
 /**
  * Booking Service
  * 
@@ -8,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { CalendarEvent } from '@/types/calendar';
+import { Booking, Profile } from '@/supabase-types';
 
 /**
  * Fetch bookings for a specific date and barber
@@ -226,7 +228,7 @@ export const updateBooking = async (
 export const fetchPaginatedBookings = async (
   page: number = 0,
   pageSize: number = 10
-): Promise<{ bookings: any[], totalCount: number }> => {
+): Promise<{ bookings: (Booking & { profile?: Profile })[], totalCount: number }> => {
   try {
     // Get the total count first
     const { count, error: countError } = await supabase
@@ -276,7 +278,7 @@ export const fetchPaginatedBookings = async (
     console.log(`Found ${userIds.length} registered user bookings. Fetching their profiles...`);
     
     // Fetch profile data separately for all user IDs
-    let profilesData = {};
+    let profilesData: Record<string, Profile> = {};
     if (userIds.length > 0) {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -287,7 +289,7 @@ export const fetchPaginatedBookings = async (
         console.error('Error fetching profiles:', profilesError);
       } else if (profiles) {
         // Create a map of user_id to profile data
-        profilesData = profiles.reduce((acc, profile) => {
+        profilesData = profiles.reduce((acc: Record<string, Profile>, profile) => {
           acc[profile.id] = profile;
           return acc;
         }, {});
@@ -308,16 +310,19 @@ export const fetchPaginatedBookings = async (
       return booking;
     });
     
-    console.log('Final bookings data with profiles attached:', bookingsWithProfiles.map(b => ({
+    // Create a debug-friendly representation of the final data
+    const debugData = bookingsWithProfiles.map(b => ({
       id: b.id,
       user_id: b.user_id,
       guest_booking: b.guest_booking,
-      hasProfile: !!b.profile,
-      profileName: b.profile ? `${b.profile.first_name} ${b.profile.last_name}` : null
-    })));
+      hasProfile: !!(b as any).profile,
+      profileName: (b as any).profile ? `${(b as any).profile.first_name} ${(b as any).profile.last_name}` : null
+    }));
+    
+    console.log('Final bookings data with profiles attached:', debugData);
     
     return {
-      bookings: bookingsWithProfiles || [],
+      bookings: bookingsWithProfiles as (Booking & { profile?: Profile })[],
       totalCount: count || 0
     };
   } catch (error) {
