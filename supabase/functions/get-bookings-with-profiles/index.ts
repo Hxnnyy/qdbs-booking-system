@@ -41,17 +41,20 @@ export async function fetchPaginatedBookings(page = 0, pageSize = 10) {
       throw countError
     }
     
-    // Then get the paginated data
+    // Calculate pagination range
     const from = page * pageSize
     const to = from + pageSize - 1
     
-    // First get the bookings with their related data (barber, service)
+    console.log(`Fetching bookings with profiles from ${from} to ${to}`)
+    
+    // Fetch bookings with related data including profiles for registered users
     const { data: bookingsData, error } = await supabase
       .from('bookings')
       .select(`
         *,
         barber:barber_id(name, color),
-        service:service_id(name, price, duration)
+        service:service_id(name, price, duration),
+        profile:user_id(id, first_name, last_name, phone, email)
       `)
       .order('booking_date', { ascending: false })
       .order('booking_time', { ascending: true })
@@ -63,97 +66,60 @@ export async function fetchPaginatedBookings(page = 0, pageSize = 10) {
     }
     
     if (!bookingsData || bookingsData.length === 0) {
+      console.log('No bookings found')
       return { bookings: [], totalCount: count || 0 }
     }
 
-    // Log some details about the bookings we found
     console.log(`Found ${bookingsData.length} bookings`)
     
-    // Separate guest bookings and registered user bookings
-    const guestBookings = bookingsData.filter(booking => booking.guest_booking === true)
-    const registeredBookings = bookingsData.filter(booking => booking.guest_booking !== true)
-    
-    console.log(`Found ${guestBookings.length} guest bookings and ${registeredBookings.length} registered bookings`)
-    
-    // Extract user IDs for registered user bookings
-    const userIds = registeredBookings
-      .filter(booking => booking.user_id)
-      .map(booking => booking.user_id)
-    
-    console.log(`Found ${userIds.length} user IDs for registered bookings`)
-    
-    let profilesById = {}
-    
-    if (userIds.length > 0) {
-      // Fetch profiles for registered users
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, phone, email')
-        .in('id', userIds)
+    // Process the bookings to handle guest bookings and ensure email is available
+    const processedBookings = await Promise.all(bookingsData.map(async (booking) => {
+      const isGuestBooking = booking.guest_booking === true
       
-      if (profilesError) {
-        console.error('Profiles fetch error:', profilesError)
-      } else if (profilesData) {
-        console.log(`Successfully fetched ${profilesData.length} profiles`)
-        
-        // Create a map of user_id to profile
-        profilesById = profilesData.reduce((acc, profile) => {
-          acc[profile.id] = profile
-          return acc
-        }, {})
-      }
-      
-      // If any profiles are missing email, fetch from auth.users
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
-      
-      if (authError) {
-        console.error('Error fetching auth users:', authError)
-      } else if (authUsers && authUsers.users) {
-        console.log(`Got ${authUsers.users.length} auth users`)
-        
-        // Add email to profiles from auth users
-        authUsers.users.forEach(user => {
-          if (userIds.includes(user.id)) {
-            if (!profilesById[user.id]) {
-              // Create a new profile if one doesn't exist
-              profilesById[user.id] = {
-                id: user.id,
-                email: user.email,
-                first_name: '',
-                last_name: '',
-                phone: null
-              }
-              console.log(`Created new profile for user ${user.id} with email ${user.email}`)
-            } else if (!profilesById[user.id].email) {
-              // Update email if missing
-              profilesById[user.id].email = user.email
-              console.log(`Added email ${user.email} to profile ${user.id}`)
-            }
+      if (isGuestBooking) {
+        // For guest bookings, extract guest info from notes
+        if (booking.notes) {
+          const nameMatch = booking.notes.match(/Guest booking by (.+?) \(/);
+          const phoneMatch = booking.notes.match(/\((.+?)\)/);
+          
+          if (nameMatch) {
+            booking.guest_name = nameMatch[1];
           }
-        })
-      }
-    }
-    
-    // Attach profile data to each booking
-    const bookingsWithProfiles = bookingsData.map(booking => {
-      const result = { ...booking }
-      
-      if (booking.guest_booking !== true && booking.user_id) {
-        // Attach profile for registered user bookings
-        const profile = profilesById[booking.user_id]
-        if (profile) {
-          result.profile = profile
-          console.log(`Attached profile to booking ${booking.id}`)
-        } else {
-          console.log(`No profile found for user ${booking.user_id} (booking ${booking.id})`)
+          
+          if (phoneMatch) {
+            booking.guest_phone = phoneMatch[1];
+          }
         }
+        
+        return booking;
+      } else {
+        // For registered users, ensure profile has email
+        if (booking.profile && !booking.profile.email) {
+          // If profile exists but email is missing, fetch it from auth.users
+          try {
+            const { data: authUsers } = await supabase.auth.admin.listUsers({
+              perPage: 1,
+              page: 1,
+              filter: {
+                id: booking.user_id,
+              },
+            });
+            
+            if (authUsers && authUsers.users && authUsers.users.length > 0) {
+              booking.profile.email = authUsers.users[0].email;
+              console.log(`Added email ${booking.profile.email} to profile for booking ${booking.id}`);
+            }
+          } catch (authError) {
+            console.error(`Failed to fetch email for user ${booking.user_id}:`, authError);
+          }
+        }
+        
+        return booking;
       }
-      
-      return result
-    })
+    }));
     
     return {
-      bookings: bookingsWithProfiles,
+      bookings: processedBookings,
       totalCount: count || 0
     }
   } catch (error) {

@@ -52,14 +52,24 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     phone: null
   };
   
-  if (isGuestBooking && booking.notes) {
-    // For guest bookings, extract info from notes field
+  if (isGuestBooking) {
+    // For guest bookings, extract info from notes field and use guest_email
     const guestInfo = extractGuestInfo(booking.notes);
+    
     clientInfo = {
-      name: guestInfo.name,
+      name: guestInfo.name !== 'Unknown' ? guestInfo.name : 'Unknown Guest',
       phone: guestInfo.phone !== 'Unknown' ? guestInfo.phone : null,
       email: booking.guest_email || null
     };
+    
+    // Use guest_name and guest_phone if provided directly by the edge function
+    if ((booking as any).guest_name) {
+      clientInfo.name = (booking as any).guest_name;
+    }
+    
+    if ((booking as any).guest_phone) {
+      clientInfo.phone = (booking as any).guest_phone;
+    }
   } else if (booking.profile) {
     // For registered users, get info from profile data
     const profile = booking.profile;
@@ -74,6 +84,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     
     // Get phone from profile (optional)
     clientInfo.phone = profile.phone || null;
+  } else {
+    // If this is a registered user (not guest) but profile is missing
+    console.error(`Profile data missing for booking ${booking.id} with user_id ${booking.user_id}`);
+    clientInfo.name = "Profile Missing";
   }
   
   return (
