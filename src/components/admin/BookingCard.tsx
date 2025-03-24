@@ -27,21 +27,6 @@ const extractGuestInfo = (notes: string | undefined | null) => {
   };
 };
 
-// Extract registered user info from notes field
-const extractUserInfo = (notes: string | undefined | null) => {
-  if (!notes) return { name: 'Unknown', phone: 'Unknown', email: 'Unknown' };
-  
-  const userMatch = notes.match(/User: (.+?)\n/);
-  const phoneMatch = notes.match(/Phone: (.+?)\n/);
-  const emailMatch = notes.match(/Email: (.+?)(\n|$)/);
-  
-  return {
-    name: userMatch ? userMatch[1] : 'Unknown',
-    phone: phoneMatch ? phoneMatch[1] : 'Unknown',
-    email: emailMatch ? emailMatch[1] : 'Unknown'
-  };
-};
-
 const getStatusBadgeClass = (status: string) => {
   switch(status) {
     case 'confirmed':
@@ -82,21 +67,6 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
     if (!clientName && clientEmail) {
       clientName = clientEmail.split('@')[0];
     }
-  } else {
-    // Try to extract user info from notes for registered users without profile data
-    const userInfo = extractUserInfo(booking.notes);
-    
-    if (userInfo.name !== 'Unknown') {
-      clientName = userInfo.name;
-    }
-    
-    if (userInfo.phone !== 'Unknown') {
-      clientPhone = userInfo.phone;
-    }
-    
-    if (userInfo.email !== 'Unknown') {
-      clientEmail = userInfo.email;
-    }
   }
   
   // If we still don't have a name, use a default
@@ -117,13 +87,9 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
                 {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
               </span>
               
-              {isGuestBooking ? (
+              {isGuestBooking && (
                 <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
                   Guest Booking
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  Client Booking
                 </Badge>
               )}
             </div>

@@ -99,28 +99,6 @@ serve(async (req) => {
       );
     }
     
-    // Get profile information before creating the booking
-    console.log("Fetching user profile for booking notes");
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("email, first_name, last_name, phone")
-      .eq("id", booking.user_id)
-      .single();
-    
-    // Create formatted notes with user info if profile exists and no notes provided
-    let bookingNotes = booking.notes || "";
-    if (profile) {
-      const userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-      
-      // If there are existing notes, append the user info
-      if (bookingNotes) {
-        bookingNotes += "\n\n";
-      }
-      
-      // Add user info to the notes
-      bookingNotes += `User: ${userName}\nPhone: ${profile.phone || 'Not provided'}\nEmail: ${profile.email || 'Not provided'}`;
-    }
-    
     console.log("Creating booking with service role:", JSON.stringify(booking));
     
     // Create the booking with service role privileges (bypassing RLS)
@@ -132,7 +110,7 @@ serve(async (req) => {
         booking_date: booking.booking_date,
         booking_time: booking.booking_time,
         status: booking.status || "confirmed",
-        notes: bookingNotes,
+        notes: booking.notes || null,
         user_id: booking.user_id,
         guest_booking: false
       })
@@ -159,20 +137,20 @@ serve(async (req) => {
     console.log("Booking created successfully:", JSON.stringify(data));
     
     // Get profile information from profiles table
-    const { data: profileData, error: profileDataError } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("email, first_name, last_name")
       .eq("id", booking.user_id)
       .single();
     
-    if (profileDataError) {
-      console.error("Error fetching user profile:", profileDataError.message);
+    if (profileError) {
+      console.error("Error fetching user profile:", profileError.message);
       // Continue despite profile error - we'll still return the booking
     }
     
     // Try to send confirmation email but don't fail if it doesn't work
     try {
-      if (profileData && profileData.email) {
+      if (profile && profile.email) {
         // Get barber and service names
         const { data: barberData } = await supabase
           .from("barbers")
@@ -189,8 +167,8 @@ serve(async (req) => {
         // Send confirmation email
         await supabase.functions.invoke("send-booking-email", {
           body: {
-            to: profileData.email,
-            name: `${profileData.first_name || ""} ${profileData.last_name || ""}`.trim() || "Customer",
+            to: profile.email,
+            name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Customer",
             bookingId: data.id,
             bookingDate: booking.booking_date,
             bookingTime: booking.booking_time,
@@ -200,7 +178,7 @@ serve(async (req) => {
           }
         });
         
-        console.log("Confirmation email sent to:", profileData.email);
+        console.log("Confirmation email sent to:", profile.email);
       } else {
         console.log("No profile email found, skipping confirmation email");
       }
