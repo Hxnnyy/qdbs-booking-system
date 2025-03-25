@@ -1,5 +1,5 @@
 
-import { format, parseISO, addMinutes } from 'date-fns';
+import { format, parseISO, addMinutes, isWithinInterval } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
 
