@@ -86,7 +86,7 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading, 
               <TableCell>{client.email || 'N/A'}</TableCell>
               <TableCell>
                 {client.isGuest ? (
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
                     Guest
                   </Badge>
                 ) : (

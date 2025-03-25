@@ -35,26 +35,35 @@ export const processBookingsToClients = async (bookings: any[]) => {
 const getNoShowCounts = async (noShowCountMap: Map<string, number>) => {
   try {
     // Get no-show counts for registered users
+    // Modified this query to avoid using .group() which is causing the TypeScript error
     const { data: noShowData, error } = await supabase
       .from('bookings')
-      .select('user_id, count')
+      .select('user_id, status')
       .eq('status', 'no-show')
-      .eq('guest_booking', false)
-      .group('user_id');
+      .eq('guest_booking', false);
     
     if (error) {
       console.error('Error fetching no-show counts:', error);
       return;
     }
     
-    // Add to map
-    noShowData?.forEach(item => {
-      if (item.user_id) {
-        noShowCountMap.set(item.user_id, parseInt(item.count));
-      }
-    });
+    // Count manually instead of using group
+    if (noShowData) {
+      const userCounts = new Map<string, number>();
+      noShowData.forEach(item => {
+        if (item.user_id) {
+          const count = userCounts.get(item.user_id) || 0;
+          userCounts.set(item.user_id, count + 1);
+        }
+      });
+      
+      // Add to map
+      userCounts.forEach((count, userId) => {
+        noShowCountMap.set(userId, count);
+      });
+    }
     
-    // Get no-show counts for guests (by guest_email or a combination of identifiers)
+    // Get no-show counts for guests
     const { data: guestNoShowData, error: guestError } = await supabase
       .from('bookings')
       .select('guest_email, id, notes')

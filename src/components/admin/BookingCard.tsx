@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { format, parseISO } from 'date-fns';
-import { User, Phone, Edit, Mail } from 'lucide-react';
+import { User, Phone, Edit, Mail, CheckCircle, XCircle } from 'lucide-react';
 import { Booking } from '@/supabase-types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,16 +29,43 @@ const extractGuestInfo = (notes: string | undefined | null) => {
 
 const getStatusBadgeClass = (status: string) => {
   switch(status) {
-    case 'confirmed':
-      return 'bg-blue-100 text-blue-800';
-    case 'completed':
-      return 'bg-green-100 text-green-800';
-    case 'cancelled':
-      return 'bg-red-100 text-red-800';
-    case 'no-show':
-      return 'bg-yellow-100 text-yellow-800';
+    case "confirmed":
+      return 'bg-green-100 text-green-800 border-green-200';
+    case "completed":
+      return 'bg-green-100 text-green-800 border-green-200';
+    case "cancelled":
+      return 'bg-red-100 text-red-800 border-red-200';
+    case "no-show":
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1);
+  
+  switch (status) {
+    case 'confirmed':
+      return (
+        <Badge variant="outline" className={getStatusBadgeClass(status)}>
+          <CheckCircle className="h-3 w-3 mr-1" />
+          {formattedStatus}
+        </Badge>
+      );
+    case 'cancelled':
+      return (
+        <Badge variant="outline" className={getStatusBadgeClass(status)}>
+          <XCircle className="h-3 w-3 mr-1" />
+          {formattedStatus}
+        </Badge>
+      );
+    default:
+      return (
+        <Badge variant="outline" className={getStatusBadgeClass(status)}>
+          {formattedStatus}
+        </Badge>
+      );
   }
 };
 
@@ -83,9 +110,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, onEditBooking
               <h3 className="font-bold">
                 {booking.service?.name}
               </h3>
-              <span className={`px-2 py-1 text-xs rounded ${getStatusBadgeClass(booking.status)}`}>
-                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-              </span>
+              <StatusBadge status={booking.status} />
               
               {isGuestBooking && (
                 <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
