@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
-import { bookingToCalendarEvent, createLunchBreakEvent, createHolidayEvent, clearBarberColorCache } from '@/utils/calendarUtils';
+import { bookingToCalendarEvent, createLunchBreakEvent, createHolidayEvent } from '@/utils/calendarUtils';
 import { formatNewBookingDate, formatNewBookingTime } from '@/utils/bookingUpdateUtils';
 
 export const useCalendarBookings = () => {
@@ -26,15 +27,13 @@ export const useCalendarBookings = () => {
       setIsLoading(true);
       setError(null);
       
-      clearBarberColorCache();
-      
+      // Step 1: Fetch bookings with barber and service info
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
           *,
           barber:barber_id(name, color),
-          service:service_id(name, price, duration),
-          profile:user_id(first_name, last_name, email)
+          service:service_id(name, price, duration)
         `)
         .neq('status', 'cancelled')
         .order('booking_date', { ascending: true })
@@ -42,8 +41,43 @@ export const useCalendarBookings = () => {
       
       if (bookingsError) throw bookingsError;
       
-      setBookings(bookingsData || []);
+      // Step 2: Fetch profiles for all user IDs
+      // Get unique user IDs from bookings (excluding guest bookings which have no valid user_id)
+      const userIds = bookingsData
+        ?.filter(booking => !booking.guest_booking)
+        .map(booking => booking.user_id)
+        .filter((id, index, self) => id && self.indexOf(id) === index) || [];
       
+      // Fetch profiles for these user IDs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+      
+      // Create a map of user_id to profile for easy lookup
+      const profilesMap = new Map();
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.id, profile);
+      });
+      
+      // Combine bookings with their profiles
+      const bookingsWithProfiles = bookingsData?.map(booking => {
+        if (booking.guest_booking) {
+          return booking;
+        }
+        return {
+          ...booking,
+          profile: profilesMap.get(booking.user_id) || null
+        };
+      }) || [];
+      
+      setBookings(bookingsWithProfiles as Booking[]);
+      
+      // Continue with lunch breaks and holidays fetching
       const { data: lunchData, error: lunchError } = await supabase
         .from('barber_lunch_breaks')
         .select(`
@@ -68,15 +102,17 @@ export const useCalendarBookings = () => {
       
       setHolidays(holidaysData || []);
       
-      const bookingEvents = (bookingsData || []).map(booking => {
+      // Create calendar events
+      const bookingEvents = (bookingsWithProfiles || []).map(booking => {
         try {
-          return bookingToCalendarEvent(booking);
+          return bookingToCalendarEvent(booking as Booking);
         } catch (err) {
           console.error('Error converting booking to event:', err, booking);
           return null;
         }
       }).filter(Boolean) as CalendarEvent[];
       
+      // Process lunch breaks
       const processedLunchBreaks = new Map<string, LunchBreak>();
       (lunchData || []).forEach(lunchBreak => {
         processedLunchBreaks.set(lunchBreak.barber_id, lunchBreak);
@@ -93,6 +129,7 @@ export const useCalendarBookings = () => {
       
       console.log(`Generated ${lunchEvents.length} lunch break events from ${lunchData?.length} lunch break records`);
       
+      // Process holidays
       const holidayEvents = (holidaysData || []).map(holiday => {
         try {
           return createHolidayEvent(holiday, holiday.barber);
