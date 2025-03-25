@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -284,7 +283,10 @@ export const EventDetailsDialog: React.FC<EventDetailsDialogProps> = ({
                 style={{ backgroundColor: barberColor }}
               />
               <div>
-                <h3 className="text-lg font-medium">{event.title}</h3>
+                <h3 className="text-lg font-medium">
+                  {event.title}
+                  {event.isGuest && <Badge variant="secondary" className="ml-2">Guest</Badge>}
+                </h3>
                 <p className="text-sm text-muted-foreground">{event.service}</p>
               </div>
             </div>

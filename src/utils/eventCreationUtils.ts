@@ -29,19 +29,35 @@ export const bookingToCalendarEvent = (booking: Booking): CalendarEvent => {
     const duration = booking.service?.duration || 30; // Default to 30 minutes if no duration
     const endDate = addMinutes(startDate, duration);
     
-    // Extract guest name from notes if it's a guest booking
-    let guestName = 'Guest';
-    if (booking.guest_booking && booking.notes) {
-      const guestMatch = booking.notes.match(/Guest booking by ([^(]+)/);
-      if (guestMatch && guestMatch[1]) {
-        guestName = guestMatch[1].trim();
-      }
-    }
+    // Extract client information based on booking type
+    let clientName = '';
     
-    // For registered users, use the proper client name from profile
-    const clientName = booking.profile 
-      ? `${booking.profile.first_name || ''} ${booking.profile.last_name || ''}`.trim() 
-      : (booking.guest_booking ? `Guest: ${guestName}` : 'Client Booking');
+    if (booking.guest_booking) {
+      // For guest bookings, extract info from notes
+      if (booking.notes) {
+        const guestMatch = booking.notes.match(/Guest booking by ([^(]+)/);
+        clientName = guestMatch && guestMatch[1] ? `Guest: ${guestMatch[1].trim()}` : 'Guest';
+      } else {
+        clientName = 'Guest';
+      }
+    } else if (booking.profile) {
+      // For registered users, use profile information - same logic as in BookingCard.tsx
+      const firstName = booking.profile.first_name || '';
+      const lastName = booking.profile.last_name || '';
+      clientName = `${firstName} ${lastName}`.trim();
+      
+      // If name is still empty, try to use email
+      if (!clientName && booking.profile.email) {
+        clientName = booking.profile.email.split('@')[0];
+      }
+      
+      // If we still don't have a name, use a default
+      if (!clientName) {
+        clientName = 'Unknown Client';
+      }
+    } else {
+      clientName = 'Client Booking';
+    }
     
     return {
       id: booking.id,
