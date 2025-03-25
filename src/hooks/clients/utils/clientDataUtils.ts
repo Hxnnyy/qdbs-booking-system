@@ -7,13 +7,17 @@ export const processBookingsToClients = async (bookings: any[]) => {
   // Maps to track unique clients
   const clientsMap = new Map();
   const guestClientsMap = new Map();
+  const noShowCountMap = new Map();
+
+  // First, get a count of no-show bookings for each user_id and guest
+  await getNoShowCounts(noShowCountMap);
 
   // Process all bookings
   for (const booking of bookings) {
     if (booking.user_id === '00000000-0000-0000-0000-000000000000' || booking.guest_booking === true) {
-      processGuestBooking(booking, guestClientsMap);
+      processGuestBooking(booking, guestClientsMap, noShowCountMap);
     } else {
-      processRegisteredBooking(booking, clientsMap);
+      processRegisteredBooking(booking, clientsMap, noShowCountMap);
     }
   }
 
@@ -27,8 +31,58 @@ export const processBookingsToClients = async (bookings: any[]) => {
   return combineAndDeduplicateClients(clientsMap, guestClientsMap);
 };
 
+// Fetch no-show counts for all users and guests
+const getNoShowCounts = async (noShowCountMap: Map<string, number>) => {
+  try {
+    // Get no-show counts for registered users
+    const { data: noShowData, error } = await supabase
+      .from('bookings')
+      .select('user_id, count')
+      .eq('status', 'no-show')
+      .eq('guest_booking', false)
+      .group('user_id');
+    
+    if (error) {
+      console.error('Error fetching no-show counts:', error);
+      return;
+    }
+    
+    // Add to map
+    noShowData?.forEach(item => {
+      if (item.user_id) {
+        noShowCountMap.set(item.user_id, parseInt(item.count));
+      }
+    });
+    
+    // Get no-show counts for guests (by guest_email or a combination of identifiers)
+    const { data: guestNoShowData, error: guestError } = await supabase
+      .from('bookings')
+      .select('guest_email, id, notes')
+      .eq('status', 'no-show')
+      .eq('guest_booking', true);
+    
+    if (guestError) {
+      console.error('Error fetching guest no-show counts:', guestError);
+      return;
+    }
+    
+    // Process guest no-shows
+    guestNoShowData?.forEach(booking => {
+      const guestKey = booking.guest_email || `guest-${booking.id}`;
+      
+      if (guestKey) {
+        const currentCount = noShowCountMap.get(guestKey) || 0;
+        noShowCountMap.set(guestKey, currentCount + 1);
+      }
+    });
+    
+  } catch (err) {
+    console.error('Error in getNoShowCounts:', err);
+  }
+};
+
 // Process a guest booking and add to the guest clients map
-const processGuestBooking = (booking: any, guestClientsMap: Map<string, any>) => {
+const processGuestBooking = (booking: any, guestClientsMap: Map<string, any>, noShowCountMap: Map<string, number>) => {
   let guestName = 'Guest User';
   let guestPhone = null;
   
@@ -50,10 +104,15 @@ const processGuestBooking = (booking: any, guestClientsMap: Map<string, any>) =>
   
   if (guestKey) {
     const existingGuest = guestClientsMap.get(guestKey);
+    
+    // Get no-show count for this guest
+    const noShowCount = noShowCountMap.get(guestKey) || 0;
+    
     if (existingGuest) {
       guestClientsMap.set(guestKey, {
         ...existingGuest,
-        bookingCount: existingGuest.bookingCount + 1
+        bookingCount: existingGuest.bookingCount + 1,
+        noShowCount: noShowCount
       });
     } else {
       guestClientsMap.set(guestKey, {
@@ -62,6 +121,7 @@ const processGuestBooking = (booking: any, guestClientsMap: Map<string, any>) =>
         email: booking.guest_email || null,
         phone: guestPhone,
         bookingCount: 1,
+        noShowCount: noShowCount,
         isGuest: true
       });
     }
@@ -69,19 +129,24 @@ const processGuestBooking = (booking: any, guestClientsMap: Map<string, any>) =>
 };
 
 // Process a registered user booking and add to the clients map
-const processRegisteredBooking = (booking: any, clientsMap: Map<string, any>) => {
+const processRegisteredBooking = (booking: any, clientsMap: Map<string, any>, noShowCountMap: Map<string, number>) => {
   const userId = booking.user_id;
   const existingClient = clientsMap.get(userId);
+  
+  // Get no-show count for this user
+  const noShowCount = noShowCountMap.get(userId) || 0;
   
   if (existingClient) {
     clientsMap.set(userId, {
       ...existingClient,
-      bookingCount: existingClient.bookingCount + 1
+      bookingCount: existingClient.bookingCount + 1,
+      noShowCount: noShowCount
     });
   } else {
     clientsMap.set(userId, {
       id: userId,
       bookingCount: 1,
+      noShowCount: noShowCount,
       isGuest: false
     });
   }

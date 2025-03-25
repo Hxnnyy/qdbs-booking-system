@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientsTable } from './ClientsTable';
@@ -6,13 +5,14 @@ import { ClientsEmailDialog } from './ClientsEmailDialog';
 import { EditClientDialog } from './EditClientDialog';
 import { ExportClientsDialog } from './ExportClientsDialog';
 import { Button } from '@/components/ui/button';
-import { Mail, RefreshCw, FileSpreadsheet } from 'lucide-react';
+import { Mail, RefreshCw, FileSpreadsheet, Search } from 'lucide-react';
 import { useClientManagement } from '@/hooks/useClientManagement';
 import { useClients } from '@/context/ClientsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Client } from '@/types/client';
 import { motion } from 'framer-motion';
+import { Input } from '@/components/ui/input';
 
 export const ClientsManagement = () => {
   const { 
@@ -30,6 +30,7 @@ export const ClientsManagement = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleRefresh = () => {
     fetchClients();
@@ -58,7 +59,6 @@ export const ClientsManagement = () => {
   };
 
   const handleSendEmailSubmit = async (subject: string, content: string) => {
-    // Get emails of selected clients
     const selectedClientEmails = clients
       .filter(client => selectedClients.includes(client.id) && client.email)
       .map(client => client.email as string);
@@ -76,7 +76,6 @@ export const ClientsManagement = () => {
   };
 
   const handleExportSubmit = (fields: string[]) => {
-    // Get selected clients to export
     const clientsToExport = clients.filter(client => selectedClients.includes(client.id));
     
     if (clientsToExport.length > 0) {
@@ -86,6 +85,18 @@ export const ClientsManagement = () => {
     }
   };
 
+  const filteredClients = clients.filter(client => {
+    if (!searchTerm.trim()) return true;
+    
+    const term = searchTerm.toLowerCase().trim();
+    
+    return (
+      (client.name && client.name.toLowerCase().includes(term)) ||
+      (client.email && client.email.toLowerCase().includes(term)) ||
+      (client.phone && client.phone.toLowerCase().includes(term))
+    );
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -94,9 +105,9 @@ export const ClientsManagement = () => {
     >
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>Client List</CardTitle>
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-wrap gap-2 items-center">
               <div className="flex items-center space-x-2 mr-4">
                 <Switch 
                   id="show-guests" 
@@ -126,10 +137,20 @@ export const ClientsManagement = () => {
               </Button>
             </div>
           </div>
+          
+          <div className="relative mt-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search clients by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <ClientsTable 
-            clients={clients} 
+            clients={filteredClients} 
             isLoading={isLoading} 
             onEditClient={handleEditClient} 
           />

@@ -5,5 +5,6 @@ export interface Client {
   email: string | null;
   phone: string | null;
   bookingCount: number;
+  noShowCount?: number;
   isGuest: boolean;
 }

@@ -7,7 +7,7 @@ export const fetchBookingsData = async () => {
     // Get all bookings to extract client information
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
-      .select('id, user_id, guest_booking, guest_email, notes, barber_id, service_id')
+      .select('id, user_id, guest_booking, guest_email, notes, barber_id, service_id, status')
       .order('created_at', { ascending: false });
 
     if (bookingsError) throw bookingsError;

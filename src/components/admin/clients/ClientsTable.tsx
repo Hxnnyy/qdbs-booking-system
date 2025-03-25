@@ -67,6 +67,7 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading, 
             <TableHead>Email</TableHead>
             <TableHead>Type</TableHead>
             <TableHead className="text-right">Appointments</TableHead>
+            <TableHead className="text-right">No-Shows</TableHead>
             <TableHead className="w-20"></TableHead>
           </TableRow>
         </TableHeader>
@@ -95,6 +96,15 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({ clients, isLoading, 
                 )}
               </TableCell>
               <TableCell className="text-right">{client.bookingCount}</TableCell>
+              <TableCell className="text-right">
+                {(client.noShowCount && client.noShowCount > 0) ? (
+                  <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+                    {client.noShowCount}
+                  </Badge>
+                ) : (
+                  '0'
+                )}
+              </TableCell>
               <TableCell>
                 <Button
                   variant="ghost"
