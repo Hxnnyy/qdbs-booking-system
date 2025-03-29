@@ -58,3 +58,29 @@ export const hasLunchBreakConflict = (
   
   return false;
 };
+
+/**
+ * Get a user-friendly message when no time slots are available
+ * 
+ * @param date - The selected date or undefined
+ * @returns A user-friendly message explaining why no time slots are available
+ */
+export const getNoTimeSlotsMessage = (date: Date | undefined): string => {
+  if (!date) {
+    return "No available time slots. Please select a date first.";
+  }
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const selectedDate = new Date(date);
+  selectedDate.setHours(0, 0, 0, 0);
+  
+  if (selectedDate.getTime() === today.getTime()) {
+    return "No available time slots for today. Please try another day.";
+  }
+  
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayName = dayNames[date.getDay()];
+  
+  return `No available time slots for ${dayName}. Please select another date.`;
+};
