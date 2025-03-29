@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, addMinutes } from 'date-fns';
@@ -286,9 +285,10 @@ export const useCalendarBookings = () => {
     }
   }, [queryClient]);
 
-  // Exposed API
+  // Exposed API - IMPORTANT: Add allEvents alias for backward compatibility
   return {
     calendarEvents,
+    allEvents: calendarEvents, // Add this alias to fix the errors
     isLoading,
     fetchBookings: fetchData,
     handleEventDrop,

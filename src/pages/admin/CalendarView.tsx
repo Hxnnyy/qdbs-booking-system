@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
@@ -30,9 +29,7 @@ const CalendarView = () => {
     fetchBookings
   } = useCalendarBookings();
 
-  // Controlled refresh function with debounce to prevent recursive calls
   const refreshCalendar = useCallback(() => {
-    // If a refresh is already in progress or scheduled, don't trigger another one
     if (refreshInProgressRef.current || refreshTimeoutRef.current) {
       console.log('Refresh already in progress or scheduled, skipping');
       return;
@@ -41,7 +38,6 @@ const CalendarView = () => {
     console.log('Scheduling controlled calendar refresh');
     refreshInProgressRef.current = true;
     
-    // Use the timeout to debounce multiple calls
     refreshTimeoutRef.current = setTimeout(() => {
       console.log('Executing calendar refresh');
       setRefreshTrigger(prev => prev + 1);
@@ -56,10 +52,9 @@ const CalendarView = () => {
         refreshInProgressRef.current = false;
         refreshTimeoutRef.current = null;
       }
-    }, 300); // Debounce time
+    }, 300);
   }, [fetchBookings]);
 
-  // Cleanup the timeout on unmount
   useEffect(() => {
     return () => {
       if (refreshTimeoutRef.current) {
@@ -73,7 +68,6 @@ const CalendarView = () => {
     setCurrentViewDate(date);
   }, [setCurrentViewDate]);
 
-  // Enhanced event drop handler
   const handleEnhancedEventDrop = useCallback((event, newStart, newEnd) => {
     console.log('Event drop detected:', { 
       eventId: event.id, 
@@ -84,13 +78,11 @@ const CalendarView = () => {
     handleEventDrop(event, newStart, newEnd);
   }, [handleEventDrop]);
 
-  // Enhanced barber filter handler
   const handleBarberFilter = useCallback((barberId: string | null) => {
     console.log('Barber filter changed to:', barberId);
     setSelectedBarberId(barberId);
   }, [setSelectedBarberId]);
 
-  // Wrapper function for updateBooking
   const handleUpdateBooking = useCallback(async (bookingId: string, updates: { 
     title?: string; 
     barber_id?: string; 
@@ -99,9 +91,10 @@ const CalendarView = () => {
     booking_date?: string;
     booking_time?: string;
     status?: string;
-  }) => {
+  }): Promise<boolean> => {
     console.log('Updating booking:', bookingId, updates);
-    return await updateBooking(bookingId, updates);
+    const result = await updateBooking(bookingId, updates);
+    return result.success;
   }, [updateBooking]);
 
   return (
