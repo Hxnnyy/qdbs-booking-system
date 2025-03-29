@@ -72,11 +72,17 @@ const CalendarView = () => {
     handleEventDrop(event, newStart, newEnd);
   }, [handleEventDrop]);
 
-  // Enhanced barber filter handler
+  // Enhanced barber filter handler with refresh trigger
   const handleBarberFilter = useCallback((barberId: string | null) => {
     console.log('Barber filter changed to:', barberId);
     setSelectedBarberId(barberId);
   }, [setSelectedBarberId]);
+  
+  // New handler for barber filter changes to trigger refresh
+  const handleBarberFilterChange = useCallback(() => {
+    console.log('Barber filter changed, scheduling refresh');
+    refreshCalendar();
+  }, [refreshCalendar]);
 
   // Wrapper function for updateBooking to ensure correct return type
   const handleUpdateBooking = useCallback(async (bookingId: string, updates: { 
@@ -104,7 +110,8 @@ const CalendarView = () => {
             
             <BarberFilter 
               selectedBarberId={selectedBarberId} 
-              onSelectBarber={handleBarberFilter} 
+              onSelectBarber={handleBarberFilter}
+              onFilterChange={handleBarberFilterChange} 
             />
             
             <CalendarViewComponent

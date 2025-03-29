@@ -8,9 +8,14 @@ import { User } from 'lucide-react';
 interface BarberFilterProps {
   selectedBarberId: string | null;
   onSelectBarber: (barberId: string | null) => void;
+  onFilterChange?: () => void; // Add new callback prop
 }
 
-export const BarberFilter: React.FC<BarberFilterProps> = ({ selectedBarberId, onSelectBarber }) => {
+export const BarberFilter: React.FC<BarberFilterProps> = ({ 
+  selectedBarberId, 
+  onSelectBarber,
+  onFilterChange
+}) => {
   const { barbers, isLoading } = useBarbers();
 
   if (isLoading) {
@@ -20,6 +25,11 @@ export const BarberFilter: React.FC<BarberFilterProps> = ({ selectedBarberId, on
   const handleBarberSelect = (barberId: string | null) => {
     console.log(`BarberFilter: Selecting barber ID: ${barberId || 'All'}`);
     onSelectBarber(barberId);
+    
+    // Trigger the filter change callback after selection
+    if (onFilterChange) {
+      onFilterChange();
+    }
   };
 
   return (
