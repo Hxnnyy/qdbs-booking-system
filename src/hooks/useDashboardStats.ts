@@ -57,17 +57,21 @@ export const useDashboardStats = () => {
           
         if (barbersError) throw barbersError;
         
-        // Fetch all bookings for calculations
-        const { data: allBookings, error: bookingsError } = await supabase
-          .from('bookings')
-          .select(`
-            *,
-            barber:barber_id(name, color),
-            service:service_id(name, price, duration)
-          `)
-          .order('booking_date', { ascending: false });
+        // Fetch all bookings for calculations with user profile information
+        const { data: bookingsData, error: bookingsError } = await supabase.functions.invoke(
+          'get-bookings-with-profiles',
+          {
+            body: {
+              page: 0,
+              pageSize: 100,
+              filters: {}
+            }
+          }
+        );
         
         if (bookingsError) throw bookingsError;
+        
+        const allBookings = bookingsData?.bookings || [];
         
         // Filter bookings for different stats
         const upcomingBookings = allBookings

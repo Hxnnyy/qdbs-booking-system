@@ -22,6 +22,12 @@ interface Booking {
   barber?: {
     name?: string;
   };
+  profile?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
+  user_id?: string;
 }
 
 interface RecentBookingsProps {
@@ -44,6 +50,31 @@ export const RecentBookings: React.FC<RecentBookingsProps> = ({
       return nameMatch[1].trim();
     }
     return null;
+  };
+
+  // Helper to get client name based on booking type
+  const getClientName = (booking: Booking) => {
+    if (booking.guest_booking) {
+      return getGuestName(booking) || 'Guest';
+    } 
+    
+    if (booking.profile) {
+      // For registered users, use their profile information
+      const firstName = booking.profile.first_name || '';
+      const lastName = booking.profile.last_name || '';
+      
+      if (firstName || lastName) {
+        return `${firstName} ${lastName}`.trim();
+      }
+      
+      // If profile exists but no name, use email
+      if (booking.profile.email) {
+        return booking.profile.email.split('@')[0]; // Use portion before @
+      }
+    }
+    
+    // Fallback for registered users without profile info
+    return 'Customer';
   };
   
   const getStatusBadge = (status?: string) => {
@@ -115,11 +146,7 @@ export const RecentBookings: React.FC<RecentBookingsProps> = ({
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center text-sm text-muted-foreground">
                       <User className="mr-1 h-3 w-3" />
-                      <span>
-                        {booking.guest_booking 
-                          ? getGuestName(booking) || 'Guest'
-                          : 'Customer'}
-                      </span>
+                      <span>{getClientName(booking)}</span>
                     </div>
                     
                     <div>
