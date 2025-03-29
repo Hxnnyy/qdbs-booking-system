@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarEvent as CalendarEventType } from '@/types/calendar';
 import { getBarberColor, getEventColor } from '@/utils/calendarUtils';
@@ -14,7 +14,8 @@ interface CalendarEventProps {
   onDragEnd?: (event: CalendarEventType) => void;
 }
 
-export const CalendarEvent: React.FC<CalendarEventProps> = ({ 
+// Use React.memo to prevent re-renders when props haven't changed
+export const CalendarEvent = memo(({ 
   event, 
   onClick, 
   slotIndex = 0,
@@ -22,14 +23,14 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   onEventClick,
   onDragStart,
   onDragEnd
-}) => {
+}: CalendarEventProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const isLunchBreak = event.status === 'lunch-break';
   const isHoliday = event.status === 'holiday';
   
-  // Add logging for debugging
-  React.useEffect(() => {
-    if (!event.barberId) {
+  // Add logging for debugging - only in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && !event.barberId) {
       console.warn('CalendarEvent missing barberId:', event);
     }
   }, [event]);
@@ -69,6 +70,8 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     zIndex: isDragging ? 30 : 10,
     pointerEvents: 'all' as React.CSSProperties['pointerEvents'],
     cursor: !isLunchBreak && !isHoliday ? 'grab' : 'default',
+    willChange: 'transform', // Optimize for animations
+    transform: 'translateZ(0)', // Force GPU acceleration
   };
   
   const handleClick = (e: React.MouseEvent) => {
@@ -144,7 +147,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       draggable={!isLunchBreak && !isHoliday}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      title={`${event.title} - ${event.barber} (ID: ${event.barberId})`} // Add debugging info in the tooltip
+      title={`${event.title} - ${event.barber}`}
     >
       <div className="font-semibold truncate">
         {isHoliday ? (
@@ -162,4 +165,17 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom equality function to control re-renders
+  // Only re-render if these props change
+  return (
+    prevProps.event.id === nextProps.event.id &&
+    prevProps.event.start.getTime() === nextProps.event.start.getTime() &&
+    prevProps.event.end.getTime() === nextProps.event.end.getTime() &&
+    prevProps.slotIndex === nextProps.slotIndex &&
+    prevProps.totalSlots === nextProps.totalSlots
+  );
+});
+
+// Add display name for debugging
+CalendarEvent.displayName = 'CalendarEvent';

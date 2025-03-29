@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { format, isToday, addMinutes } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
@@ -34,10 +34,19 @@ export const DayView: React.FC<DayViewProps> = ({
   refreshCalendar
 }) => {
   const { startHour, endHour, autoScrollToCurrentTime } = useCalendarSettings();
-  const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
+  // Memoize the initial events filtering to avoid repeated calculation on render
+  const displayEvents = useMemo(() => 
+    filterEventsByDate(events, date),
+    [events, date]
+  );
+  
   const totalHours = endHour - startHour;
   const calendarHeight = totalHours * 60;
-  const holidayEvents = getHolidayEventsForDate(events, date);
+  const holidayEvents = useMemo(() => 
+    getHolidayEventsForDate(events, date),
+    [events, date]
+  );
+  
   const columnRef = useRef<HTMLDivElement>(null);
   const dateFormatted = format(date, 'yyyy-MM-dd');
   
@@ -50,12 +59,7 @@ export const DayView: React.FC<DayViewProps> = ({
     startY: 0
   });
 
-  useEffect(() => {
-    const filtered = filterEventsByDate(events, date);
-    console.log(`DayView: Filtered ${filtered.length} events for date ${dateFormatted}`);
-    setDisplayEvents(filtered);
-  }, [events, date, dateFormatted]);
-
+  // Auto-scroll to current time effect
   useEffect(() => {
     if (isToday(date) && autoScrollToCurrentTime) {
       const now = new Date();
@@ -65,17 +69,19 @@ export const DayView: React.FC<DayViewProps> = ({
       if (hours >= startHour && hours < endHour) {
         const position = (hours - startHour) * 60 + minutes;
         
-        setTimeout(() => {
+        // Use requestAnimationFrame for smoother scrolling
+        requestAnimationFrame(() => {
           const container = document.querySelector('.calendar-scrollable-container');
           if (container) {
             container.scrollTop = position - 100;
           }
-        }, 100);
+        });
       }
     }
   }, [date, startHour, endHour, autoScrollToCurrentTime]);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  // Optimized drag handlers using useCallback
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     
     if (!columnRef.current || !dragState.event) return;
@@ -106,13 +112,13 @@ export const DayView: React.FC<DayViewProps> = ({
       currentTime: timeString,
       currentDate: dateString
     }));
-  };
+  }, [dragState.event, date, startHour]);
 
-  const handleDragEnter = (e: React.DragEvent) => {
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-  };
+  }, []);
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     if (!columnRef.current) return;
     
     // Check if we're leaving the column entirely
@@ -128,9 +134,9 @@ export const DayView: React.FC<DayViewProps> = ({
         ghostPosition: null
       }));
     }
-  };
+  }, []);
 
-  const handleDrop = async (e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     
     if (!columnRef.current || !dragState.ghostPosition || !dragState.event) return;
@@ -155,20 +161,6 @@ export const DayView: React.FC<DayViewProps> = ({
       const duration = droppedEvent.end.getTime() - droppedEvent.start.getTime();
       const newEnd = new Date(newStart.getTime() + duration);
       
-      // Immediately update local display events to remove the visual "ghost"
-      setDisplayEvents(prev => 
-        prev.map(event => {
-          if (event.id === eventId) {
-            return {
-              ...event,
-              start: newStart,
-              end: newEnd
-            };
-          }
-          return event;
-        })
-      );
-      
       // Call the callback to update the event
       if (onEventDrop) {
         await onEventDrop(droppedEvent, newStart, newEnd);
@@ -192,9 +184,9 @@ export const DayView: React.FC<DayViewProps> = ({
         startY: 0
       });
     }
-  };
+  }, [dragState, events, date, onEventDrop, refreshCalendar]);
 
-  const handleEventDragStart = (event: CalendarEvent) => {
+  const handleEventDragStart = useCallback((event: CalendarEvent) => {
     setDragState({
       isActive: true,
       ghostPosition: null,
@@ -203,22 +195,98 @@ export const DayView: React.FC<DayViewProps> = ({
       event: event,
       startY: 0
     });
-  };
+  }, []);
 
-  const handleCalendarClick = (e: React.MouseEvent) => {
+  const handleCalendarClick = useCallback((e: React.MouseEvent) => {
     // Only reset if clicking directly on the calendar, not on an event
     if (e.target === e.currentTarget) {
       // No drag state to reset
     }
-  };
+  }, []);
 
-  const viewKey = `day-view-${dateFormatted}-${events.length}`;
+  const viewKey = useMemo(() => 
+    `day-view-${dateFormatted}-${displayEvents.length}`,
+    [dateFormatted, displayEvents.length]
+  );
   
   // Memoize the processing of overlapping events to avoid recalculation
   const processedEvents = useMemo(() => 
     processOverlappingEvents(displayEvents), 
     [displayEvents]
   );
+
+  // Memoize the grid lines to prevent recreation on every render
+  const renderGridLines = useMemo(() => (
+    Array.from({ length: totalHours + 1 }).map((_, index) => (
+      <div 
+        key={`grid-${index}`}
+        className="absolute w-full h-[60px] border-b border-border"
+        style={{ top: `${index * 60}px` }}
+      >
+        {index < totalHours && (
+          <>
+            <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
+            <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
+            <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
+          </>
+        )}
+      </div>
+    ))
+  ), [totalHours]);
+
+  // Memoize the current time indicator to prevent recreation on every render
+  const currentTimeIndicator = useMemo(() => {
+    if (!isToday(date)) return null;
+    
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    
+    if (hours < startHour || hours >= endHour) return null;
+    
+    const position = (hours - startHour) * 60 + minutes;
+    
+    return (
+      <div 
+        className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
+        style={{ top: `${position}px` }}
+      >
+        <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
+      </div>
+    );
+  }, [date, startHour, endHour]);
+
+  // Memoize the drag ghost position indicator
+  const dragGhostIndicator = useMemo(() => {
+    if (!dragState.ghostPosition) return null;
+    
+    return (
+      <div 
+        className="absolute w-full bg-primary/30 border-l-4 border-primary z-50 pointer-events-none rounded-sm"
+        style={{ 
+          top: `${dragState.ghostPosition.top}px`, 
+          height: `${dragState.ghostPosition.height}px`,
+          left: 0,
+          right: 0
+        }}
+      >
+        <div className="px-2 py-1 text-xs font-medium">
+          Drop to reschedule: {dragState.currentTime}
+        </div>
+      </div>
+    );
+  }, [dragState.ghostPosition, dragState.currentTime]);
+
+  // Memoize empty state display
+  const emptyStateDisplay = useMemo(() => {
+    if (processedEvents.length > 0) return null;
+    
+    return (
+      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+        No events on this day
+      </div>
+    );
+  }, [processedEvents.length]);
 
   return (
     <div className="h-full calendar-view day-view" key={viewKey}>
@@ -246,98 +314,46 @@ export const DayView: React.FC<DayViewProps> = ({
           onDrop={handleDrop}
         >
           <div className="absolute top-0 left-0 right-0 bottom-0">
-            {Array.from({ length: totalHours + 1 }).map((_, index) => (
-              <div 
-                key={`grid-${index}`}
-                className="absolute w-full h-[60px] border-b border-border"
-                style={{ top: `${index * 60}px` }}
-              >
-                {index < totalHours && (
-                  <>
-                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '15px' }}></div>
-                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '30px' }}></div>
-                    <div className="absolute left-0 right-0 h-[1px] border-b border-border/30" style={{ top: '45px' }}></div>
-                  </>
-                )}
-              </div>
-            ))}
-            
-            {isToday(date) && (() => {
-              const now = new Date();
-              const hours = now.getHours();
-              const minutes = now.getMinutes();
+            {renderGridLines}
+            {currentTimeIndicator}
+            {dragGhostIndicator}
+            {emptyStateDisplay}
+
+            {processedEvents.map(({ event, slotIndex, totalSlots }) => {
+              const eventHour = event.start.getHours();
+              const eventMinute = event.start.getMinutes();
               
-              if (hours < startHour || hours >= endHour) return null;
+              if (eventHour < startHour || eventHour >= endHour) return null;
               
-              const position = (hours - startHour) * 60 + minutes;
+              const top = (eventHour - startHour) * 60 + eventMinute;
+              const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+              const height = Math.max(durationMinutes, 15);
+              
+              const uniqueEventKey = `event-${event.id}-${dateFormatted}-${top}`;
               
               return (
                 <div 
-                  className="absolute left-0 right-0 h-[2px] bg-red-500 z-20 pointer-events-none"
-                  style={{ top: `${position}px` }}
+                  key={`event-container-${uniqueEventKey}`}
+                  className="absolute w-full"
+                  style={{ 
+                    top: `${top}px`, 
+                    height: `${height}px`,
+                    padding: 0
+                  }}
                 >
-                  <div className="absolute -left-1 -top-[4px] w-2 h-2 rounded-full bg-red-500" />
+                  <div className="h-full w-full">
+                    <CalendarEventComponent 
+                      key={uniqueEventKey}
+                      event={event} 
+                      onEventClick={onEventClick}
+                      slotIndex={slotIndex}
+                      totalSlots={totalSlots}
+                      onDragStart={handleEventDragStart}
+                    />
+                  </div>
                 </div>
               );
-            })()}
-
-            {dragState.ghostPosition && (
-              <div 
-                className="absolute w-full bg-primary/30 border-l-4 border-primary z-50 pointer-events-none rounded-sm"
-                style={{ 
-                  top: `${dragState.ghostPosition.top}px`, 
-                  height: `${dragState.ghostPosition.height}px`,
-                  left: 0,
-                  right: 0
-                }}
-              >
-                <div className="px-2 py-1 text-xs font-medium">
-                  Drop to reschedule: {dragState.currentTime}
-                </div>
-              </div>
-            )}
-
-            {processedEvents.length === 0 ? (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                No events on this day
-              </div>
-            ) : (
-              processedEvents.map(({ event, slotIndex, totalSlots }) => {
-                const eventHour = event.start.getHours();
-                const eventMinute = event.start.getMinutes();
-                
-                if (eventHour < startHour || eventHour >= endHour) return null;
-                
-                const top = (eventHour - startHour) * 60 + eventMinute;
-                const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-                const height = Math.max(durationMinutes, 15);
-                
-                const uniqueEventKey = `event-${event.id}-${dateFormatted}-${top}`;
-                
-                return (
-                  <div 
-                    key={`event-container-${uniqueEventKey}`}
-                    className="absolute w-full"
-                    style={{ 
-                      top: `${top}px`, 
-                      height: `${height}px`,
-                      padding: 0
-                    }}
-                  >
-                    <div className="h-full w-full">
-                      <CalendarEventComponent 
-                        key={uniqueEventKey}
-                        event={event} 
-                        onEventClick={onEventClick}
-                        slotIndex={slotIndex}
-                        totalSlots={totalSlots}
-                        onDragStart={handleEventDragStart}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            )}
+            })}
           </div>
         </div>
       </div>
