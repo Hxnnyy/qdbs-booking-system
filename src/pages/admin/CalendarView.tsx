@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 const CalendarView = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const refreshInProgressRef = useRef(false);
   
   const {
     calendarEvents,
@@ -27,19 +26,18 @@ const CalendarView = () => {
     selectedBarberId,
     setSelectedBarberId,
     setCurrentViewDate,
-    fetchBookings
+    manualRefresh
   } = useCalendarBookings();
 
-  // Controlled refresh function with debounce to prevent recursive calls
+  // Controlled refresh function with debounce
   const refreshCalendar = useCallback(() => {
-    // If a refresh is already in progress or scheduled, don't trigger another one
-    if (refreshInProgressRef.current || refreshTimeoutRef.current) {
-      console.log('Refresh already in progress or scheduled, skipping');
+    // If a refresh is already scheduled, don't trigger another one
+    if (refreshTimeoutRef.current) {
+      console.log('Refresh already scheduled, skipping');
       return;
     }
     
     console.log('Scheduling controlled calendar refresh');
-    refreshInProgressRef.current = true;
     
     // Use the timeout to debounce multiple calls
     refreshTimeoutRef.current = setTimeout(() => {
@@ -47,26 +45,16 @@ const CalendarView = () => {
       setRefreshTrigger(prev => prev + 1);
       
       try {
-        fetchBookings();
+        manualRefresh();
         toast.success('Calendar refreshed');
       } catch (error) {
         console.error('Error refreshing calendar:', error);
         toast.error('Failed to refresh calendar');
       } finally {
-        refreshInProgressRef.current = false;
         refreshTimeoutRef.current = null;
       }
-    }, 300); // Debounce time
-  }, [fetchBookings]);
-
-  // Cleanup the timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-    };
-  }, []);
+    }, 1000); // 1 second debounce time as requested
+  }, [manualRefresh]);
 
   const handleDateChange = useCallback((date: Date) => {
     console.log('Date changed in main CalendarView component:', date);
@@ -90,7 +78,7 @@ const CalendarView = () => {
     setSelectedBarberId(barberId);
   }, [setSelectedBarberId]);
 
-  // Wrapper function for updateBooking
+  // Wrapper function for updateBooking to ensure correct return type
   const handleUpdateBooking = useCallback(async (bookingId: string, updates: { 
     title?: string; 
     barber_id?: string; 
@@ -100,7 +88,6 @@ const CalendarView = () => {
     booking_time?: string;
     status?: string;
   }) => {
-    console.log('Updating booking:', bookingId, updates);
     return await updateBooking(bookingId, updates);
   }, [updateBooking]);
 

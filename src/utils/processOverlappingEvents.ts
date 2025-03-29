@@ -1,18 +1,19 @@
 
 import { CalendarEvent } from "@/types/calendar";
 
-// Process events to handle overlapping time slots
+// Process events to handle overlapping time slots with optimizations
 export const processOverlappingEvents = (events: CalendarEvent[]) => {
   if (!events.length) return [];
   
-  // First separate day's events (hours:minutes) into timeslots
-  const timeslots: Record<string, CalendarEvent[]> = {};
+  // Use a Map for better performance in accessing timeslots
+  const timeslots = new Map<string, CalendarEvent[]>();
   
-  events.forEach(event => {
+  // First pass: Group events by time slots
+  for (const event of events) {
     // Skip events with invalid dates
     if (isNaN(event.start.getTime()) || isNaN(event.end.getTime())) {
       console.warn('Event with invalid date found:', event);
-      return;
+      continue;
     }
 
     // Create a date-specific key so events on different days don't overlap
@@ -25,37 +26,40 @@ export const processOverlappingEvents = (events: CalendarEvent[]) => {
     for (let hour = startHour; hour < endHour; hour++) {
       const key = `${date}-${hour}`;
       
-      if (!timeslots[key]) {
-        timeslots[key] = [];
+      if (!timeslots.has(key)) {
+        timeslots.set(key, []);
       }
+      
+      const slotEvents = timeslots.get(key)!;
       
       // Avoid duplicate lunch breaks in the same slot (might happen due to filterEventsByWeek)
       if (event.status === 'lunch-break') {
-        const existingLunchBreak = timeslots[key].find(
+        const existingLunchBreak = slotEvents.find(
           e => e.status === 'lunch-break' && e.barberId === event.barberId
         );
         
         if (!existingLunchBreak) {
-          timeslots[key].push(event);
+          slotEvents.push(event);
         }
       } else {
-        timeslots[key].push(event);
+        slotEvents.push(event);
       }
     }
-  });
+  }
   
   // Now calculate slot indexes for each event
   const result: { event: CalendarEvent; slotIndex: number; totalSlots: number }[] = [];
   
-  Object.values(timeslots).forEach(slotEvents => {
-    // Sort events by start time
-    const sorted = [...slotEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
+  // Process each timeslot
+  timeslots.forEach(slotEvents => {
+    // Sort events by start time for consistent ordering
+    const sorted = slotEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
     
     // Find overlapping events
     const overlappingSets: CalendarEvent[][] = [];
     
     // Group overlapping events
-    sorted.forEach(event => {
+    for (const event of sorted) {
       // Find if this event overlaps with any existing set
       let foundOverlap = false;
       
@@ -83,10 +87,10 @@ export const processOverlappingEvents = (events: CalendarEvent[]) => {
       if (!foundOverlap) {
         overlappingSets.push([event]);
       }
-    });
+    }
     
     // Process each set of overlapping events
-    overlappingSets.forEach(set => {
+    for (const set of overlappingSets) {
       // For single events or non-overlapping events, use full width
       if (set.length === 1) {
         result.push({
@@ -94,11 +98,11 @@ export const processOverlappingEvents = (events: CalendarEvent[]) => {
           slotIndex: 0,
           totalSlots: 1
         });
-        return;
+        continue;
       }
       
       // Sort by barber ID to ensure consistent ordering
-      const sortedByBarberId = [...set].sort((a, b) => 
+      const sortedByBarberId = set.sort((a, b) => 
         a.barberId.localeCompare(b.barberId)
       );
       
@@ -110,7 +114,7 @@ export const processOverlappingEvents = (events: CalendarEvent[]) => {
           totalSlots: sortedByBarberId.length
         });
       });
-    });
+    }
   });
   
   return result;

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
@@ -18,6 +18,9 @@ export const useCalendarBookings = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
   const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
+  const lastRefreshTime = useRef<number>(Date.now());
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingChangesRef = useRef<boolean>(false);
 
   // Update filteredEvents to properly filter by barber ID and current view date
   const filteredEvents = useMemo(() => {
@@ -188,6 +191,12 @@ export const useCalendarBookings = () => {
       console.log(`Total events created: ${allEvents.length}`);
       
       setCalendarEvents(allEvents);
+      
+      // Reset the pending changes flag after a successful data fetch
+      pendingChangesRef.current = false;
+      
+      // Reset the last refresh time
+      lastRefreshTime.current = Date.now();
     } catch (err: any) {
       console.error('Error fetching calendar data:', err);
       setError(err.message);
@@ -199,223 +208,50 @@ export const useCalendarBookings = () => {
 
   // Handler for processing booking changes
   const handleBookingChange = useCallback((payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-    
-    console.log(`Processing booking ${eventType}:`, payload);
-    
-    if (eventType === 'INSERT') {
-      // Fetch the complete booking with relations
-      supabase
-        .from('bookings')
-        .select(`
-          *,
-          barber:barber_id(id, name, color),
-          service:service_id(name, price, duration)
-        `)
-        .eq('id', newRecord.id)
-        .single()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Error fetching new booking:', error);
-            return;
-          }
-          
-          try {
-            const event = bookingToCalendarEvent(data as Booking);
-            if (event) {
-              setCalendarEvents(prev => [...prev, event]);
-              
-              // Update bookings array as well for consistency
-              setBookings(prev => [...prev, data as Booking]);
-            }
-          } catch (err) {
-            console.error('Error converting new booking to event:', err);
-          }
-        });
-    } 
-    else if (eventType === 'UPDATE') {
-      // If status changed to cancelled, remove it from the calendar
-      if (newRecord.status === 'cancelled' && oldRecord.status !== 'cancelled') {
-        setCalendarEvents(prev => 
-          prev.filter(event => event.id !== oldRecord.id)
-        );
-        return;
-      }
-      
-      // For other updates, fetch the complete booking with relations
-      supabase
-        .from('bookings')
-        .select(`
-          *,
-          barber:barber_id(id, name, color),
-          service:service_id(name, price, duration)
-        `)
-        .eq('id', oldRecord.id)
-        .single()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Error fetching updated booking:', error);
-            return;
-          }
-          
-          try {
-            const updatedEvent = bookingToCalendarEvent(data as Booking);
-            if (updatedEvent) {
-              setCalendarEvents(prev => 
-                prev.map(event => event.id === oldRecord.id ? updatedEvent : event)
-              );
-              
-              // Update bookings array as well for consistency
-              setBookings(prev => 
-                prev.map(booking => booking.id === oldRecord.id ? (data as Booking) : booking)
-              );
-            }
-          } catch (err) {
-            console.error('Error converting updated booking to event:', err);
-          }
-        });
-    } 
-    else if (eventType === 'DELETE') {
-      // Remove the event from state
-      setCalendarEvents(prev => 
-        prev.filter(event => event.id !== oldRecord.id)
-      );
-      
-      // Remove from bookings array as well
-      setBookings(prev => 
-        prev.filter(booking => booking.id !== oldRecord.id)
-      );
-    }
+    // Mark that changes are pending
+    pendingChangesRef.current = true;
+    console.log('Booking change detected, marked for next scheduled refresh');
   }, []);
 
   // Handler for processing lunch break changes
   const handleLunchBreakChange = useCallback((payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-    
-    console.log(`Processing lunch break ${eventType}:`, payload);
-    
-    if (eventType === 'INSERT' || (eventType === 'UPDATE' && newRecord.is_active)) {
-      // Fetch the complete lunch break with barber relation
-      supabase
-        .from('barber_lunch_breaks')
-        .select(`*, barber:barber_id(id, name, color)`)
-        .eq('id', newRecord.id)
-        .single()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Error fetching lunch break:', error);
-            return;
-          }
-          
-          try {
-            const event = createLunchBreakEvent(data);
-            if (event) {
-              // For updates, first remove the old event if it exists
-              if (eventType === 'UPDATE') {
-                setCalendarEvents(prev => 
-                  prev.filter(e => !e.id.startsWith('lunch-') || e.id !== `lunch-${oldRecord.id}`)
-                );
-              }
-              
-              // Then add the new/updated event
-              setCalendarEvents(prev => [...prev, event]);
-              
-              // Update lunchBreaks array as well
-              if (eventType === 'UPDATE') {
-                setLunchBreaks(prev => 
-                  prev.map(lb => lb.id === newRecord.id ? data : lb)
-                );
-              } else {
-                setLunchBreaks(prev => [...prev, data]);
-              }
-            }
-          } catch (err) {
-            console.error('Error converting lunch break to event:', err);
-          }
-        });
-    } 
-    else if (eventType === 'UPDATE' && !newRecord.is_active) {
-      // If the lunch break was deactivated, remove it
-      setCalendarEvents(prev => 
-        prev.filter(event => !event.id.startsWith('lunch-') || event.id !== `lunch-${oldRecord.id}`)
-      );
-      
-      // Update lunchBreaks array
-      setLunchBreaks(prev => 
-        prev.filter(lb => lb.id !== oldRecord.id)
-      );
-    } 
-    else if (eventType === 'DELETE') {
-      // Remove the lunch break event
-      setCalendarEvents(prev => 
-        prev.filter(event => !event.id.startsWith('lunch-') || event.id !== `lunch-${oldRecord.id}`)
-      );
-      
-      // Remove from lunchBreaks array
-      setLunchBreaks(prev => 
-        prev.filter(lb => lb.id !== oldRecord.id)
-      );
-    }
+    // Mark that changes are pending
+    pendingChangesRef.current = true;
+    console.log('Lunch break change detected, marked for next scheduled refresh');
   }, []);
 
   // Handler for processing holiday changes
   const handleHolidayChange = useCallback((payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-    
-    console.log(`Processing holiday ${eventType}:`, payload);
-    
-    if (eventType === 'INSERT' || eventType === 'UPDATE') {
-      // Fetch the complete holiday with barber relation
-      supabase
-        .from('barber_holidays')
-        .select(`*, barber:barber_id(id, name, color)`)
-        .eq('id', newRecord.id)
-        .single()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Error fetching holiday:', error);
-            return;
-          }
-          
-          try {
-            const event = createHolidayEvent(data, data.barber);
-            if (event) {
-              // For updates, first remove the old event if it exists
-              if (eventType === 'UPDATE') {
-                setCalendarEvents(prev => 
-                  prev.filter(e => e.status !== 'holiday' || e.id !== oldRecord.id)
-                );
-              }
-              
-              // Then add the new/updated event
-              setCalendarEvents(prev => [...prev, event]);
-              
-              // Update holidays array as well
-              if (eventType === 'UPDATE') {
-                setHolidays(prev => 
-                  prev.map(h => h.id === newRecord.id ? data : h)
-                );
-              } else {
-                setHolidays(prev => [...prev, data]);
-              }
-            }
-          } catch (err) {
-            console.error('Error converting holiday to event:', err);
-          }
-        });
-    } 
-    else if (eventType === 'DELETE') {
-      // Remove the holiday event
-      setCalendarEvents(prev => 
-        prev.filter(event => event.status !== 'holiday' || event.id !== oldRecord.id)
-      );
-      
-      // Remove from holidays array
-      setHolidays(prev => 
-        prev.filter(h => h.id !== oldRecord.id)
-      );
-    }
+    // Mark that changes are pending
+    pendingChangesRef.current = true;
+    console.log('Holiday change detected, marked for next scheduled refresh');
   }, []);
+
+  // Schedule periodic refresh every minute
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastRefresh = now - lastRefreshTime.current;
+      
+      // Only refresh if either:
+      // 1. It's been more than 60 seconds since the last refresh, or
+      // 2. There are pending changes that need to be applied
+      if (timeSinceLastRefresh > 60000 || pendingChangesRef.current) {
+        console.log(`Scheduled refresh triggered. Time since last refresh: ${timeSinceLastRefresh}ms, Pending changes: ${pendingChangesRef.current}`);
+        fetchData();
+      } else {
+        console.log(`Skipping refresh. Time since last refresh: ${timeSinceLastRefresh}ms, Pending changes: ${pendingChangesRef.current}`);
+      }
+    }, 10000); // Check every 10 seconds, but only actually refresh based on the conditions above
+    
+    refreshIntervalRef.current = refreshInterval;
+    
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -425,7 +261,8 @@ export const useCalendarBookings = () => {
   useEffect(() => {
     // When the date changes, refresh the calendar data
     console.log('Current view date changed:', currentViewDate);
-  }, [currentViewDate]);
+    fetchData();
+  }, [currentViewDate, fetchData]);
 
   const updateBookingTime = async (eventId: string, newStart: Date, newEnd: Date) => {
     try {
@@ -505,6 +342,12 @@ export const useCalendarBookings = () => {
       }
       
       toast.success('Booking time updated successfully');
+      
+      // Add a small delay before refresh to ensure the database has updated
+      setTimeout(() => {
+        fetchData();
+      }, 1000);
+      
       return true;
     } catch (err: any) {
       console.error('Error updating booking time:', err);
@@ -524,7 +367,7 @@ export const useCalendarBookings = () => {
       booking_time?: string;
       status?: string;
     }
-  ) => {
+  ): Promise<boolean> => {
     try {
       setIsLoading(true);
       
@@ -537,7 +380,11 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      // We don't need to fetch all data here - the realtime subscription will handle the update
+      // Schedule a refresh after a short delay to ensure changes are reflected
+      setTimeout(() => {
+        fetchData();
+      }, 1000);
+      
       toast.success('Booking updated successfully');
       return true;
     } catch (err: any) {
@@ -574,6 +421,7 @@ export const useCalendarBookings = () => {
     setIsDialogOpen(true);
   };
 
+  // Set up real-time subscriptions but with more efficient handling
   useEffect(() => {
     // Set up more efficient realtime subscriptions
     const bookingsChannel = supabase
@@ -581,13 +429,7 @@ export const useCalendarBookings = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings' },
-        (payload) => {
-          handleBookingChange({
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old
-          });
-        }
+        handleBookingChange
       )
       .subscribe();
       
@@ -596,13 +438,7 @@ export const useCalendarBookings = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'barber_lunch_breaks' },
-        (payload) => {
-          handleLunchBreakChange({
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old
-          });
-        }
+        handleLunchBreakChange
       )
       .subscribe();
       
@@ -611,13 +447,7 @@ export const useCalendarBookings = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'barber_holidays' },
-        (payload) => {
-          handleHolidayChange({
-            eventType: payload.eventType,
-            new: payload.new,
-            old: payload.old
-          });
-        }
+        handleHolidayChange
       )
       .subscribe();
 
@@ -627,8 +457,28 @@ export const useCalendarBookings = () => {
       supabase.removeChannel(bookingsChannel);
       supabase.removeChannel(lunchChannel);
       supabase.removeChannel(holidaysChannel);
+      
+      // Clear the refresh interval
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
     };
   }, [handleBookingChange, handleLunchBreakChange, handleHolidayChange]);
+
+  // Function to manually trigger a refresh (with debounce)
+  const manualRefresh = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime.current;
+    
+    // Enforce a minimum delay between manual refreshes
+    if (timeSinceLastRefresh < 3000) {
+      console.log(`Manual refresh throttled. Last refresh was ${timeSinceLastRefresh}ms ago`);
+      return;
+    }
+    
+    console.log('Manual refresh triggered');
+    fetchData();
+  }, [fetchData]);
 
   return {
     bookings,
@@ -647,6 +497,7 @@ export const useCalendarBookings = () => {
     selectedBarberId,
     setSelectedBarberId,
     allEvents: calendarEvents,
-    setCurrentViewDate
+    setCurrentViewDate,
+    manualRefresh
   };
 };

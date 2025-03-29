@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { format } from 'date-fns';
 import { CalendarEvent as CalendarEventType } from '@/types/calendar';
 import { getBarberColor, getEventColor } from '@/utils/calendarUtils';
@@ -14,7 +14,8 @@ interface CalendarEventProps {
   onDragEnd?: (event: CalendarEventType) => void;
 }
 
-export const CalendarEvent: React.FC<CalendarEventProps> = ({ 
+// Create a non-memoized component first
+const CalendarEventComponent: React.FC<CalendarEventProps> = ({ 
   event, 
   onClick, 
   slotIndex = 0,
@@ -26,13 +27,6 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const isLunchBreak = event.status === 'lunch-break';
   const isHoliday = event.status === 'holiday';
-  
-  // Add logging for debugging
-  React.useEffect(() => {
-    if (!event.barberId) {
-      console.warn('CalendarEvent missing barberId:', event);
-    }
-  }, [event]);
   
   // Use barberColor from the event if available, otherwise fall back to generated color
   const barberColor = event.barberColor || getBarberColor(event.barberId);
@@ -69,6 +63,9 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     zIndex: isDragging ? 30 : 10,
     pointerEvents: 'all' as React.CSSProperties['pointerEvents'],
     cursor: !isLunchBreak && !isHoliday ? 'grab' : 'default',
+    // Add will-change to leverage hardware acceleration for transforms
+    willChange: 'transform',
+    transform: 'translateZ(0)', // Force GPU acceleration
   };
   
   const handleClick = (e: React.MouseEvent) => {
@@ -145,6 +142,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       title={`${event.title} - ${event.barber} (ID: ${event.barberId})`} // Add debugging info in the tooltip
+      data-event-id={event.id} // Add data attribute for easier debugging
     >
       <div className="font-semibold truncate">
         {isHoliday ? (
@@ -163,3 +161,21 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
     </div>
   );
 };
+
+// Create a custom comparison function for React.memo
+const arePropsEqual = (prevProps: CalendarEventProps, nextProps: CalendarEventProps) => {
+  // Check if the events are the same based on important properties
+  return (
+    prevProps.event.id === nextProps.event.id &&
+    prevProps.event.start.getTime() === nextProps.event.start.getTime() &&
+    prevProps.event.end.getTime() === nextProps.event.end.getTime() &&
+    prevProps.event.title === nextProps.event.title &&
+    prevProps.event.barberId === nextProps.event.barberId &&
+    prevProps.event.status === nextProps.event.status &&
+    prevProps.slotIndex === nextProps.slotIndex &&
+    prevProps.totalSlots === nextProps.totalSlots
+  );
+};
+
+// Export memoized version of the component
+export const CalendarEvent = memo(CalendarEventComponent, arePropsEqual);
