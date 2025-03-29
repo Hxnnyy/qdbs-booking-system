@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -188,9 +189,11 @@ Deno.serve(async (req) => {
     
     console.log(`Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}, exclude booking: ${excludeBookingId || 'none'}`);
     
-    // Parse the date
+    // Parse the date and get day of week (0 = Sunday, 1 = Monday, etc.)
     const requestDate = new Date(date);
     const dayOfWeek = requestDate.getDay();
+    
+    console.log(`Date: ${requestDate.toDateString()}, Day of week: ${dayOfWeek}`);
     
     // 1. Check if barber is on holiday
     const isHoliday = await isBarberOnHoliday(barberId, requestDate);
@@ -223,6 +226,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+    
+    console.log('Opening hours for this day:', openingHours);
     
     // Check if barber is closed on this day
     if (!openingHours || openingHours.is_closed) {

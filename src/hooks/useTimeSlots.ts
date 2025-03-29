@@ -82,7 +82,8 @@ export const useTimeSlots = (
         return;
       }
       
-      // Call our edge function to get available time slots
+      // Ensure we pass the correct date to the edge function
+      // The date must include the day of week to get correct opening hours
       const { data, error } = await supabase.functions.invoke('get-available-time-slots', {
         body: {
           barberId: selectedBarberId,

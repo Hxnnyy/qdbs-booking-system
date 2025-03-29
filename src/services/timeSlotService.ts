@@ -59,7 +59,10 @@ export const fetchBarberTimeSlots = async (
 ): Promise<string[]> => {
   try {
     console.log(`Fetching time slots for barber ${barberId}, date ${date.toISOString()}, service duration ${serviceDuration}`);
+    
+    // Get day of week (0 = Sunday, 1 = Monday, etc.)
     const dayOfWeek = date.getDay();
+    console.log(`Day of week for ${date.toDateString()}: ${dayOfWeek}`);
     
     const { data, error } = await supabase
       .from('opening_hours')
@@ -77,6 +80,8 @@ export const fetchBarberTimeSlots = async (
       console.log(`No opening hours found for barber ${barberId} on day ${dayOfWeek} or barber is closed`);
       return [];
     }
+    
+    console.log(`Opening hours for barber ${barberId} on day ${dayOfWeek}:`, data);
     
     // Use cached lunch breaks if available, otherwise fetch them
     let lunchBreaks = cachedLunchBreaks;
@@ -179,14 +184,16 @@ const dateSelectableCache = new Map<string, boolean>();
 export const isDateSelectable = async (date: Date, barberId: string): Promise<boolean> => {
   try {
     // Create a cache key
-    const cacheKey = `${date.toDateString()}-${barberId}`;
+    const cacheKey = `${date.toDateString()}_${barberId}`;
     
     // Check if we have a cached result
     if (dateSelectableCache.has(cacheKey)) {
       return dateSelectableCache.get(cacheKey) || false;
     }
     
+    // Get the correct day of week for this date
     const dayOfWeek = date.getDay();
+    console.log(`Checking day of week ${dayOfWeek} for date ${date.toDateString()}`);
     
     const { data, error } = await supabase
       .from('opening_hours')
@@ -201,6 +208,7 @@ export const isDateSelectable = async (date: Date, barberId: string): Promise<bo
     }
     
     const isSelectable = !!(data && !data.is_closed);
+    console.log(`Date ${date.toDateString()} selectable: ${isSelectable}, opening hours:`, data);
     
     // Cache the result
     dateSelectableCache.set(cacheKey, isSelectable);
