@@ -54,6 +54,22 @@ const CalendarView = () => {
     setTimeout(() => refreshCalendar(), 100);
   };
 
+  // Wrapper function to make sure we return a Promise<boolean>
+  const handleUpdateBooking = async (bookingId: string, updates: { 
+    title?: string; 
+    barber_id?: string; 
+    service_id?: string; 
+    notes?: string;
+    booking_date?: string;
+    booking_time?: string;
+    status?: string;
+  }) => {
+    // Call the original updateBooking function which returns a Promise<boolean>
+    const result = await updateBooking(bookingId, updates);
+    // Return the result to satisfy the Promise<boolean> requirement
+    return result;
+  };
+
   return (
     <Layout>
       <AdminLayout>
@@ -87,10 +103,7 @@ const CalendarView = () => {
                 setIsDialogOpen(false);
                 setSelectedEvent(null);
               }}
-              onUpdateBooking={(bookingId, updates) => {
-                updateBooking(bookingId, updates)
-                  .then(() => refreshCalendar());
-              }}
+              onUpdateBooking={handleUpdateBooking}
             />
           </div>
         </CalendarSettingsProvider>
