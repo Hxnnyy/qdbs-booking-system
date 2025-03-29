@@ -227,7 +227,7 @@ serve(async (req) => {
         timeSlots: availableTimeSlots,
         dayOfWeek: finalDayOfWeek
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   } catch (error) {
     console.error(`❌ Error processing request:`, error.message)

@@ -23,10 +23,8 @@ export const useBookingFlow = (
   const { user } = useAuth();
   const { createBooking, isLoading: bookingLoading } = useBookings();
 
-  // UI State
   const [step, setStep] = useState<BookingStep>('barber');
   
-  // Form Data
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
   const [barberServices, setBarberServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -34,7 +32,6 @@ export const useBookingFlow = (
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [notes, setNotes] = useState<string>('');
   
-  // Loading States
   const [isLoadingBarberServices, setIsLoadingBarberServices] = useState<boolean>(false);
   const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState<boolean>(false);
@@ -299,13 +296,6 @@ export const useBookingFlow = (
       const isHoliday = isBarberHolidayDate(allEvents, selectedDate, selectedBarber);
       if (isHoliday) {
         toast.error('Cannot book on this date as the barber is on holiday');
-        return;
-      }
-      
-      const currentBookingTimeSlotAvailable = availableTimeSlots.includes(selectedTime);
-      if (!currentBookingTimeSlotAvailable) {
-        console.error(`Time slot ${selectedTime} is no longer in the available time slots:`, availableTimeSlots);
-        toast.error('The selected time is no longer available. Please choose another time.');
         return;
       }
       
