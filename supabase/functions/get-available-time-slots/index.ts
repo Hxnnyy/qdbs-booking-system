@@ -1,259 +1,108 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
-import { corsHeaders } from '../_shared/cors.ts'
+// Follow Deno's ES modules approach
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-// Get environment variables
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-
-// Create a Supabase client with the service role key (bypasses RLS)
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 /**
- * Generate all possible time slots for a day given opening and closing times
+ * Get available time slots for a barber on a specific date
  */
-function generatePossibleTimeSlots(openTime, closeTime) {
-  const slots = [];
-  
-  let [openHours, openMinutes] = openTime.split(':').map(Number);
-  const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
-  
-  const closeTimeInMinutes = closeHours * 60 + closeMinutes;
-  
-  // Safety counter to prevent infinite loops
-  let counter = 0;
-  const maxIterations = 200; // Increased to accommodate more 15-min slots
-  
-  while (counter < maxIterations) {
-    const timeInMinutes = openHours * 60 + openMinutes;
-    if (timeInMinutes >= closeTimeInMinutes) {
-      break;
-    }
-    
-    const formattedHours = openHours.toString().padStart(2, '0');
-    const formattedMinutes = openMinutes.toString().padStart(2, '0');
-    const timeSlot = `${formattedHours}:${formattedMinutes}`;
-    
-    slots.push({
-      time: timeSlot,
-      minutes: timeInMinutes
-    });
-    
-    openMinutes += 15; // Changed to 15-minute increments
-    if (openMinutes >= 60) {
-      openHours += 1;
-      openMinutes -= 60;
-    }
-    
-    counter++;
-  }
-  
-  return slots;
-}
-
-/**
- * Check if a time slot is in the past
- */
-function isTimeSlotInPast(date, timeSlot) {
-  const now = new Date();
-  const [hours, minutes] = timeSlot.split(':').map(Number);
-  
-  const slotDate = new Date(date);
-  slotDate.setHours(hours, minutes, 0, 0);
-  
-  return slotDate <= now;
-}
-
-/**
- * Check if a time slot overlaps with a lunch break
- */
-function hasLunchBreakConflict(timeSlot, lunchBreaks, serviceDuration) {
-  if (!lunchBreaks || lunchBreaks.length === 0) return false;
-  
-  // Only consider active lunch breaks
-  const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active);
-  if (activeLunchBreaks.length === 0) return false;
-  
-  // Convert time slot to minutes for easier comparison
-  const [hours, minutes] = timeSlot.split(':').map(Number);
-  const timeInMinutes = hours * 60 + minutes;
-  
-  // Calculate end time of the appointment in minutes
-  const endTimeInMinutes = timeInMinutes + serviceDuration;
-  
-  // Check against each lunch break
-  for (const lunch of activeLunchBreaks) {
-    // Convert lunch break time to minutes
-    const [lunchHours, lunchMinutes] = lunch.start_time.split(':').map(Number);
-    const lunchStartMinutes = lunchHours * 60 + lunchMinutes;
-    const lunchEndMinutes = lunchStartMinutes + lunch.duration;
-    
-    // Check for overlap:
-    // If the appointment starts before lunch ends AND appointment ends after lunch starts,
-    // then there's an overlap
-    if (timeInMinutes < lunchEndMinutes && endTimeInMinutes > lunchStartMinutes) {
-      return true;
-    }
-  }
-  
-  return false;
-}
-
-/**
- * Check if a time slot is already booked
- */
-function isTimeSlotBooked(timeSlot, serviceDuration, existingBookings, excludeBookingId = null) {
-  if (!existingBookings || existingBookings.length === 0) return false;
-
-  // Convert time slot to minutes for easier calculation
-  const [hours, minutes] = timeSlot.split(':').map(Number);
-  const timeInMinutes = hours * 60 + minutes;
-  const appointmentEndTimeInMinutes = timeInMinutes + serviceDuration;
-
-  // Check if any existing booking overlaps with this time slot
-  return existingBookings.some(booking => {
-    // Skip this booking if it's the one being moved
-    if (excludeBookingId && booking.id === excludeBookingId) {
-      return false;
-    }
-    
-    // Parse booking time
-    const [bookingHours, bookingMinutes] = booking.booking_time.split(':').map(Number);
-    const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
-    
-    // Get booking service duration - ensure we get the correct duration
-    const bookingServiceLength = booking.service_duration;
-    
-    // Calculate the end time of the existing booking
-    const bookingEndTimeInMinutes = bookingTimeInMinutes + bookingServiceLength;
-    
-    // Check if there's an overlap - using the proper logic for time ranges
-    // An overlap occurs if:
-    // 1. New appointment starts during an existing booking
-    // 2. New appointment ends during an existing booking
-    // 3. New appointment completely contains an existing booking
-    // 4. New appointment is completely contained by an existing booking
-    return (
-      (timeInMinutes < bookingEndTimeInMinutes && appointmentEndTimeInMinutes > bookingTimeInMinutes)
-    );
-  });
-}
-
-/**
- * Check if barber is on holiday
- */
-async function isBarberOnHoliday(barberId, date) {
-  const formattedDate = date.toISOString().split('T')[0];
-  
-  const { data, error } = await supabase
-    .from('barber_holidays')
-    .select('*')
-    .eq('barber_id', barberId)
-    .lte('start_date', formattedDate)
-    .gte('end_date', formattedDate);
-    
-  if (error) {
-    console.error('Error checking holidays:', error);
-    return false;
-  }
-  
-  return data && data.length > 0;
-}
-
-/**
- * Helper function to format a date as YYYY-MM-DD
- */
-function formatDateToYYYYMMDD(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 Deno.serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-  
+
   try {
-    const { barberId, date, serviceDuration, excludeBookingId } = await req.json();
-    
-    // Validate required parameters
-    if (!barberId || !date || !serviceDuration) {
-      return new Response(JSON.stringify({ 
-        error: 'Missing required parameters: barberId, date, and serviceDuration are required' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    const {
+      barberId,
+      date,
+      serviceDuration = 60, // Default to 60 minutes
+      excludeBookingId,     // Optional: exclude a specific booking (for rebooking)
+      clientDayOfWeek       // Optional: client-side day of week for verification
+    } = await req.json();
+
+    // Input validation
+    if (!barberId || !date) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
+
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
     
     console.log(`Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}, exclude booking: ${excludeBookingId || 'none'}`);
     
-    // Parse the date - CRITICAL FIX: Ensure we're working with the exact date provided
-    // The issue was that the provided date was getting misinterpreted due to timezone differences
-    const requestDateString = date.split('T')[0]; // Extract YYYY-MM-DD format
-    console.log(`Input date string: ${date}`);
-    console.log(`Extracted date part: ${requestDateString}`);
+    // Parse the date correctly
+    // FIX: This is the critical part - parse the date correctly to get the day of week
+    const dateString = typeof date === 'string' ? date : String(date);
     
-    // Create a new date object that preserves the specified day
-    const requestDate = new Date(requestDateString + 'T12:00:00'); // Use noon to avoid timezone issues
-    const dayOfWeek = requestDate.getDay();
+    // Generate a stable date object from the YYYY-MM-DD format
+    // Make sure we're working with a clean YYYY-MM-DD format
+    const cleanDateString = dateString.split('T')[0];
+    console.log(`Clean date string: ${cleanDateString}`);
     
-    console.log(`Parsed date: ${requestDate.toDateString()}, Day of week: ${dayOfWeek}`);
+    // Create a date object at a fixed time (noon) to avoid timezone issues
+    const requestDate = new Date(`${cleanDateString}T12:00:00Z`);
     
-    // 1. Check if barber is on holiday
-    const isHoliday = await isBarberOnHoliday(barberId, requestDate);
+    // Calculate the day of week (0 = Sunday, 1 = Monday, etc.)
+    const dayOfWeek = requestDate.getUTCDay();
     
-    if (isHoliday) {
-      return new Response(JSON.stringify({ 
-        timeSlots: [],
-        message: 'Barber is on holiday on this date' 
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    console.log(`Parsed date: ${requestDate.toUTCString()}`);
+    console.log(`Day of week: ${dayOfWeek}`);
+    
+    // If client sent their calculated day of week, log it for debugging
+    if (clientDayOfWeek !== undefined) {
+      console.log(`Client day of week: ${clientDayOfWeek}, Server day of week: ${dayOfWeek}`);
+      
+      // If there's a mismatch, log a warning but continue with server calculation
+      if (clientDayOfWeek !== dayOfWeek) {
+        console.log(`WARNING: Day of week mismatch! Client: ${clientDayOfWeek}, Server: ${dayOfWeek}`);
+      }
     }
     
-    // 2. Get barber's opening hours for this day
+    // 1. Check if barber is on holiday
+    const isHoliday = await isBarberOnHoliday(supabase, barberId, cleanDateString);
+    if (isHoliday) {
+      return new Response(
+        JSON.stringify({ 
+          timeSlots: [],
+          error: 'Barber is on holiday on this date'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // 2. Get barber's opening hours for the specific day of week
     const { data: openingHours, error: openingHoursError } = await supabase
       .from('opening_hours')
       .select('*')
       .eq('barber_id', barberId)
       .eq('day_of_week', dayOfWeek)
       .maybeSingle();
-      
+    
     if (openingHoursError) {
       console.error('Error fetching opening hours:', openingHoursError);
-      return new Response(JSON.stringify({ 
-        error: 'Failed to fetch opening hours',
-        details: openingHoursError 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      throw new Error('Failed to fetch barber opening hours');
     }
     
     console.log('Opening hours for this day:', openingHours);
     
-    // Check if barber is closed on this day
     if (!openingHours || openingHours.is_closed) {
-      return new Response(JSON.stringify({ 
-        timeSlots: [],
-        message: 'Barber is not working on this day' 
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ 
+          timeSlots: [],
+          error: 'Barber is not available on this day of the week'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
     // 3. Get barber's lunch breaks
@@ -262,97 +111,219 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('barber_id', barberId)
       .eq('is_active', true);
-      
+    
     if (lunchBreaksError) {
       console.error('Error fetching lunch breaks:', lunchBreaksError);
-      // Continue without lunch breaks
+      throw new Error('Failed to fetch barber lunch breaks');
     }
     
     console.log('Fetched lunch breaks:', lunchBreaks);
     
     // 4. Get existing bookings for this barber and date with service durations
-    const formattedDate = formatDateToYYYYMMDD(requestDate);
+    const formattedDate = cleanDateString;
     
     // Get bookings with their service durations
     const { data: existingBookings, error: bookingsError } = await supabase
       .from('bookings')
       .select(`
-        id,
         booking_time,
-        service_id,
-        services (
+        service:service_id (
           duration
         )
       `)
       .eq('barber_id', barberId)
       .eq('booking_date', formattedDate)
-      .neq('status', 'cancelled');
-      
+      .eq('status', 'confirmed');
+    
     if (bookingsError) {
       console.error('Error fetching bookings:', bookingsError);
-      // Continue without bookings
+      throw new Error('Failed to fetch existing bookings');
     }
     
-    // Transform bookings to include service duration directly
-    const bookingsWithDuration = existingBookings ? existingBookings.map(booking => ({
-      id: booking.id,
-      booking_time: booking.booking_time,
-      service_duration: booking.services ? booking.services.duration : 60 // Default to 60 if not found
-    })) : [];
+    // If we're rebooking, exclude the current booking from the list
+    let filteredBookings = existingBookings || [];
+    if (excludeBookingId) {
+      filteredBookings = filteredBookings.filter(booking => booking.id !== excludeBookingId);
+    }
     
-    console.log('Fetched existing bookings with durations:', bookingsWithDuration);
+    console.log('Fetched existing bookings with durations:', filteredBookings);
     
     // 5. Generate all possible time slots
-    const possibleSlots = generatePossibleTimeSlots(
-      openingHours.open_time, 
-      openingHours.close_time
+    const timeSlots = generateAvailableTimeSlots(
+      openingHours.open_time,
+      openingHours.close_time,
+      serviceDuration,
+      filteredBookings,
+      lunchBreaks || []
     );
     
-    // 6. Filter out unavailable slots
-    const availableSlots = possibleSlots.filter(slot => {
-      // Filter out slots in the past (for today only)
-      const today = new Date();
-      if (
-        requestDate.getDate() === today.getDate() &&
-        requestDate.getMonth() === today.getMonth() &&
-        requestDate.getFullYear() === today.getFullYear() &&
-        isTimeSlotInPast(requestDate, slot.time)
-      ) {
-        return false;
-      }
-      
-      // Filter out booked slots (but allow the same time slot for the booking being moved)
-      if (isTimeSlotBooked(slot.time, serviceDuration, bookingsWithDuration, excludeBookingId)) {
-        return false;
-      }
-      
-      // Filter out lunch break slots
-      if (hasLunchBreakConflict(slot.time, lunchBreaks, serviceDuration)) {
-        return false;
-      }
-      
-      return true;
-    });
+    console.log(`Found ${timeSlots.length} available time slots using 15-minute intervals`);
     
-    // Return only the time strings
-    const finalTimeSlots = availableSlots.map(slot => slot.time);
-    
-    console.log(`Found ${finalTimeSlots.length} available time slots using 15-minute intervals`);
-    
-    return new Response(JSON.stringify({ timeSlots: finalTimeSlots }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({ timeSlots }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
     
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('Edge function error:', error);
     
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      details: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
 });
+
+/**
+ * Generate all available time slots for a barber based on opening hours,
+ * existing bookings, lunch breaks, and service duration
+ */
+function generateAvailableTimeSlots(
+  openTime: string,
+  closeTime: string,
+  serviceDuration: number,
+  existingBookings: any[],
+  lunchBreaks: any[]
+): string[] {
+  // Convert opening and closing hours to minutes for easier calculations
+  const openMinutes = timeToMinutes(openTime);
+  const closeMinutes = timeToMinutes(closeTime);
+  
+  // Create slots at 15-minute intervals
+  const intervalMinutes = 15;
+  const availableSlots: string[] = [];
+  
+  // Loop through all possible time slots
+  for (let minutes = openMinutes; minutes < closeMinutes; minutes += intervalMinutes) {
+    const slotTime = minutesToTime(minutes);
+    
+    // Check if the service fits within opening hours
+    const serviceEndMinutes = minutes + serviceDuration;
+    if (serviceEndMinutes > closeMinutes) {
+      continue; // This service would go past closing time
+    }
+    
+    // Check if this slot conflicts with any existing booking
+    if (hasBookingConflict(slotTime, serviceDuration, existingBookings)) {
+      continue;
+    }
+    
+    // Check if this slot conflicts with any lunch break
+    if (hasLunchBreakConflict(slotTime, serviceDuration, lunchBreaks)) {
+      continue;
+    }
+    
+    // This slot is available
+    availableSlots.push(slotTime);
+  }
+  
+  return availableSlots;
+}
+
+/**
+ * Check if a given slot conflicts with any existing booking
+ */
+function hasBookingConflict(
+  slotTime: string,
+  serviceDuration: number,
+  existingBookings: any[]
+): boolean {
+  // Convert the slot time to minutes
+  const slotMinutes = timeToMinutes(slotTime);
+  
+  // Calculate when this service would end
+  const slotEndMinutes = slotMinutes + serviceDuration;
+  
+  // Check each existing booking
+  for (const booking of existingBookings) {
+    // Skip if booking doesn't have time or service
+    if (!booking.booking_time || !booking.service) continue;
+    
+    const bookingMinutes = timeToMinutes(booking.booking_time);
+    const bookingEndMinutes = bookingMinutes + (booking.service.duration || 60);
+    
+    // Check if these time ranges overlap
+    if (
+      (slotMinutes >= bookingMinutes && slotMinutes < bookingEndMinutes) ||
+      (slotEndMinutes > bookingMinutes && slotEndMinutes <= bookingEndMinutes) ||
+      (slotMinutes <= bookingMinutes && slotEndMinutes >= bookingEndMinutes)
+    ) {
+      return true; // Conflict exists
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if a given slot conflicts with any lunch break
+ */
+function hasLunchBreakConflict(
+  slotTime: string,
+  serviceDuration: number,
+  lunchBreaks: any[]
+): boolean {
+  // Convert the slot time to minutes
+  const slotMinutes = timeToMinutes(slotTime);
+  
+  // Calculate when this service would end
+  const slotEndMinutes = slotMinutes + serviceDuration;
+  
+  // Check each lunch break
+  for (const lunch of lunchBreaks) {
+    // Skip if lunch break doesn't have time or duration
+    if (!lunch.start_time || !lunch.duration) continue;
+    
+    const lunchMinutes = timeToMinutes(lunch.start_time);
+    const lunchEndMinutes = lunchMinutes + lunch.duration;
+    
+    // Check if these time ranges overlap
+    if (
+      (slotMinutes >= lunchMinutes && slotMinutes < lunchEndMinutes) ||
+      (slotEndMinutes > lunchMinutes && slotEndMinutes <= lunchEndMinutes) ||
+      (slotMinutes <= lunchMinutes && slotEndMinutes >= lunchEndMinutes)
+    ) {
+      return true; // Conflict exists
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Convert time string (HH:MM:SS or HH:MM) to minutes since midnight
+ */
+function timeToMinutes(timeStr: string): number {
+  const parts = timeStr.split(':');
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  return hours * 60 + minutes;
+}
+
+/**
+ * Convert minutes since midnight to time string (HH:MM)
+ */
+function minutesToTime(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Check if a barber is on holiday on a specific date
+ */
+async function isBarberOnHoliday(supabase, barberId: string, dateStr: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('barber_holidays')
+    .select('*')
+    .eq('barber_id', barberId)
+    .lte('start_date', dateStr)
+    .gte('end_date', dateStr);
+    
+  if (error) {
+    console.error('Error checking barber holidays:', error);
+    throw new Error('Failed to check barber holiday status');
+  }
+  
+  return data && data.length > 0;
+}

@@ -82,16 +82,23 @@ export const useTimeSlots = (
         return;
       }
       
-      // CRITICAL FIX: Ensure we send the date in a consistent format
-      // Format date to preserve the exact day we want
-      const dateISOString = selectedDate.toISOString();
-      console.log(`Sending date to edge function: ${dateISOString}`);
+      // FIX: Ensure we send the correct date format
+      // Format the date to ensure we're focusing on the client's timezone day
+      // Clone the date to avoid mutation
+      const dateCopy = new Date(selectedDate);
+      
+      // Format date as YYYY-MM-DD, capturing the day in the user's timezone
+      const dateString = dateCopy.toISOString().split('T')[0];
+      console.log(`Sending date to edge function (date object): ${dateCopy}`);
+      console.log(`Sending date to edge function (formatted): ${dateString}`);
+      console.log(`Day of week from client: ${dateCopy.getDay()}`);
       
       const { data, error } = await supabase.functions.invoke('get-available-time-slots', {
         body: {
           barberId: selectedBarberId,
-          date: dateISOString,
-          serviceDuration: selectedService.duration
+          date: dateString, // Send just the date portion to avoid timezone issues
+          serviceDuration: selectedService.duration,
+          clientDayOfWeek: dateCopy.getDay() // Send client-side day of week for verification
         }
       });
       
