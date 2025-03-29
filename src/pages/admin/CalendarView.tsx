@@ -20,7 +20,8 @@ const CalendarView = () => {
     isDialogOpen,
     setIsDialogOpen,
     selectedBarberId,
-    setSelectedBarberId
+    setSelectedBarberId,
+    setCurrentViewDate
   } = useCalendarBookings();
 
   return (
@@ -44,6 +45,7 @@ const CalendarView = () => {
               isLoading={isLoading}
               onEventDrop={handleEventDrop}
               onEventClick={handleEventClick}
+              onDateChange={setCurrentViewDate} // Pass the date change handler
             />
             
             <EventDetailsDialog

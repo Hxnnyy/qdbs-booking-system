@@ -27,6 +27,13 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
   const isLunchBreak = event.status === 'lunch-break';
   const isHoliday = event.status === 'holiday';
   
+  // Add logging for debugging
+  React.useEffect(() => {
+    if (!event.barberId) {
+      console.warn('CalendarEvent missing barberId:', event);
+    }
+  }, [event]);
+  
   // Use barberColor from the event if available, otherwise fall back to generated color
   const barberColor = event.barberColor || getBarberColor(event.barberId);
   
@@ -137,6 +144,7 @@ export const CalendarEvent: React.FC<CalendarEventProps> = ({
       draggable={!isLunchBreak && !isHoliday}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      title={`${event.title} - ${event.barber} (ID: ${event.barberId})`} // Add debugging info in the tooltip
     >
       <div className="font-semibold truncate">
         {isHoliday ? (

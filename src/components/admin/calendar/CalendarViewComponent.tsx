@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarEvent, ViewMode } from '@/types/calendar';
 import { DayView } from './DayView';
@@ -16,18 +16,28 @@ interface CalendarViewComponentProps {
   isLoading: boolean;
   onEventDrop: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  onDateChange?: (date: Date) => void; // Add this prop to handle date changes
 }
 
 export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
   events,
   isLoading,
   onEventDrop,
-  onEventClick
+  onEventClick,
+  onDateChange
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
+  // Update the parent component when date changes
+  useEffect(() => {
+    if (onDateChange) {
+      onDateChange(currentDate);
+    }
+  }, [currentDate, onDateChange]);
+
   const handleDateChange = (date: Date) => {
+    console.log('Date changed in CalendarViewComponent:', date);
     setCurrentDate(date);
   };
 

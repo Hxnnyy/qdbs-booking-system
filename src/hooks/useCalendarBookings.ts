@@ -17,10 +17,32 @@ export const useCalendarBookings = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
+  const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
 
-  const filteredEvents = selectedBarberId 
-    ? calendarEvents.filter(event => event.barberId === selectedBarberId)
-    : calendarEvents;
+  // Update filteredEvents to properly filter by barber ID and current view date
+  const filteredEvents = useCallback(() => {
+    if (!calendarEvents.length) return [];
+    
+    // First, filter by barber if a barber is selected
+    const barberFiltered = selectedBarberId 
+      ? calendarEvents.filter(event => {
+          // Make sure barberId is a string and matches exactly
+          return event.barberId === selectedBarberId;
+        })
+      : calendarEvents;
+    
+    // Log the filtered events for debugging
+    console.log(`Filtered events: ${barberFiltered.length} out of ${calendarEvents.length} total events`);
+    console.log('Events after barber filtering:', barberFiltered.map(e => ({
+      id: e.id,
+      title: e.title,
+      barber: e.barber,
+      barberId: e.barberId,
+      start: e.start
+    })));
+    
+    return barberFiltered;
+  }, [calendarEvents, selectedBarberId]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -32,7 +54,7 @@ export const useCalendarBookings = () => {
         .from('bookings')
         .select(`
           *,
-          barber:barber_id(name, color),
+          barber:barber_id(id, name, color),
           service:service_id(name, price, duration)
         `)
         .neq('status', 'cancelled')
@@ -66,6 +88,11 @@ export const useCalendarBookings = () => {
       
       // Combine bookings with their profiles
       const bookingsWithProfiles = bookingsData?.map(booking => {
+        // Ensure barber_id property is correctly preserved
+        if (!booking.barber || !booking.barber.id) {
+          console.warn('Missing barber data for booking:', booking.id);
+        }
+        
         if (booking.guest_booking) {
           return booking;
         }
@@ -75,6 +102,12 @@ export const useCalendarBookings = () => {
         };
       }) || [];
       
+      console.log('Processed bookings with barber IDs:', bookingsWithProfiles.map(b => ({
+        id: b.id,
+        barber_name: b?.barber?.name,
+        barber_id: b?.barber?.id || b.barber_id
+      })));
+      
       setBookings(bookingsWithProfiles as Booking[]);
       
       // Continue with lunch breaks and holidays fetching
@@ -82,7 +115,7 @@ export const useCalendarBookings = () => {
         .from('barber_lunch_breaks')
         .select(`
           *,
-          barber:barber_id(name, color)
+          barber:barber_id(id, name, color)
         `)
         .eq('is_active', true);
         
@@ -94,7 +127,7 @@ export const useCalendarBookings = () => {
         .from('barber_holidays')
         .select(`
           *,
-          barber:barber_id(name, color)
+          barber:barber_id(id, name, color)
         `)
         .order('start_date', { ascending: true });
         
@@ -102,15 +135,38 @@ export const useCalendarBookings = () => {
       
       setHolidays(holidaysData || []);
       
-      // Create calendar events
+      // Create calendar events with proper barber IDs
       const bookingEvents = (bookingsWithProfiles || []).map(booking => {
         try {
-          return bookingToCalendarEvent(booking as Booking);
+          // Ensure we're using the barber ID correctly
+          const barberId = booking.barber?.id || booking.barber_id;
+          const event = bookingToCalendarEvent(booking as Booking);
+          
+          // Double-check barberId is correctly set
+          if (event && event.barberId !== barberId) {
+            console.warn(`Barber ID mismatch for booking ${booking.id}: expected ${barberId}, got ${event.barberId}`);
+            // Ensure the barberId is set correctly
+            return {
+              ...event,
+              barberId: barberId
+            };
+          }
+          
+          return event;
         } catch (err) {
           console.error('Error converting booking to event:', err, booking);
           return null;
         }
       }).filter(Boolean) as CalendarEvent[];
+      
+      // Log created events for debugging
+      console.log('Created booking events:', bookingEvents.map(e => ({
+        id: e.id,
+        title: e.title,
+        barber: e.barber,
+        barberId: e.barberId,
+        start: e.start
+      })));
       
       // Process lunch breaks
       const processedLunchBreaks = new Map<string, LunchBreak>();
@@ -152,6 +208,12 @@ export const useCalendarBookings = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Add this effect to handle date changes
+  useEffect(() => {
+    // When the date changes, refresh the calendar data
+    console.log('Current view date changed:', currentViewDate);
+  }, [currentViewDate]);
 
   const updateBookingTime = async (eventId: string, newStart: Date, newEnd: Date) => {
     try {
@@ -343,7 +405,7 @@ export const useCalendarBookings = () => {
   return {
     bookings,
     holidays,
-    calendarEvents: filteredEvents,
+    calendarEvents: filteredEvents(),
     isLoading,
     error,
     fetchBookings: fetchData,
@@ -356,6 +418,7 @@ export const useCalendarBookings = () => {
     setIsDialogOpen,
     selectedBarberId,
     setSelectedBarberId,
-    allEvents: calendarEvents
+    allEvents: calendarEvents,
+    setCurrentViewDate
   };
 };

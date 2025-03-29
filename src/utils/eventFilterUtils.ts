@@ -1,5 +1,5 @@
 
-import { isSameDay, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, addDays, isBefore, isAfter } from 'date-fns';
 import { CalendarEvent } from '@/types/calendar';
 
 // Filter events for calendar view based on date
@@ -34,6 +34,8 @@ export const filterEventsByWeek = (events: CalendarEvent[], date: Date): Calenda
   const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Week starts on Monday
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
   
+  console.log(`Filtering events for week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+  
   // Create lunch break events for each day of the week
   const allEvents: CalendarEvent[] = [];
   
@@ -56,14 +58,35 @@ export const filterEventsByWeek = (events: CalendarEvent[], date: Date): Calenda
           end: newEnd
         });
       }
+    } else if (event.status === 'holiday') {
+      // For holidays, add them if they overlap with the week
+      if (
+        (isBefore(event.start, weekEnd) && isAfter(event.end, weekStart)) ||
+        isSameDay(event.start, weekStart) || 
+        isSameDay(event.start, weekEnd) ||
+        isSameDay(event.end, weekStart) || 
+        isSameDay(event.end, weekEnd)
+      ) {
+        allEvents.push(event);
+      }
     } else {
       // Regular bookings - only include if they're within the week
       const eventDate = event.start;
-      if (eventDate >= weekStart && eventDate <= weekEnd) {
+      
+      // Strict check: the event must be within the exact week bounds
+      if (
+        (eventDate >= weekStart && eventDate <= weekEnd) ||
+        isSameDay(eventDate, weekStart) || 
+        isSameDay(eventDate, weekEnd)
+      ) {
+        console.log(`Including event in week view: ${event.title} on ${eventDate.toISOString()}`);
         allEvents.push(event);
+      } else {
+        console.log(`Excluding event from week view: ${event.title} on ${eventDate.toISOString()}`);
       }
     }
   });
   
+  console.log(`Week view filtered ${allEvents.length} events from ${events.length} total events`);
   return allEvents;
 };
