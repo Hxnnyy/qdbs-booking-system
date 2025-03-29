@@ -21,7 +21,10 @@ export const useCalendarBookings = () => {
 
   // Update filteredEvents to properly filter by barber ID and current view date
   const filteredEvents = useCallback(() => {
-    if (!calendarEvents.length) return [];
+    if (!calendarEvents.length) {
+      console.log('No calendar events available to filter');
+      return [];
+    }
     
     // First, filter by barber if a barber is selected
     const barberFiltered = selectedBarberId 
@@ -33,12 +36,13 @@ export const useCalendarBookings = () => {
     
     // Log the filtered events for debugging
     console.log(`Filtered events: ${barberFiltered.length} out of ${calendarEvents.length} total events`);
-    console.log('Events after barber filtering:', barberFiltered.map(e => ({
+    console.log('Events after filtering:', barberFiltered.map(e => ({
       id: e.id,
       title: e.title,
       barber: e.barber,
       barberId: e.barberId,
-      start: e.start
+      start: e.start,
+      status: e.status
     })));
     
     return barberFiltered;
@@ -48,6 +52,8 @@ export const useCalendarBookings = () => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      console.log('Fetching calendar data for date:', currentViewDate);
       
       // Step 1: Fetch bookings with barber and service info
       const { data: bookingsData, error: bookingsError } = await supabase
@@ -62,6 +68,8 @@ export const useCalendarBookings = () => {
         .order('booking_time', { ascending: true });
       
       if (bookingsError) throw bookingsError;
+      
+      console.log('Fetched bookings:', bookingsData?.length || 0);
       
       // Step 2: Fetch profiles for all user IDs
       // Get unique user IDs from bookings (excluding guest bookings which have no valid user_id)
@@ -121,6 +129,7 @@ export const useCalendarBookings = () => {
         
       if (lunchError) throw lunchError;
       
+      console.log('Fetched lunch breaks:', lunchData?.length || 0);
       setLunchBreaks(lunchData || []);
       
       const { data: holidaysData, error: holidaysError } = await supabase
@@ -133,6 +142,7 @@ export const useCalendarBookings = () => {
         
       if (holidaysError) throw holidaysError;
       
+      console.log('Fetched holidays:', holidaysData?.length || 0);
       setHolidays(holidaysData || []);
       
       // Create calendar events with proper barber IDs
@@ -160,21 +170,10 @@ export const useCalendarBookings = () => {
       }).filter(Boolean) as CalendarEvent[];
       
       // Log created events for debugging
-      console.log('Created booking events:', bookingEvents.map(e => ({
-        id: e.id,
-        title: e.title,
-        barber: e.barber,
-        barberId: e.barberId,
-        start: e.start
-      })));
+      console.log('Created booking events:', bookingEvents.length);
       
       // Process lunch breaks
-      const processedLunchBreaks = new Map<string, LunchBreak>();
-      (lunchData || []).forEach(lunchBreak => {
-        processedLunchBreaks.set(lunchBreak.barber_id, lunchBreak);
-      });
-      
-      const lunchEvents = Array.from(processedLunchBreaks.values()).map(lunchBreak => {
+      const lunchEvents = (lunchData || []).map(lunchBreak => {
         try {
           return createLunchBreakEvent(lunchBreak);
         } catch (err) {
@@ -183,7 +182,7 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      console.log(`Generated ${lunchEvents.length} lunch break events from ${lunchData?.length} lunch break records`);
+      console.log(`Generated ${lunchEvents.length} lunch break events`);
       
       // Process holidays
       const holidayEvents = (holidaysData || []).map(holiday => {
@@ -195,7 +194,13 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      setCalendarEvents([...bookingEvents, ...holidayEvents, ...lunchEvents]);
+      console.log(`Generated ${holidayEvents.length} holiday events`);
+      
+      // Combine all events
+      const allEvents = [...bookingEvents, ...holidayEvents, ...lunchEvents];
+      console.log(`Total events created: ${allEvents.length}`);
+      
+      setCalendarEvents(allEvents);
     } catch (err: any) {
       console.error('Error fetching calendar data:', err);
       setError(err.message);
@@ -203,7 +208,7 @@ export const useCalendarBookings = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentViewDate]);
 
   useEffect(() => {
     fetchData();
@@ -310,6 +315,7 @@ export const useCalendarBookings = () => {
       notes?: string;
       booking_date?: string;
       booking_time?: string;
+      status?: string;
     }
   ) => {
     try {
@@ -326,6 +332,7 @@ export const useCalendarBookings = () => {
       
       await fetchData();
       
+      toast.success('Booking updated successfully');
       return true;
     } catch (err: any) {
       console.error('Error updating booking:', err);

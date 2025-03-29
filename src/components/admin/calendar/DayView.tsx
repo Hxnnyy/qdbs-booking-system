@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { format, isToday, addMinutes } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -291,41 +292,47 @@ export const DayView: React.FC<DayViewProps> = ({
               </div>
             )}
 
-            {processedEvents.map(({ event, slotIndex, totalSlots }) => {
-              const eventHour = event.start.getHours();
-              const eventMinute = event.start.getMinutes();
-              
-              if (eventHour < startHour || eventHour >= endHour) return null;
-              
-              const top = (eventHour - startHour) * 60 + eventMinute;
-              const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
-              const height = Math.max(durationMinutes, 15);
-              
-              const uniqueEventKey = `event-${event.id}-${dateFormatted}-${top}`;
-              
-              return (
-                <div 
-                  key={`event-container-${uniqueEventKey}`}
-                  className="absolute w-full"
-                  style={{ 
-                    top: `${top}px`, 
-                    height: `${height}px`,
-                    padding: 0
-                  }}
-                >
-                  <div className="h-full w-full">
-                    <CalendarEventComponent 
-                      key={uniqueEventKey}
-                      event={event} 
-                      onEventClick={onEventClick}
-                      slotIndex={slotIndex}
-                      totalSlots={totalSlots}
-                      onDragStart={handleEventDragStart}
-                    />
+            {processedEvents.length === 0 ? (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                No events on this day
+              </div>
+            ) : (
+              processedEvents.map(({ event, slotIndex, totalSlots }) => {
+                const eventHour = event.start.getHours();
+                const eventMinute = event.start.getMinutes();
+                
+                if (eventHour < startHour || eventHour >= endHour) return null;
+                
+                const top = (eventHour - startHour) * 60 + eventMinute;
+                const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
+                const height = Math.max(durationMinutes, 15);
+                
+                const uniqueEventKey = `event-${event.id}-${dateFormatted}-${top}`;
+                
+                return (
+                  <div 
+                    key={`event-container-${uniqueEventKey}`}
+                    className="absolute w-full"
+                    style={{ 
+                      top: `${top}px`, 
+                      height: `${height}px`,
+                      padding: 0
+                    }}
+                  >
+                    <div className="h-full w-full">
+                      <CalendarEventComponent 
+                        key={uniqueEventKey}
+                        event={event} 
+                        onEventClick={onEventClick}
+                        slotIndex={slotIndex}
+                        totalSlots={totalSlots}
+                        onDragStart={handleEventDragStart}
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </div>

@@ -31,6 +31,14 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
+  // Debug events
+  useEffect(() => {
+    console.log(`CalendarViewComponent received ${events.length} events`);
+    events.forEach(event => {
+      console.log(`Event: ${event.title}, ${event.barber}, ${event.status}, ${event.start.toISOString()}`);
+    });
+  }, [events]);
+
   // Update the parent component when date changes
   useEffect(() => {
     if (onDateChange) {
@@ -49,6 +57,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     
     // Trigger refresh
     if (refreshCalendar) {
+      console.log('Triggering calendar refresh after date change');
       refreshCalendar();
     }
   };
@@ -75,9 +84,21 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
 
   const handleViewModeChange = (value: string) => {
     setViewMode(value as ViewMode);
+    console.log(`View mode changed to ${value}`);
     // Refresh when switching view modes
     if (refreshCalendar) {
+      console.log('Triggering calendar refresh after view mode change');
       refreshCalendar();
+    }
+  };
+
+  // Handle event drop with refresh
+  const handleEventDropWithRefresh = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
+    onEventDrop(event, newStart, newEnd);
+    // Refresh after event drop
+    if (refreshCalendar) {
+      console.log('Triggering calendar refresh after event drop');
+      setTimeout(() => refreshCalendar(), 100);
     }
   };
 
@@ -131,13 +152,29 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
       </div>
 
       <div className="border rounded-md overflow-hidden flex-1 flex flex-col calendar-scrollable-container">
-        {viewMode === 'day' ? (
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading calendar...</p>
+            </div>
+          </div>
+        ) : events.length === 0 ? (
+          <div className="flex h-full items-center justify-center p-8">
+            <div className="text-center">
+              <p className="text-muted-foreground mb-4">No events found for this time period</p>
+              <Button variant="outline" onClick={refreshCalendar}>
+                Refresh Calendar
+              </Button>
+            </div>
+          </div>
+        ) : viewMode === 'day' ? (
           <DayView
             key={`day-view-${currentDate.toISOString()}`}
             date={currentDate}
             onDateChange={handleDateChange}
             events={events}
-            onEventDrop={onEventDrop}
+            onEventDrop={handleEventDropWithRefresh}
             onEventClick={onEventClick}
             refreshCalendar={refreshCalendar}
           />
@@ -147,7 +184,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             date={currentDate}
             onDateChange={handleDateChange}
             events={events}
-            onEventDrop={onEventDrop}
+            onEventDrop={handleEventDropWithRefresh}
             onEventClick={onEventClick}
             refreshCalendar={refreshCalendar}
           />
