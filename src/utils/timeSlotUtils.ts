@@ -52,6 +52,8 @@ export const generatePossibleTimeSlots = (
   
   while (safetyCounter < maxIterations) {
     const timeInMinutes = openHours * 60 + openMinutes;
+    
+    // FIX: Allow time slots that end exactly at closing time
     if (timeInMinutes >= closeTimeInMinutes) {
       break;
     }

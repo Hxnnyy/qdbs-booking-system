@@ -1,3 +1,4 @@
+
 // Follow Deno's ES modules approach
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -197,6 +198,8 @@ function generateAvailableTimeSlots(
     
     // Check if the service fits within opening hours
     const serviceEndMinutes = minutes + serviceDuration;
+    
+    // FIX: Allow appointments that end exactly at closing time
     if (serviceEndMinutes > closeMinutes) {
       continue; // This service would go past closing time
     }

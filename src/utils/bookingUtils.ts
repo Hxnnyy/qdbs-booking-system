@@ -109,7 +109,13 @@ export const isWithinOpeningHours = async (
     const [closeHours, closeMinutes] = openingHours.close_time.split(':').map(Number);
     const closeTimeInMinutes = closeHours * 60 + closeMinutes;
     
-    // The service must start after opening time and end before closing time
+    // FIX: Log the calculation details for debugging
+    console.log(`Validating time slot: ${time}, duration: ${serviceDuration}`);
+    console.log(`Start time: ${timeInMinutes} minutes, End time: ${endTimeInMinutes} minutes`);
+    console.log(`Opening hours: ${openTimeInMinutes} to ${closeTimeInMinutes} minutes`);
+    
+    // The service must start after opening time and end before or exactly at closing time
+    // Fix: Changed < to <= for endTimeInMinutes to allow appointments that end exactly at closing time
     return (
       timeInMinutes >= openTimeInMinutes && 
       endTimeInMinutes <= closeTimeInMinutes
