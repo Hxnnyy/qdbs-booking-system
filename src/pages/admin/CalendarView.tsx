@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 
 const CalendarView = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshInProgressRef = useRef(false);
   
   const {
     calendarEvents,
@@ -28,29 +30,58 @@ const CalendarView = () => {
     fetchBookings
   } = useCalendarBookings();
 
-  // Debug to see if data is loading
+  // Log initial render state
   useEffect(() => {
-    console.log('Calendar view render state:', { isLoading, eventsCount: calendarEvents?.length || 0 });
-  }, [isLoading, calendarEvents]);
+    console.log('Calendar view render state:', { 
+      isLoading, 
+      eventsCount: calendarEvents?.length || 0,
+      refreshTrigger
+    });
+  }, [isLoading, calendarEvents, refreshTrigger]);
 
-  // Function to trigger a refresh of the calendar events
+  // Controlled refresh function with debounce to prevent recursive calls
   const refreshCalendar = () => {
-    console.log('Triggering calendar refresh with explicit fetch call');
-    setRefreshTrigger(prev => prev + 1);
-    
-    try {
-      fetchBookings();
-      toast.success('Calendar refreshed');
-    } catch (error) {
-      console.error('Error refreshing calendar:', error);
-      toast.error('Failed to refresh calendar');
+    // If a refresh is already in progress or scheduled, don't trigger another one
+    if (refreshInProgressRef.current || refreshTimeoutRef.current) {
+      console.log('Refresh already in progress or scheduled, skipping');
+      return;
     }
+    
+    console.log('Scheduling controlled calendar refresh');
+    refreshInProgressRef.current = true;
+    
+    // Use the timeout to debounce multiple calls
+    refreshTimeoutRef.current = setTimeout(() => {
+      console.log('Executing calendar refresh');
+      setRefreshTrigger(prev => prev + 1);
+      
+      try {
+        fetchBookings();
+        toast.success('Calendar refreshed');
+      } catch (error) {
+        console.error('Error refreshing calendar:', error);
+        toast.error('Failed to refresh calendar');
+      } finally {
+        refreshInProgressRef.current = false;
+        refreshTimeoutRef.current = null;
+      }
+    }, 300); // Debounce time
   };
+
+  // Cleanup the timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleDateChange = (date: Date) => {
     console.log('Date changed in main CalendarView component:', date);
     setCurrentViewDate(date);
-    refreshCalendar();
+    
+    // Don't call refreshCalendar here as it will be triggered by the effect in useCalendarBookings
   };
 
   // Enhanced event drop handler that refreshes the calendar
@@ -62,16 +93,14 @@ const CalendarView = () => {
     });
     
     handleEventDrop(event, newStart, newEnd);
-    // Refresh after a short delay to allow state updates to complete
-    setTimeout(() => refreshCalendar(), 100);
+    // The refresh will be triggered by the database change via the Supabase subscription
   };
 
   // Enhanced barber filter handler
   const handleBarberFilter = (barberId: string | null) => {
     console.log('Barber filter changed to:', barberId);
     setSelectedBarberId(barberId);
-    // Refresh after a short delay to allow state updates to complete
-    setTimeout(() => refreshCalendar(), 100);
+    // No explicit refresh here, the useEffect in useCalendarBookings will handle this
   };
 
   // Wrapper function to make sure we return a Promise<boolean>
@@ -86,15 +115,9 @@ const CalendarView = () => {
   }) => {
     console.log('Updating booking:', bookingId, updates);
     // Call the original updateBooking function which returns a Promise<boolean>
-    const result = await updateBooking(bookingId, updates);
+    return await updateBooking(bookingId, updates);
     
-    if (result) {
-      // If update was successful, refresh the calendar
-      setTimeout(() => refreshCalendar(), 100);
-    }
-    
-    // Return the result to satisfy the Promise<boolean> requirement
-    return result;
+    // No explicit refresh call here - the Supabase subscription will trigger a refresh
   };
 
   return (

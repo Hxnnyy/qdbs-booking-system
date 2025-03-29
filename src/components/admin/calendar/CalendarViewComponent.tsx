@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarEvent, ViewMode } from '@/types/calendar';
 import { DayView } from './DayView';
@@ -18,7 +17,7 @@ interface CalendarViewComponentProps {
   onEventDrop: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
   onDateChange?: (date: Date) => void;
-  refreshCalendar?: () => void; // Add refresh function prop
+  refreshCalendar?: () => void;
 }
 
 export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
@@ -31,6 +30,9 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const lastDateChange = useRef<Date>(new Date());
+  const lastRefreshTime = useRef<number>(0);
+  const refreshDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Debug events
   useEffect(() => {
@@ -46,25 +48,60 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     }
   }, [events, isLoading]);
 
-  // Update the parent component when date changes
-  useEffect(() => {
-    if (onDateChange) {
-      onDateChange(currentDate);
-    }
-  }, [currentDate, onDateChange]);
-
+  // Safe date change handler with debouncing
   const handleDateChange = (date: Date) => {
+    // Don't process duplicate date changes
+    if (date.getTime() === lastDateChange.current.getTime()) {
+      console.log('Ignoring duplicate date change');
+      return;
+    }
+    
     console.log('Date changed in CalendarViewComponent:', date);
+    lastDateChange.current = date;
     setCurrentDate(date);
     
-    // Also call the parent's date change handler directly for immediate update
+    // Clear any existing timeout
+    if (refreshDebounceTimeoutRef.current) {
+      clearTimeout(refreshDebounceTimeoutRef.current);
+      refreshDebounceTimeoutRef.current = null;
+    }
+    
+    // Call the parent's date change handler with debouncing
     if (onDateChange) {
       onDateChange(date);
     }
+  };
+
+  // Debounced refresh function to prevent excessive refreshes
+  const debouncedRefresh = () => {
+    const now = Date.now();
     
-    // Trigger refresh
+    // Check if refresh was triggered recently (within the last 500ms)
+    if (now - lastRefreshTime.current < 500) {
+      console.log('Throttling refresh - too soon since last refresh');
+      
+      // Clear existing timeout if any
+      if (refreshDebounceTimeoutRef.current) {
+        clearTimeout(refreshDebounceTimeoutRef.current);
+      }
+      
+      // Schedule a refresh to happen after the throttle period
+      refreshDebounceTimeoutRef.current = setTimeout(() => {
+        console.log('Executing delayed refresh');
+        if (refreshCalendar) {
+          lastRefreshTime.current = Date.now();
+          refreshCalendar();
+        }
+        refreshDebounceTimeoutRef.current = null;
+      }, 500);
+      
+      return;
+    }
+    
+    // Otherwise refresh immediately
+    console.log('Executing immediate refresh');
+    lastRefreshTime.current = now;
     if (refreshCalendar) {
-      console.log('Triggering calendar refresh after date change');
       refreshCalendar();
     }
   };
@@ -90,31 +127,39 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
   };
 
   const handleViewModeChange = (value: string) => {
+    if (value === viewMode) {
+      console.log('Ignoring duplicate view mode change');
+      return;
+    }
+    
     setViewMode(value as ViewMode);
     console.log(`View mode changed to ${value}`);
-    // Refresh when switching view modes
-    if (refreshCalendar) {
-      console.log('Triggering calendar refresh after view mode change');
-      refreshCalendar();
-    }
+    
+    // Refresh once after view mode change
+    debouncedRefresh();
   };
 
   const handleManualRefresh = () => {
-    if (refreshCalendar) {
-      console.log('Manual refresh triggered');
-      refreshCalendar();
-    }
+    console.log('Manual refresh triggered');
+    debouncedRefresh();
   };
 
-  // Handle event drop with refresh
+  // Handle event drop
   const handleEventDropWithRefresh = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
     onEventDrop(event, newStart, newEnd);
-    // Refresh after event drop
-    if (refreshCalendar) {
-      console.log('Triggering calendar refresh after event drop');
-      setTimeout(() => refreshCalendar(), 100);
-    }
+    // No explicit refresh here - database subscription will trigger refresh
   };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshDebounceTimeoutRef.current) {
+        clearTimeout(refreshDebounceTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const viewKey = `${viewMode}-view-${currentDate.toISOString().split('T')[0]}`;
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)] flex flex-col">
@@ -181,7 +226,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
           <div className="flex h-full items-center justify-center p-8">
             <div className="text-center">
               <p className="text-muted-foreground mb-4">No events found for this time period</p>
-              <Button variant="outline" onClick={refreshCalendar}>
+              <Button variant="outline" onClick={handleManualRefresh}>
                 Refresh Calendar
               </Button>
             </div>
@@ -194,7 +239,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             events={events || []}
             onEventDrop={handleEventDropWithRefresh}
             onEventClick={onEventClick}
-            refreshCalendar={refreshCalendar}
+            refreshCalendar={debouncedRefresh}
           />
         ) : (
           <WeekView
@@ -204,7 +249,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             events={events || []}
             onEventDrop={handleEventDropWithRefresh}
             onEventClick={onEventClick}
-            refreshCalendar={refreshCalendar}
+            refreshCalendar={debouncedRefresh}
           />
         )}
       </div>
