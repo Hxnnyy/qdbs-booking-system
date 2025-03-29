@@ -190,6 +190,7 @@ Deno.serve(async (req) => {
     console.log(`Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}, exclude booking: ${excludeBookingId || 'none'}`);
     
     // Parse the date and get day of week (0 = Sunday, 1 = Monday, etc.)
+    // Fix: Ensure we're working with the exact date provided without timezone offsets
     const requestDate = new Date(date);
     const dayOfWeek = requestDate.getDay();
     

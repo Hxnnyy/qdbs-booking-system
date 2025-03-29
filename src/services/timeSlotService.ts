@@ -61,6 +61,7 @@ export const fetchBarberTimeSlots = async (
     console.log(`Fetching time slots for barber ${barberId}, date ${date.toISOString()}, service duration ${serviceDuration}`);
     
     // Get day of week (0 = Sunday, 1 = Monday, etc.)
+    // This needs to be the exact day of week for the date we want
     const dayOfWeek = date.getDay();
     console.log(`Day of week for ${date.toDateString()}: ${dayOfWeek}`);
     
@@ -183,7 +184,7 @@ const dateSelectableCache = new Map<string, boolean>();
  */
 export const isDateSelectable = async (date: Date, barberId: string): Promise<boolean> => {
   try {
-    // Create a cache key
+    // Create a cache key - using toDateString() for a more readable key
     const cacheKey = `${date.toDateString()}_${barberId}`;
     
     // Check if we have a cached result
