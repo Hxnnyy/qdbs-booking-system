@@ -34,6 +34,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const calendarHeight = totalHours * 60;
   const holidayEvents = getHolidayEventsForDate(events, date);
   const columnRef = useRef<HTMLDivElement>(null);
+  const dateFormatted = format(date, 'yyyy-MM-dd');
   
   // Drag state
   const [dragState, setDragState] = useState<DragState>({
@@ -148,6 +149,20 @@ export const DayView: React.FC<CalendarViewProps> = ({
       // Calculate new end time based on the duration of the original event
       const duration = droppedEvent.end.getTime() - droppedEvent.start.getTime();
       const newEnd = new Date(newStart.getTime() + duration);
+      
+      // Immediately update local display events to remove the visual "ghost"
+      setDisplayEvents(prev => 
+        prev.map(event => {
+          if (event.id === eventId) {
+            return {
+              ...event,
+              start: newStart,
+              end: newEnd
+            };
+          }
+          return event;
+        })
+      );
       
       // Call the callback to update the event
       if (onEventDrop) {
@@ -278,9 +293,12 @@ export const DayView: React.FC<CalendarViewProps> = ({
               const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
               const height = Math.max(durationMinutes, 15);
               
+              // Generate a truly unique key for events
+              const uniqueEventKey = `event-${event.id}-${dateFormatted}`;
+              
               return (
                 <div 
-                  key={`event-container-${event.id}`}
+                  key={`event-container-${uniqueEventKey}`}
                   className="absolute w-full"
                   style={{ 
                     top: `${top}px`, 
@@ -290,7 +308,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
                 >
                   <div className="h-full w-full">
                     <CalendarEventComponent 
-                      key={`event-${event.id}`}
+                      key={uniqueEventKey}
                       event={event} 
                       onEventClick={onEventClick}
                       slotIndex={slotIndex}

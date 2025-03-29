@@ -39,25 +39,30 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
   const handleDateChange = (date: Date) => {
     console.log('Date changed in CalendarViewComponent:', date);
     setCurrentDate(date);
+    
+    // Also call the parent's date change handler directly for immediate update
+    if (onDateChange) {
+      onDateChange(date);
+    }
   };
 
   const goToToday = () => {
-    setCurrentDate(new Date());
+    handleDateChange(new Date());
   };
 
   const goBack = () => {
     if (viewMode === 'day') {
-      setCurrentDate(subDays(currentDate, 1));
+      handleDateChange(subDays(currentDate, 1));
     } else if (viewMode === 'week') {
-      setCurrentDate(subWeeks(currentDate, 1));
+      handleDateChange(subWeeks(currentDate, 1));
     }
   };
 
   const goForward = () => {
     if (viewMode === 'day') {
-      setCurrentDate(addDays(currentDate, 1));
+      handleDateChange(addDays(currentDate, 1));
     } else if (viewMode === 'week') {
-      setCurrentDate(addWeeks(currentDate, 1));
+      handleDateChange(addWeeks(currentDate, 1));
     }
   };
 

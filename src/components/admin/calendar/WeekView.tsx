@@ -179,6 +179,20 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       const duration = droppedEvent.end.getTime() - droppedEvent.start.getTime();
       const newEnd = new Date(newStart.getTime() + duration);
       
+      // Immediately update local display events to remove the visual "ghost"
+      setDisplayEvents(prev => 
+        prev.map(event => {
+          if (event.id === eventId) {
+            return {
+              ...event,
+              start: newStart,
+              end: newEnd
+            };
+          }
+          return event;
+        })
+      );
+      
       // Call the callback to update the event
       if (onEventDrop) {
         onEventDrop(droppedEvent, newStart, newEnd);
@@ -268,6 +282,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
         
         {weekDays.map((day, dayIndex) => {
           const isCurrentDay = isToday(day);
+          const dayFormatted = format(day, 'yyyy-MM-dd');
           
           return (
             <div 
@@ -333,9 +348,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
                 const height = Math.max(durationMinutes, 15);
                 
+                // Generate a truly unique key that includes the date to prevent duplicate keys
+                const uniqueEventKey = `event-${event.id}-${dayFormatted}`;
+                
                 return (
                   <div 
-                    key={`event-container-${event.id}-${dayIndex}`}
+                    key={`event-container-${uniqueEventKey}`}
                     className="absolute w-full"
                     style={{ 
                       top: `${top}px`, 
@@ -345,7 +363,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                   >
                     <div className="h-full w-full">
                       <CalendarEventComponent 
-                        key={`event-${event.id}-${dayIndex}`}
+                        key={uniqueEventKey}
                         event={event} 
                         onEventClick={onEventClick}
                         slotIndex={slotIndex}

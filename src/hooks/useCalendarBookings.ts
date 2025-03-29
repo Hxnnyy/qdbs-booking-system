@@ -219,7 +219,7 @@ export const useCalendarBookings = () => {
     try {
       if (eventId.startsWith('lunch-')) {
         toast.error('Lunch breaks cannot be moved. Please edit them in the barber settings.');
-        return;
+        return false;
       }
       
       const newBookingDate = formatNewBookingDate(newStart);
@@ -264,14 +264,14 @@ export const useCalendarBookings = () => {
         return false;
       }
       
+      // Update the calendarEvents state immediately for better UI responsiveness
       setCalendarEvents(prev => 
         prev.map(e => {
           if (e.id === eventId) {
-            const duration = e.end.getTime() - e.start.getTime();
             return {
               ...e,
               start: newStart,
-              end: new Date(newStart.getTime() + duration)
+              end: newEnd
             };
           }
           return e;
@@ -287,6 +287,7 @@ export const useCalendarBookings = () => {
         .eq('id', eventId);
       
       if (error) {
+        // If there's an error, revert the UI by refetching the data
         await fetchData();
         throw error;
       }
