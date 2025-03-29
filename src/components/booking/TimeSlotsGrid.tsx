@@ -23,6 +23,15 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
   error,
   onRetry
 }) => {
+  // Helper function for debug information
+  const getDebugInfo = () => {
+    if (!selectedDate) return '';
+    
+    const dayOfWeek = selectedDate.getDay();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return `${dayNames[dayOfWeek]} (day ${dayOfWeek})`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -56,21 +65,25 @@ const TimeSlotsGrid: React.FC<TimeSlotsGridProps> = ({
           {getNoTimeSlotsMessage(selectedDate)}
         </p>
         <p className="text-sm mt-2">Please select another date or barber.</p>
+        <p className="text-xs text-muted-foreground mt-4">{getDebugInfo()}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 max-h-[320px] overflow-y-auto p-1"> {/* Updated grid to show more time slots */}
-      {availableTimeSlots.map((time) => (
-        <TimeSlot 
-          key={time} 
-          time={time} 
-          selected={selectedTime === time}
-          onClick={() => setSelectedTime(time)}
-          disabled={false}
-        />
-      ))}
+    <div className="space-y-4">
+      <div className="text-xs text-muted-foreground text-right">{getDebugInfo()}</div>
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 max-h-[320px] overflow-y-auto p-1">
+        {availableTimeSlots.map((time) => (
+          <TimeSlot 
+            key={time} 
+            time={time} 
+            selected={selectedTime === time}
+            onClick={() => setSelectedTime(time)}
+            disabled={false}
+          />
+        ))}
+      </div>
     </div>
   );
 };

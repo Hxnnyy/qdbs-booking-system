@@ -1,4 +1,3 @@
-
 /**
  * Time Slot Service
  * 
@@ -12,6 +11,16 @@ import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { CalendarEvent } from '@/types/calendar';
 import { hasLunchBreakConflict } from '@/utils/bookingTimeUtils';
+
+/**
+ * Helper function to format a date to YYYY-MM-DD
+ */
+export const formatDateToYYYYMMDD = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 /**
  * Fetch lunch breaks for a barber
@@ -38,16 +47,6 @@ export const fetchBarberLunchBreaks = async (barberId: string): Promise<any[]> =
     console.error('Error fetching lunch breaks:', err);
     return [];
   }
-};
-
-/**
- * Helper function to format a date to YYYY-MM-DD
- */
-export const formatDateToYYYYMMDD = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 };
 
 /**

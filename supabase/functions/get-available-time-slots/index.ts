@@ -1,4 +1,3 @@
-
 // Follow Deno's ES modules approach
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -41,7 +40,6 @@ Deno.serve(async (req) => {
     console.log(`Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}, exclude booking: ${excludeBookingId || 'none'}`);
     
     // Parse the date correctly
-    // FIX: This is the critical part - parse the date correctly to get the day of week
     const dateString = typeof date === 'string' ? date : String(date);
     
     // Generate a stable date object from the YYYY-MM-DD format
@@ -52,21 +50,21 @@ Deno.serve(async (req) => {
     // Create a date object at a fixed time (noon) to avoid timezone issues
     const requestDate = new Date(`${cleanDateString}T12:00:00Z`);
     
-    // Calculate the day of week (0 = Sunday, 1 = Monday, etc.)
-    const dayOfWeek = requestDate.getUTCDay();
+    // *** CRITICAL FIX: Use the client-side day of week if provided ***
+    // This ensures consistency between client and server calculations
+    let dayOfWeek;
+    
+    if (clientDayOfWeek !== undefined) {
+      dayOfWeek = clientDayOfWeek;
+      console.log(`Using client-provided day of week: ${dayOfWeek}`);
+    } else {
+      // Calculate the day of week (0 = Sunday, 1 = Monday, etc.)
+      dayOfWeek = requestDate.getUTCDay();
+      console.log(`Calculated day of week on server: ${dayOfWeek}`);
+    }
     
     console.log(`Parsed date: ${requestDate.toUTCString()}`);
-    console.log(`Day of week: ${dayOfWeek}`);
-    
-    // If client sent their calculated day of week, log it for debugging
-    if (clientDayOfWeek !== undefined) {
-      console.log(`Client day of week: ${clientDayOfWeek}, Server day of week: ${dayOfWeek}`);
-      
-      // If there's a mismatch, log a warning but continue with server calculation
-      if (clientDayOfWeek !== dayOfWeek) {
-        console.log(`WARNING: Day of week mismatch! Client: ${clientDayOfWeek}, Server: ${dayOfWeek}`);
-      }
-    }
+    console.log(`Final day of week used: ${dayOfWeek}`);
     
     // 1. Check if barber is on holiday
     const isHoliday = await isBarberOnHoliday(supabase, barberId, cleanDateString);

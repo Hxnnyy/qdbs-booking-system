@@ -41,6 +41,14 @@ export const useTimeSlots = (
     calculationCache.current.clear();
   }, [selectedBarberId, selectedService?.id]);
 
+  // Helper function to format date as YYYY-MM-DD
+  const formatDateForAPI = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // The main calculation function
   const calculateAvailableTimeSlots = useCallback(async () => {
     if (!selectedDate || !selectedBarberId || !selectedService) {
@@ -81,24 +89,21 @@ export const useTimeSlots = (
         setIsCalculating(false);
         return;
       }
+
+      // Get client's day of week (0 = Sunday, 1 = Monday, etc.)
+      const clientDayOfWeek = selectedDate.getDay();
+      console.log(`Client day of week for ${selectedDate.toDateString()}: ${clientDayOfWeek}`);
       
-      // FIX: Ensure we send the correct date format
-      // Format the date to ensure we're focusing on the client's timezone day
-      // Clone the date to avoid mutation
-      const dateCopy = new Date(selectedDate);
-      
-      // Format date as YYYY-MM-DD, capturing the day in the user's timezone
-      const dateString = dateCopy.toISOString().split('T')[0];
-      console.log(`Sending date to edge function (date object): ${dateCopy}`);
-      console.log(`Sending date to edge function (formatted): ${dateString}`);
-      console.log(`Day of week from client: ${dateCopy.getDay()}`);
+      // Format the date as YYYY-MM-DD
+      const dateString = formatDateForAPI(selectedDate);
+      console.log(`Sending to edge function - formatted date: ${dateString}, day of week: ${clientDayOfWeek}`);
       
       const { data, error } = await supabase.functions.invoke('get-available-time-slots', {
         body: {
           barberId: selectedBarberId,
-          date: dateString, // Send just the date portion to avoid timezone issues
+          date: dateString,
           serviceDuration: selectedService.duration,
-          clientDayOfWeek: dateCopy.getDay() // Send client-side day of week for verification
+          clientDayOfWeek: clientDayOfWeek // Send the client-calculated day of week
         }
       });
       
