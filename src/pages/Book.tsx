@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useBarbers } from '@/hooks/useBarbers';
@@ -11,6 +12,7 @@ import ServiceSelectionStep from '@/components/booking/steps/ServiceSelectionSte
 import DateTimeSelectionStep from '@/components/booking/steps/DateTimeSelectionStep';
 import NotesStep from '@/components/booking/steps/NotesStep';
 import { useTimeSlots } from '@/hooks/useTimeSlots';
+import { toast } from 'sonner';
 
 const Book = () => {
   const { barbers, isLoading: barbersLoading } = useBarbers();

@@ -1,4 +1,3 @@
-
 /**
  * Booking Time Utilities
  * 
@@ -7,6 +6,7 @@
 
 import { CalendarEvent } from '@/types/calendar';
 import { format, isToday, isFuture, isSameDay, addDays } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Check if a time slot is in the past
@@ -60,38 +60,26 @@ export const hasLunchBreakConflict = (
     return false;
   }
   
-  // Convert time slot to minutes for easier calculation
   const [slotHours, slotMinutes] = timeSlot.split(':').map(Number);
   const slotStartMinutes = slotHours * 60 + slotMinutes;
   
-  // Calculate when this service would end
   const slotEndMinutes = slotStartMinutes + serviceDuration;
 
   console.log(`Checking lunch breaks for slot ${timeSlot} (${slotStartMinutes}-${slotEndMinutes} mins)`);
   
-  // Check each lunch break for conflicts
   for (const breakItem of lunchBreaks) {
     if (!breakItem.is_active) continue;
     
-    // Only process active lunch breaks
-    // Convert lunch break time to minutes
     const breakStartTime = breakItem.start_time;
     const [breakHours, breakMinutes] = breakStartTime.split(':').map(Number);
     const breakStartMinutes = breakHours * 60 + breakMinutes;
     
-    // Get break duration
-    const breakDuration = breakItem.duration || 60; // Default to 60 if not specified
+    const breakDuration = breakItem.duration || 60;
     
-    // Calculate when lunch break ends
     const breakEndMinutes = breakStartMinutes + breakDuration;
     
     console.log(`Checking lunch break: ${breakStartTime} (${breakStartMinutes}-${breakEndMinutes} mins), Duration: ${breakDuration} mins`);
     
-    // Check for overlap
-    // 1. Appointment starts during lunch break
-    // 2. Appointment ends during lunch break
-    // 3. Appointment completely contains lunch break
-    // 4. Lunch break completely contains appointment
     const hasOverlap = (
       (slotStartMinutes >= breakStartMinutes && slotStartMinutes < breakEndMinutes) ||
       (slotEndMinutes > breakStartMinutes && slotEndMinutes <= breakEndMinutes) ||
@@ -106,6 +94,49 @@ export const hasLunchBreakConflict = (
   }
   
   return false;
+};
+
+/**
+ * Check if a day has available time slots for the barber
+ * 
+ * @param barberId - The ID of the barber
+ * @param date - The date to check
+ * @param existingBookings - Array of existing bookings
+ * @param serviceDuration - Duration of the service in minutes
+ * @returns Promise that resolves to a boolean indicating if day has available slots
+ */
+export const hasAvailableSlotsOnDay = async (
+  barberId: string | null,
+  date: Date,
+  existingBookings: any[] = [],
+  serviceDuration: number = 60
+): Promise<boolean> => {
+  if (!barberId) return false;
+
+  try {
+    const dayOfWeek = date.getDay();
+    
+    const { data: openingHours, error } = await supabase
+      .from('opening_hours')
+      .select('*')
+      .eq('barber_id', barberId)
+      .eq('day_of_week', dayOfWeek)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching opening hours:', error);
+      return false;
+    }
+    
+    if (!openingHours || openingHours.is_closed) {
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking day availability:', error);
+    return false;
+  }
 };
 
 /**
@@ -131,7 +162,6 @@ export const findDatesWithAvailableSlots = async (
   for (let i = 0; i < daysToCheck; i++) {
     const checkDate = addDays(now, i);
     
-    // Skip dates where the barber is on holiday
     const isHoliday = calendarEvents.some(event => 
       event.barberId === barberId && 
       event.status === 'holiday' &&
