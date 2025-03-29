@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarEvent, ViewMode } from '@/types/calendar';
@@ -33,6 +34,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
   const lastDateChange = useRef<Date>(new Date());
   const lastRefreshTime = useRef<number>(0);
   const refreshDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousViewMode = useRef<ViewMode>(viewMode);
 
   // Debug events
   useEffect(() => {
@@ -133,10 +135,11 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     }
     
     setViewMode(value as ViewMode);
+    previousViewMode.current = value as ViewMode;
     console.log(`View mode changed to ${value}`);
     
-    // Refresh once after view mode change
-    debouncedRefresh();
+    // Don't refresh when switching view modes
+    // This removes the automatic refresh on view change
   };
 
   const handleManualRefresh = () => {

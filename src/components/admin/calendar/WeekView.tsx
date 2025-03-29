@@ -202,9 +202,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
         await onEventDrop(droppedEvent, newStart, newEnd);
       }
       
-      // Force refresh after drag
+      // Force refresh after drag with a 1 second delay
       if (refreshCalendar) {
-        setTimeout(() => refreshCalendar(), 100);
+        setTimeout(() => refreshCalendar(), 1000);
       }
     } catch (error) {
       console.error('Error handling drop:', error);
