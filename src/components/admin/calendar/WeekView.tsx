@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
@@ -94,28 +94,21 @@ export const WeekView: React.FC<WeekViewProps> = ({
     
     if (!dayColumnRefs.current[dayIndex] || !dragState.event) return;
     
-    // Calculate position in the column
     const rect = dayColumnRefs.current[dayIndex]!.getBoundingClientRect();
     const y = e.clientY - rect.top;
     
-    // Calculate time based on position, rounded to 15 minute intervals
     const minutes = roundToNearestFifteenMinutes(Math.floor(y));
     const hours = startHour + Math.floor(minutes / 60);
     const mins = minutes % 60;
     
-    // Format time string
     const timeString = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
     const currentDate = weekDays[dayIndex];
-    
-    // Update ghost position
-    const eventDuration = dragState.event.end.getTime() - dragState.event.start.getTime();
-    const durationMinutes = eventDuration / (1000 * 60);
     
     setDragState(prev => ({
       ...prev,
       ghostPosition: { 
         top: minutes, 
-        height: durationMinutes,
+        height: Math.max((dragState.event.end.getTime() - dragState.event.start.getTime()) / (1000 * 60), 15),
         dayIndex
       },
       currentTime: timeString,
@@ -130,7 +123,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const handleDragLeave = (e: React.DragEvent, dayIndex: number) => {
     if (!dayColumnRefs.current[dayIndex]) return;
     
-    // Check if we're leaving the column entirely
     const rect = dayColumnRefs.current[dayIndex]!.getBoundingClientRect();
     if (
       e.clientX < rect.left || 
@@ -138,8 +130,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
       e.clientY < rect.top || 
       e.clientY > rect.bottom
     ) {
-      // Only clear ghost if we're not entering another day column
-      // Type check properly to make sure we can use closest
       const relatedTarget = e.relatedTarget as Element | null;
       const isDayColumn = relatedTarget && relatedTarget.closest('.day-column');
       const isSameDayColumn = isDayColumn && relatedTarget.closest('.day-column') === dayColumnRefs.current[dayIndex];
@@ -167,23 +157,19 @@ export const WeekView: React.FC<WeekViewProps> = ({
       const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
       const eventId = dragData.eventId;
       
-      // Find the event being dropped
       const droppedEvent = events.find(event => event.id === eventId);
       if (!droppedEvent) {
         toast.error('Event not found');
         return;
       }
       
-      // Calculate new start time
       const [hours, minutes] = dragState.currentTime.split(':').map(Number);
       const newStart = new Date(dragState.currentDate);
       newStart.setHours(hours, minutes, 0, 0);
       
-      // Calculate new end time based on the duration of the original event
       const duration = droppedEvent.end.getTime() - droppedEvent.start.getTime();
       const newEnd = new Date(newStart.getTime() + duration);
       
-      // Immediately update local display events to remove the visual "ghost"
       setDisplayEvents(prev => 
         prev.map(event => {
           if (event.id === eventId) {
@@ -197,12 +183,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
         })
       );
       
-      // Call the callback to update the event
       if (onEventDrop) {
         await onEventDrop(droppedEvent, newStart, newEnd);
       }
       
-      // Force refresh after drag with a 1 second delay
       if (refreshCalendar) {
         setTimeout(() => refreshCalendar(), 1000);
       }
@@ -210,7 +194,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
       console.error('Error handling drop:', error);
       toast.error('Failed to reschedule appointment');
     } finally {
-      // Reset drag state
       setDragState({
         isActive: false,
         ghostPosition: null,
@@ -224,7 +207,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
   };
 
   const handleEventDragStart = (event: CalendarEvent) => {
-    // Find which day the event belongs to
     const eventDate = event.start;
     const dayIndex = weekDays.findIndex(day => 
       day.getDate() === eventDate.getDate() && 
@@ -244,16 +226,18 @@ export const WeekView: React.FC<WeekViewProps> = ({
   };
 
   const handleCalendarClick = (e: React.MouseEvent) => {
-    // Only reset if clicking directly on the calendar, not on an event
     if (e.target === e.currentTarget) {
-      // No drag state to reset
     }
   };
 
-  const processedEvents = processOverlappingEvents(displayEvents);
+  const processedEvents = useMemo(() => 
+    processOverlappingEvents(displayEvents), 
+    [displayEvents]
+  );
 
-  const hasHolidayEvents = weekDays.some(day => 
-    getHolidayEventsForDate(events, day).length > 0
+  const hasHolidayEvents = useMemo(() => 
+    weekDays.some(day => getHolidayEventsForDate(events, day).length > 0),
+    [weekDays, events]
   );
 
   return (
@@ -357,7 +341,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
                 const height = Math.max(durationMinutes, 15);
                 
-                // Generate a truly unique key for events that includes all relevant info
                 const uniqueEventKey = `event-${event.id}-${dayFormatted}-${top}-${eventHour}-${eventMinute}`;
                 
                 return (
@@ -388,7 +371,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
         })}
       </div>
       
-      {/* Fixed positioning drop indicator at bottom center of screen */}
       {dragState.isActive && dragState.currentDate && (
         <div 
           className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-secondary text-secondary-foreground px-4 py-2 rounded-md shadow-lg z-50 font-medium"

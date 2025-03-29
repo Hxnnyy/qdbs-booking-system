@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { format, isToday, addMinutes } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
 import { CalendarEvent as CalendarEventComponent } from './CalendarEvent';
@@ -213,7 +213,12 @@ export const DayView: React.FC<DayViewProps> = ({
   };
 
   const viewKey = `day-view-${dateFormatted}-${events.length}`;
-  const processedEvents = processOverlappingEvents(displayEvents);
+  
+  // Memoize the processing of overlapping events to avoid recalculation
+  const processedEvents = useMemo(() => 
+    processOverlappingEvents(displayEvents), 
+    [displayEvents]
+  );
 
   return (
     <div className="h-full calendar-view day-view" key={viewKey}>

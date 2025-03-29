@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Booking, LunchBreak } from '@/supabase-types';
@@ -20,7 +20,7 @@ export const useCalendarBookings = () => {
   const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
 
   // Update filteredEvents to properly filter by barber ID and current view date
-  const filteredEvents = useCallback(() => {
+  const filteredEvents = useMemo(() => {
     if (!calendarEvents.length) {
       console.log('No calendar events available to filter');
       return [];
@@ -36,24 +36,24 @@ export const useCalendarBookings = () => {
     
     // Log the filtered events for debugging
     console.log(`Filtered events: ${barberFiltered.length} out of ${calendarEvents.length} total events`);
-    console.log('Events after filtering:', barberFiltered.map(e => ({
-      id: e.id,
-      title: e.title,
-      barber: e.barber,
-      barberId: e.barberId,
-      start: e.start,
-      status: e.status
-    })));
     
     return barberFiltered;
   }, [calendarEvents, selectedBarberId]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (dateRange?: { start: Date; end: Date }) => {
     try {
       setIsLoading(true);
       setError(null);
       
       console.log('Fetching calendar data for date:', currentViewDate);
+      
+      // Optional date range filtering
+      const dateFilter = dateRange ? {
+        booking_date: {
+          gte: formatNewBookingDate(dateRange.start),
+          lte: formatNewBookingDate(dateRange.end)
+        }
+      } : {};
       
       // Step 1: Fetch bookings with barber and service info
       const { data: bookingsData, error: bookingsError } = await supabase
@@ -110,12 +110,6 @@ export const useCalendarBookings = () => {
         };
       }) || [];
       
-      console.log('Processed bookings with barber IDs:', bookingsWithProfiles.map(b => ({
-        id: b.id,
-        barber_name: b?.barber?.name,
-        barber_id: b?.barber?.id || b.barber_id
-      })));
-      
       setBookings(bookingsWithProfiles as Booking[]);
       
       // Continue with lunch breaks and holidays fetching
@@ -169,9 +163,6 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      // Log created events for debugging
-      console.log('Created booking events:', bookingEvents.length);
-      
       // Process lunch breaks
       const lunchEvents = (lunchData || []).map(lunchBreak => {
         try {
@@ -182,8 +173,6 @@ export const useCalendarBookings = () => {
         }
       }).filter(Boolean) as CalendarEvent[];
       
-      console.log(`Generated ${lunchEvents.length} lunch break events`);
-      
       // Process holidays
       const holidayEvents = (holidaysData || []).map(holiday => {
         try {
@@ -193,8 +182,6 @@ export const useCalendarBookings = () => {
           return null;
         }
       }).filter(Boolean) as CalendarEvent[];
-      
-      console.log(`Generated ${holidayEvents.length} holiday events`);
       
       // Combine all events
       const allEvents = [...bookingEvents, ...holidayEvents, ...lunchEvents];
@@ -209,6 +196,226 @@ export const useCalendarBookings = () => {
       setIsLoading(false);
     }
   }, [currentViewDate]);
+
+  // Handler for processing booking changes
+  const handleBookingChange = useCallback((payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    console.log(`Processing booking ${eventType}:`, payload);
+    
+    if (eventType === 'INSERT') {
+      // Fetch the complete booking with relations
+      supabase
+        .from('bookings')
+        .select(`
+          *,
+          barber:barber_id(id, name, color),
+          service:service_id(name, price, duration)
+        `)
+        .eq('id', newRecord.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error fetching new booking:', error);
+            return;
+          }
+          
+          try {
+            const event = bookingToCalendarEvent(data as Booking);
+            if (event) {
+              setCalendarEvents(prev => [...prev, event]);
+              
+              // Update bookings array as well for consistency
+              setBookings(prev => [...prev, data as Booking]);
+            }
+          } catch (err) {
+            console.error('Error converting new booking to event:', err);
+          }
+        });
+    } 
+    else if (eventType === 'UPDATE') {
+      // If status changed to cancelled, remove it from the calendar
+      if (newRecord.status === 'cancelled' && oldRecord.status !== 'cancelled') {
+        setCalendarEvents(prev => 
+          prev.filter(event => event.id !== oldRecord.id)
+        );
+        return;
+      }
+      
+      // For other updates, fetch the complete booking with relations
+      supabase
+        .from('bookings')
+        .select(`
+          *,
+          barber:barber_id(id, name, color),
+          service:service_id(name, price, duration)
+        `)
+        .eq('id', oldRecord.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error fetching updated booking:', error);
+            return;
+          }
+          
+          try {
+            const updatedEvent = bookingToCalendarEvent(data as Booking);
+            if (updatedEvent) {
+              setCalendarEvents(prev => 
+                prev.map(event => event.id === oldRecord.id ? updatedEvent : event)
+              );
+              
+              // Update bookings array as well for consistency
+              setBookings(prev => 
+                prev.map(booking => booking.id === oldRecord.id ? (data as Booking) : booking)
+              );
+            }
+          } catch (err) {
+            console.error('Error converting updated booking to event:', err);
+          }
+        });
+    } 
+    else if (eventType === 'DELETE') {
+      // Remove the event from state
+      setCalendarEvents(prev => 
+        prev.filter(event => event.id !== oldRecord.id)
+      );
+      
+      // Remove from bookings array as well
+      setBookings(prev => 
+        prev.filter(booking => booking.id !== oldRecord.id)
+      );
+    }
+  }, []);
+
+  // Handler for processing lunch break changes
+  const handleLunchBreakChange = useCallback((payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    console.log(`Processing lunch break ${eventType}:`, payload);
+    
+    if (eventType === 'INSERT' || (eventType === 'UPDATE' && newRecord.is_active)) {
+      // Fetch the complete lunch break with barber relation
+      supabase
+        .from('barber_lunch_breaks')
+        .select(`*, barber:barber_id(id, name, color)`)
+        .eq('id', newRecord.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error fetching lunch break:', error);
+            return;
+          }
+          
+          try {
+            const event = createLunchBreakEvent(data);
+            if (event) {
+              // For updates, first remove the old event if it exists
+              if (eventType === 'UPDATE') {
+                setCalendarEvents(prev => 
+                  prev.filter(e => !e.id.startsWith('lunch-') || e.id !== `lunch-${oldRecord.id}`)
+                );
+              }
+              
+              // Then add the new/updated event
+              setCalendarEvents(prev => [...prev, event]);
+              
+              // Update lunchBreaks array as well
+              if (eventType === 'UPDATE') {
+                setLunchBreaks(prev => 
+                  prev.map(lb => lb.id === newRecord.id ? data : lb)
+                );
+              } else {
+                setLunchBreaks(prev => [...prev, data]);
+              }
+            }
+          } catch (err) {
+            console.error('Error converting lunch break to event:', err);
+          }
+        });
+    } 
+    else if (eventType === 'UPDATE' && !newRecord.is_active) {
+      // If the lunch break was deactivated, remove it
+      setCalendarEvents(prev => 
+        prev.filter(event => !event.id.startsWith('lunch-') || event.id !== `lunch-${oldRecord.id}`)
+      );
+      
+      // Update lunchBreaks array
+      setLunchBreaks(prev => 
+        prev.filter(lb => lb.id !== oldRecord.id)
+      );
+    } 
+    else if (eventType === 'DELETE') {
+      // Remove the lunch break event
+      setCalendarEvents(prev => 
+        prev.filter(event => !event.id.startsWith('lunch-') || event.id !== `lunch-${oldRecord.id}`)
+      );
+      
+      // Remove from lunchBreaks array
+      setLunchBreaks(prev => 
+        prev.filter(lb => lb.id !== oldRecord.id)
+      );
+    }
+  }, []);
+
+  // Handler for processing holiday changes
+  const handleHolidayChange = useCallback((payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    console.log(`Processing holiday ${eventType}:`, payload);
+    
+    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+      // Fetch the complete holiday with barber relation
+      supabase
+        .from('barber_holidays')
+        .select(`*, barber:barber_id(id, name, color)`)
+        .eq('id', newRecord.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error fetching holiday:', error);
+            return;
+          }
+          
+          try {
+            const event = createHolidayEvent(data, data.barber);
+            if (event) {
+              // For updates, first remove the old event if it exists
+              if (eventType === 'UPDATE') {
+                setCalendarEvents(prev => 
+                  prev.filter(e => e.status !== 'holiday' || e.id !== oldRecord.id)
+                );
+              }
+              
+              // Then add the new/updated event
+              setCalendarEvents(prev => [...prev, event]);
+              
+              // Update holidays array as well
+              if (eventType === 'UPDATE') {
+                setHolidays(prev => 
+                  prev.map(h => h.id === newRecord.id ? data : h)
+                );
+              } else {
+                setHolidays(prev => [...prev, data]);
+              }
+            }
+          } catch (err) {
+            console.error('Error converting holiday to event:', err);
+          }
+        });
+    } 
+    else if (eventType === 'DELETE') {
+      // Remove the holiday event
+      setCalendarEvents(prev => 
+        prev.filter(event => event.status !== 'holiday' || event.id !== oldRecord.id)
+      );
+      
+      // Remove from holidays array
+      setHolidays(prev => 
+        prev.filter(h => h.id !== oldRecord.id)
+      );
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -330,8 +537,7 @@ export const useCalendarBookings = () => {
       
       if (error) throw error;
       
-      await fetchData();
-      
+      // We don't need to fetch all data here - the realtime subscription will handle the update
       toast.success('Booking updated successfully');
       return true;
     } catch (err: any) {
@@ -369,17 +575,19 @@ export const useCalendarBookings = () => {
   };
 
   useEffect(() => {
-    const handleChange = (payload: any) => {
-      console.log('Realtime change detected:', payload);
-      fetchData();
-    };
-
+    // Set up more efficient realtime subscriptions
     const bookingsChannel = supabase
       .channel('bookings-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings' },
-        handleChange
+        (payload) => {
+          handleBookingChange({
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old
+          });
+        }
       )
       .subscribe();
       
@@ -388,7 +596,13 @@ export const useCalendarBookings = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'barber_lunch_breaks' },
-        handleChange
+        (payload) => {
+          handleLunchBreakChange({
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old
+          });
+        }
       )
       .subscribe();
       
@@ -397,23 +611,29 @@ export const useCalendarBookings = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'barber_holidays' },
-        handleChange
+        (payload) => {
+          handleHolidayChange({
+            eventType: payload.eventType,
+            new: payload.new,
+            old: payload.old
+          });
+        }
       )
       .subscribe();
 
-    console.log('Subscribed to calendar data changes');
+    console.log('Subscribed to calendar data changes with optimized handlers');
 
     return () => {
       supabase.removeChannel(bookingsChannel);
       supabase.removeChannel(lunchChannel);
       supabase.removeChannel(holidaysChannel);
     };
-  }, [fetchData]);
+  }, [handleBookingChange, handleLunchBreakChange, handleHolidayChange]);
 
   return {
     bookings,
     holidays,
-    calendarEvents: filteredEvents(),
+    calendarEvents: filteredEvents,
     isLoading,
     error,
     fetchBookings: fetchData,

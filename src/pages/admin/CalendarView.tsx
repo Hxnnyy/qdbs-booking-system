@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
@@ -30,17 +30,8 @@ const CalendarView = () => {
     fetchBookings
   } = useCalendarBookings();
 
-  // Log initial render state
-  useEffect(() => {
-    console.log('Calendar view render state:', { 
-      isLoading, 
-      eventsCount: calendarEvents?.length || 0,
-      refreshTrigger
-    });
-  }, [isLoading, calendarEvents, refreshTrigger]);
-
   // Controlled refresh function with debounce to prevent recursive calls
-  const refreshCalendar = () => {
+  const refreshCalendar = useCallback(() => {
     // If a refresh is already in progress or scheduled, don't trigger another one
     if (refreshInProgressRef.current || refreshTimeoutRef.current) {
       console.log('Refresh already in progress or scheduled, skipping');
@@ -66,7 +57,7 @@ const CalendarView = () => {
         refreshTimeoutRef.current = null;
       }
     }, 300); // Debounce time
-  };
+  }, [fetchBookings]);
 
   // Cleanup the timeout on unmount
   useEffect(() => {
@@ -77,15 +68,13 @@ const CalendarView = () => {
     };
   }, []);
 
-  const handleDateChange = (date: Date) => {
+  const handleDateChange = useCallback((date: Date) => {
     console.log('Date changed in main CalendarView component:', date);
     setCurrentViewDate(date);
-    
-    // Don't call refreshCalendar here as it will be triggered by the effect in useCalendarBookings
-  };
+  }, [setCurrentViewDate]);
 
-  // Enhanced event drop handler that refreshes the calendar
-  const handleEnhancedEventDrop = (event, newStart, newEnd) => {
+  // Enhanced event drop handler
+  const handleEnhancedEventDrop = useCallback((event, newStart, newEnd) => {
     console.log('Event drop detected:', { 
       eventId: event.id, 
       newStart: newStart.toISOString(), 
@@ -93,18 +82,16 @@ const CalendarView = () => {
     });
     
     handleEventDrop(event, newStart, newEnd);
-    // The refresh will be triggered by the database change via the Supabase subscription
-  };
+  }, [handleEventDrop]);
 
   // Enhanced barber filter handler
-  const handleBarberFilter = (barberId: string | null) => {
+  const handleBarberFilter = useCallback((barberId: string | null) => {
     console.log('Barber filter changed to:', barberId);
     setSelectedBarberId(barberId);
-    // No explicit refresh here, the useEffect in useCalendarBookings will handle this
-  };
+  }, [setSelectedBarberId]);
 
-  // Wrapper function to make sure we return a Promise<boolean>
-  const handleUpdateBooking = async (bookingId: string, updates: { 
+  // Wrapper function for updateBooking
+  const handleUpdateBooking = useCallback(async (bookingId: string, updates: { 
     title?: string; 
     barber_id?: string; 
     service_id?: string; 
@@ -114,11 +101,8 @@ const CalendarView = () => {
     status?: string;
   }) => {
     console.log('Updating booking:', bookingId, updates);
-    // Call the original updateBooking function which returns a Promise<boolean>
     return await updateBooking(bookingId, updates);
-    
-    // No explicit refresh call here - the Supabase subscription will trigger a refresh
-  };
+  }, [updateBooking]);
 
   return (
     <Layout>
