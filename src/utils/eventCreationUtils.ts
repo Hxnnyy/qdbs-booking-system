@@ -1,3 +1,4 @@
+
 import { format, parseISO, addMinutes, isWithinInterval } from 'date-fns';
 import { Booking, LunchBreak } from '@/supabase-types';
 import { CalendarEvent } from '@/types/calendar';
@@ -193,64 +194,5 @@ export const createHolidayEvent = (holiday: any, barber: { name: string, color?:
       resourceId: holiday.barber_id,
       allDay: true
     };
-  }
-};
-
-// Create calendar events from bookings, lunch breaks, and holidays
-export const createEventsFromBookings = (
-  bookings: any[],
-  lunchBreaks: any[],
-  holidays: any[],
-  barberColors: { [key: string]: string }
-): CalendarEvent[] => {
-  try {
-    const events: CalendarEvent[] = [];
-    
-    // Process bookings
-    bookings.forEach(booking => {
-      try {
-        const event = bookingToCalendarEvent(booking);
-        // Add barber color from map if available
-        if (barberColors && barberColors[booking.barber_id]) {
-          event.barberColor = barberColors[booking.barber_id];
-        }
-        events.push(event);
-      } catch (error) {
-        console.error('Error converting booking to event:', error, booking);
-      }
-    });
-    
-    // Process lunch breaks
-    lunchBreaks.forEach(lunchBreak => {
-      try {
-        const event = createLunchBreakEvent(lunchBreak);
-        // Add barber color from map if available
-        if (barberColors && barberColors[lunchBreak.barber_id]) {
-          event.barberColor = barberColors[lunchBreak.barber_id];
-        }
-        events.push(event);
-      } catch (error) {
-        console.error('Error creating lunch break event:', error, lunchBreak);
-      }
-    });
-    
-    // Process holidays
-    holidays.forEach(holiday => {
-      try {
-        const barberColor = barberColors && barberColors[holiday.barber_id] 
-          ? { name: holiday.barber?.name || 'Unknown', color: barberColors[holiday.barber_id] }
-          : { name: holiday.barber?.name || 'Unknown' };
-          
-        const event = createHolidayEvent(holiday, barberColor);
-        events.push(event);
-      } catch (error) {
-        console.error('Error creating holiday event:', error, holiday);
-      }
-    });
-    
-    return events;
-  } catch (error) {
-    console.error('Error creating events from bookings:', error);
-    return [];
   }
 };
