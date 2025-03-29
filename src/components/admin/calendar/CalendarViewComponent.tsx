@@ -12,11 +12,12 @@ import { format, addDays, addWeeks, subDays, subWeeks } from 'date-fns';
 import { CalendarSettings } from './CalendarSettings';
 
 interface CalendarViewComponentProps {
-  events: CalendarEvent[]; // This should already be filtered by barber in the parent component
+  events: CalendarEvent[];
   isLoading: boolean;
   onEventDrop: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
-  onDateChange?: (date: Date) => void; // Add this prop to handle date changes
+  onDateChange?: (date: Date) => void;
+  refreshCalendar?: () => void; // Add refresh function prop
 }
 
 export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
@@ -24,7 +25,8 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
   isLoading,
   onEventDrop,
   onEventClick,
-  onDateChange
+  onDateChange,
+  refreshCalendar
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -43,6 +45,11 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     // Also call the parent's date change handler directly for immediate update
     if (onDateChange) {
       onDateChange(date);
+    }
+    
+    // Trigger refresh
+    if (refreshCalendar) {
+      refreshCalendar();
     }
   };
 
@@ -66,10 +73,23 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     }
   };
 
+  const handleViewModeChange = (value: string) => {
+    setViewMode(value as ViewMode);
+    // Refresh when switching view modes
+    if (refreshCalendar) {
+      refreshCalendar();
+    }
+  };
+
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)] flex flex-col">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <Tabs defaultValue="week" className="w-full sm:w-auto" onValueChange={(value) => setViewMode(value as ViewMode)}>
+        <Tabs 
+          defaultValue="week" 
+          className="w-full sm:w-auto" 
+          value={viewMode}
+          onValueChange={handleViewModeChange}
+        >
           <TabsList>
             <TabsTrigger value="day">Day</TabsTrigger>
             <TabsTrigger value="week">Week</TabsTrigger>
@@ -113,19 +133,23 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
       <div className="border rounded-md overflow-hidden flex-1 flex flex-col calendar-scrollable-container">
         {viewMode === 'day' ? (
           <DayView
+            key={`day-view-${currentDate.toISOString()}`}
             date={currentDate}
             onDateChange={handleDateChange}
-            events={events} // Pass the filtered events
+            events={events}
             onEventDrop={onEventDrop}
             onEventClick={onEventClick}
+            refreshCalendar={refreshCalendar}
           />
         ) : (
           <WeekView
+            key={`week-view-${currentDate.toISOString()}`}
             date={currentDate}
             onDateChange={handleDateChange}
-            events={events} // Pass the filtered events
+            events={events}
             onEventDrop={onEventDrop}
             onEventClick={onEventClick}
+            refreshCalendar={refreshCalendar}
           />
         )}
       </div>

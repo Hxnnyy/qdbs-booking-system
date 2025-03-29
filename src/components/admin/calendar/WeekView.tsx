@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -26,12 +25,17 @@ interface DragState {
   startDayIndex: number;
 }
 
-export const WeekView: React.FC<CalendarViewProps> = ({ 
+interface WeekViewProps extends CalendarViewProps {
+  refreshCalendar?: () => void;
+}
+
+export const WeekView: React.FC<WeekViewProps> = ({ 
   date, 
   onDateChange,
   events, 
   onEventDrop,
-  onEventClick
+  onEventClick,
+  refreshCalendar
 }) => {
   const { startHour, endHour, autoScrollToCurrentTime } = useCalendarSettings();
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
@@ -40,8 +44,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   const totalHours = endHour - startHour;
   const calendarHeight = totalHours * 60;
   const dayColumnRefs = useRef<(HTMLDivElement | null)[]>(Array(7).fill(null));
-
-  // Drag state
+  const weekKey = `week-${format(weekStart, 'yyyy-MM-dd')}-${events.length}`;
+  
   const [dragState, setDragState] = useState<DragState>({
     isActive: false,
     ghostPosition: null,
@@ -54,9 +58,9 @@ export const WeekView: React.FC<CalendarViewProps> = ({
 
   useEffect(() => {
     const filtered = filterEventsByWeek(events, date);
-    console.log(`Week view: Generated ${filtered.length} events, including lunch breaks`);
+    console.log(`WeekView: Generated ${filtered.length} events for week of ${format(weekStart, 'yyyy-MM-dd')}`);
     setDisplayEvents(filtered);
-  }, [events, date]);
+  }, [events, date, weekStart]);
 
   useEffect(() => {
     if (!autoScrollToCurrentTime) return;
@@ -195,7 +199,12 @@ export const WeekView: React.FC<CalendarViewProps> = ({
       
       // Call the callback to update the event
       if (onEventDrop) {
-        onEventDrop(droppedEvent, newStart, newEnd);
+        await onEventDrop(droppedEvent, newStart, newEnd);
+      }
+      
+      // Force refresh after drag
+      if (refreshCalendar) {
+        setTimeout(() => refreshCalendar(), 100);
       }
     } catch (error) {
       console.error('Error handling drop:', error);
@@ -248,7 +257,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
   );
 
   return (
-    <div className="h-full calendar-view week-view">
+    <div className="h-full calendar-view week-view" key={weekKey}>
       <div className="calendar-header grid grid-cols-[4rem_repeat(7,1fr)] border-b border-border sticky top-0 z-20 bg-background">
         <div className="border-r border-border h-12"></div>
         
@@ -286,7 +295,7 @@ export const WeekView: React.FC<CalendarViewProps> = ({
           
           return (
             <div 
-              key={`day-${dayIndex}`}
+              key={`day-${dayIndex}-${dayFormatted}`}
               ref={el => dayColumnRefs.current[dayIndex] = el}
               className="relative border-r last:border-r-0 border-border day-column"
               style={{ height: `${calendarHeight}px` }}
@@ -348,8 +357,8 @@ export const WeekView: React.FC<CalendarViewProps> = ({
                 const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
                 const height = Math.max(durationMinutes, 15);
                 
-                // Generate a truly unique key that includes the date to prevent duplicate keys
-                const uniqueEventKey = `event-${event.id}-${dayFormatted}`;
+                // Generate a truly unique key for events that includes all relevant info
+                const uniqueEventKey = `event-${event.id}-${dayFormatted}-${top}-${eventHour}-${eventMinute}`;
                 
                 return (
                   <div 

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
@@ -9,8 +9,10 @@ import { BarberFilter } from '@/components/admin/calendar/BarberFilter';
 import { CalendarSettingsProvider } from '@/context/CalendarSettingsContext';
 
 const CalendarView = () => {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
   const {
-    calendarEvents, // This is already filtered based on selectedBarberId
+    calendarEvents,
     isLoading,
     handleEventDrop,
     handleEventClick,
@@ -25,12 +27,31 @@ const CalendarView = () => {
     fetchBookings
   } = useCalendarBookings();
 
+  // Function to trigger a refresh of the calendar events
+  const refreshCalendar = () => {
+    console.log('Triggering calendar refresh');
+    setRefreshTrigger(prev => prev + 1);
+    fetchBookings();
+  };
+
   const handleDateChange = (date: Date) => {
     console.log('Date changed in main CalendarView component:', date);
     setCurrentViewDate(date);
-    
-    // Optionally refresh bookings when date changes to ensure accuracy
-    fetchBookings();
+    refreshCalendar();
+  };
+
+  // Enhanced event drop handler that refreshes the calendar
+  const handleEnhancedEventDrop = (event, newStart, newEnd) => {
+    handleEventDrop(event, newStart, newEnd);
+    // Refresh after a short delay to allow state updates to complete
+    setTimeout(() => refreshCalendar(), 100);
+  };
+
+  // Enhanced barber filter handler
+  const handleBarberFilter = (barberId: string | null) => {
+    setSelectedBarberId(barberId);
+    // Refresh after a short delay to allow state updates to complete
+    setTimeout(() => refreshCalendar(), 100);
   };
 
   return (
@@ -46,15 +67,17 @@ const CalendarView = () => {
             
             <BarberFilter 
               selectedBarberId={selectedBarberId} 
-              onSelectBarber={setSelectedBarberId} 
+              onSelectBarber={handleBarberFilter} 
             />
             
             <CalendarViewComponent
-              events={calendarEvents} // Pass the filtered events
+              key={`calendar-view-${refreshTrigger}`}
+              events={calendarEvents}
               isLoading={isLoading}
-              onEventDrop={handleEventDrop}
+              onEventDrop={handleEnhancedEventDrop}
               onEventClick={handleEventClick}
-              onDateChange={handleDateChange} // Pass the date change handler
+              onDateChange={handleDateChange}
+              refreshCalendar={refreshCalendar}
             />
             
             <EventDetailsDialog
@@ -64,7 +87,10 @@ const CalendarView = () => {
                 setIsDialogOpen(false);
                 setSelectedEvent(null);
               }}
-              onUpdateBooking={updateBooking}
+              onUpdateBooking={(bookingId, updates) => {
+                updateBooking(bookingId, updates)
+                  .then(() => refreshCalendar());
+              }}
             />
           </div>
         </CalendarSettingsProvider>

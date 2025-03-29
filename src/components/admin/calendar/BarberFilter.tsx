@@ -17,12 +17,17 @@ export const BarberFilter: React.FC<BarberFilterProps> = ({ selectedBarberId, on
     return <div className="flex gap-2 mb-4">Loading barbers...</div>;
   }
 
+  const handleBarberSelect = (barberId: string | null) => {
+    console.log(`BarberFilter: Selecting barber ID: ${barberId || 'All'}`);
+    onSelectBarber(barberId);
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4">
       <Button
         variant={selectedBarberId === null ? "default" : "outline"}
         className="flex items-center gap-2"
-        onClick={() => onSelectBarber(null)}
+        onClick={() => handleBarberSelect(null)}
       >
         <User className="h-4 w-4" />
         All Barbers
@@ -33,7 +38,7 @@ export const BarberFilter: React.FC<BarberFilterProps> = ({ selectedBarberId, on
           key={barber.id}
           variant={selectedBarberId === barber.id ? "default" : "outline"}
           className="flex items-center gap-2"
-          onClick={() => onSelectBarber(barber.id)}
+          onClick={() => handleBarberSelect(barber.id)}
         >
           <Avatar className="h-6 w-6">
             <AvatarImage src={barber.image_url || undefined} alt={barber.name} />

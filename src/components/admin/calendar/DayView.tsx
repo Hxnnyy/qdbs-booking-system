@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { format, isToday, addMinutes } from 'date-fns';
 import { CalendarEvent, CalendarViewProps } from '@/types/calendar';
@@ -21,12 +20,17 @@ interface DragState {
   startY: number;
 }
 
-export const DayView: React.FC<CalendarViewProps> = ({ 
+interface DayViewProps extends CalendarViewProps {
+  refreshCalendar?: () => void;
+}
+
+export const DayView: React.FC<DayViewProps> = ({ 
   date, 
   onDateChange,
   events, 
   onEventDrop,
-  onEventClick
+  onEventClick,
+  refreshCalendar
 }) => {
   const { startHour, endHour, autoScrollToCurrentTime } = useCalendarSettings();
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
@@ -36,7 +40,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
   const columnRef = useRef<HTMLDivElement>(null);
   const dateFormatted = format(date, 'yyyy-MM-dd');
   
-  // Drag state
   const [dragState, setDragState] = useState<DragState>({
     isActive: false,
     ghostPosition: null,
@@ -48,8 +51,9 @@ export const DayView: React.FC<CalendarViewProps> = ({
 
   useEffect(() => {
     const filtered = filterEventsByDate(events, date);
+    console.log(`DayView: Filtered ${filtered.length} events for date ${dateFormatted}`);
     setDisplayEvents(filtered);
-  }, [events, date]);
+  }, [events, date, dateFormatted]);
 
   useEffect(() => {
     if (isToday(date) && autoScrollToCurrentTime) {
@@ -166,7 +170,12 @@ export const DayView: React.FC<CalendarViewProps> = ({
       
       // Call the callback to update the event
       if (onEventDrop) {
-        onEventDrop(droppedEvent, newStart, newEnd);
+        await onEventDrop(droppedEvent, newStart, newEnd);
+      }
+      
+      // Force refresh after drag
+      if (refreshCalendar) {
+        setTimeout(() => refreshCalendar(), 100);
       }
     } catch (error) {
       console.error('Error handling drop:', error);
@@ -202,16 +211,16 @@ export const DayView: React.FC<CalendarViewProps> = ({
     }
   };
 
+  const viewKey = `day-view-${dateFormatted}-${events.length}`;
   const processedEvents = processOverlappingEvents(displayEvents);
 
   return (
-    <div className="h-full calendar-view day-view">
+    <div className="h-full calendar-view day-view" key={viewKey}>
       <div className="calendar-header grid grid-cols-[4rem_1fr] border-b border-border sticky top-0 z-20 bg-background">
         <div className="border-r border-border h-12"></div>
         <DayHeader date={date} holidayEvents={[]} />
       </div>
       
-      {/* Holiday indicator row - separate from the header */}
       {holidayEvents.length > 0 && (
         <div className="grid grid-cols-[4rem_1fr] border-b border-border bg-background">
           <div className="border-r border-border"></div>
@@ -266,7 +275,6 @@ export const DayView: React.FC<CalendarViewProps> = ({
               );
             })()}
 
-            {/* Ghost element to show where the event will be dropped */}
             {dragState.ghostPosition && (
               <div 
                 className="absolute w-full bg-primary/30 border-l-4 border-primary z-50 pointer-events-none rounded-sm"
@@ -293,8 +301,7 @@ export const DayView: React.FC<CalendarViewProps> = ({
               const durationMinutes = (event.end.getTime() - event.start.getTime()) / (1000 * 60);
               const height = Math.max(durationMinutes, 15);
               
-              // Generate a truly unique key for events
-              const uniqueEventKey = `event-${event.id}-${dateFormatted}`;
+              const uniqueEventKey = `event-${event.id}-${dateFormatted}-${top}`;
               
               return (
                 <div 
