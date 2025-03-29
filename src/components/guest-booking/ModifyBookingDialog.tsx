@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { addDays, isAfter, isBefore, addMonths } from 'date-fns';
+import { addDays, isAfter, isBefore, addMonths, isSameDay } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,7 +13,7 @@ import { CalendarEvent } from '@/types/calendar';
 import { isBarberHolidayDate } from '@/utils/holidayIndicatorUtils';
 import { hasAvailableSlotsOnDay } from '@/utils/bookingUtils';
 import { toast } from 'sonner';
-import { isTimeSlotInPast, isSameDay } from '@/utils/bookingUpdateUtils';
+import { isTimeSlotInPast } from '@/utils/bookingUpdateUtils';
 import TimeSlotsGrid from '../booking/TimeSlotsGrid';
 
 interface ModifyBookingDialogProps {
@@ -51,12 +52,19 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
   const [timeSlotError, setTimeSlotError] = useState<string | null>(null);
+  // Store the current month in calendar view
+  const [calendarMonth, setCalendarMonth] = useState<Date | undefined>(newBookingDate || new Date());
   
   useEffect(() => {
     if (isOpen && barberId && selectedBooking?.service?.duration) {
       cacheUnavailableDates();
     }
-  }, [isOpen, barberId, selectedBooking]);
+    
+    // Update calendar month when newBookingDate changes
+    if (newBookingDate) {
+      setCalendarMonth(newBookingDate);
+    }
+  }, [isOpen, barberId, selectedBooking, newBookingDate]);
   
   const cacheUnavailableDates = async () => {
     if (!barberId || !selectedBooking?.service?.duration) return;
@@ -127,6 +135,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     }
     
     onDateChange(date);
+    // No need to close the popover here as the user might want to select a different date
   };
 
   const handleDoneSelectingDate = () => {
@@ -186,6 +195,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                         modifiers={{
                           unavailable: unavailableDates
                         }}
+                        month={calendarMonth}
+                        onMonthChange={setCalendarMonth}
                       />
                     )}
                     <div className="flex justify-end p-2 border-t">

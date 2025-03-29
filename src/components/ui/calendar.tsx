@@ -14,10 +14,25 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
+  // Add state to maintain the current month view
+  const [month, setMonth] = React.useState<Date>(props.selected ? 
+    Array.isArray(props.selected) ? props.selected[0] : props.selected 
+    : new Date());
+
+  // Update month when selected date changes
+  React.useEffect(() => {
+    if (props.selected) {
+      const selectedDate = Array.isArray(props.selected) ? props.selected[0] : props.selected;
+      if (selectedDate) {
+        setMonth(selectedDate);
+      }
+    }
+  }, [props.selected]);
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-3 pointer-events-auto", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
@@ -60,6 +75,8 @@ function Calendar({
         unavailable: "text-muted-foreground opacity-50 bg-gray-100",
         ...props.modifiersClassNames,
       }}
+      month={month}
+      onMonthChange={setMonth}
       {...props}
     />
   );

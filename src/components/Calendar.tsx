@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addDays, isSameMonth, isSameDay, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -20,7 +19,15 @@ const Calendar: React.FC<CalendarProps> = ({
   minDate = new Date(),
   maxDate = addMonths(new Date(), 3),
 }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  // Initialize currentMonth with value if provided, otherwise use the current date
+  const [currentMonth, setCurrentMonth] = useState(value || new Date());
+  
+  // Update currentMonth when value changes externally
+  useEffect(() => {
+    if (value) {
+      setCurrentMonth(value);
+    }
+  }, [value]);
   
   // Parse the available dates if they're strings
   const parsedAvailableDates = availableDates.map(date => 
@@ -73,6 +80,13 @@ const Calendar: React.FC<CalendarProps> = ({
     const isInRange = date >= minDate && date <= maxDate;
     const isAvailable = parsedAvailableDates.length > 0 ? isDateAvailable(date) : true;
     return isInRange && isAvailable;
+  };
+
+  // Handle date selection without changing the month
+  const handleDateSelection = (date: Date) => {
+    onChange(date);
+    // We don't need to update currentMonth here anymore
+    // as we want to keep the current view
   };
   
   return (
@@ -145,7 +159,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 <motion.button
                   key={day.toString()}
                   type="button"
-                  onClick={() => selectable && onChange(day)}
+                  onClick={() => selectable && handleDateSelection(day)}
                   disabled={!selectable}
                   className={cn(
                     "flex items-center justify-center h-10 sm:h-12 rounded-full text-sm transition-all duration-300 relative",
