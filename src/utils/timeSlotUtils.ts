@@ -159,16 +159,6 @@ export const filterAvailableTimeSlots = (
       const formattedEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
       
       console.log(`⚠️ Late slot check: ${slot.time} ends at ${formattedEndTime} (${slotEndMinutes} minutes)`);
-      
-      // Check if this slot is the last possible one and ends exactly at closing time
-      if (possibleSlots.indexOf(slot) === possibleSlots.length - 1) {
-        const lastPossibleSlot = possibleSlots[possibleSlots.length - 1];
-        const closeTimeMinutes = lastPossibleSlot.minutes + 15; // The next 15-min increment would be closing time
-        
-        if (slotEndMinutes === closeTimeMinutes) {
-          console.log(`✅ Slot ${slot.time} ends exactly at closing time, this is allowed`);
-        }
-      }
     }
     
     availableSlots.push(slot.time);

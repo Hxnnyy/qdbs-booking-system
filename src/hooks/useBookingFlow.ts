@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { format, isBefore, startOfToday, addMonths } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -236,7 +235,6 @@ export const useBookingFlow = (
     );
   };
 
-  // Handler functions
   const handleSelectBarber = (barberId: string) => {
     const selectedBarberObj = barbers.find(b => b.id === barberId);
     if (!selectedBarberObj || !selectedBarberObj.active) {
@@ -298,7 +296,6 @@ export const useBookingFlow = (
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
-      // Final checks before booking
       const isHoliday = isBarberHolidayDate(allEvents, selectedDate, selectedBarber);
       if (isHoliday) {
         toast.error('Cannot book on this date as the barber is on holiday');
@@ -307,6 +304,7 @@ export const useBookingFlow = (
       
       const currentBookingTimeSlotAvailable = availableTimeSlots.includes(selectedTime);
       if (!currentBookingTimeSlotAvailable) {
+        console.error(`Time slot ${selectedTime} is no longer in the available time slots:`, availableTimeSlots);
         toast.error('The selected time is no longer available. Please choose another time.');
         return;
       }
@@ -316,6 +314,14 @@ export const useBookingFlow = (
         toast.error('This time slot conflicts with an existing booking. Please select another time.');
         return;
       }
+
+      const serviceDuration = selectedServiceDetails?.duration || 60;
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const selectedTimeInMinutes = hours * 60 + minutes;
+      const endTimeInMinutes = selectedTimeInMinutes + serviceDuration;
+      
+      console.log(`Final validation - Booking from ${selectedTime} to ${Math.floor(endTimeInMinutes/60)}:${String(endTimeInMinutes % 60).padStart(2, '0')}`);
+      console.log(`Service duration: ${serviceDuration} minutes`);
 
       const result = await createBooking({
         barber_id: selectedBarber,
@@ -331,10 +337,10 @@ export const useBookingFlow = (
       }
     } catch (error) {
       console.error('Booking error:', error);
+      toast.error('Failed to create booking. Please try again later.');
     }
   };
 
-  // Check available days for the selected month
   useEffect(() => {
     const checkMonthAvailability = async () => {
       if (!selectedBarber || !selectedServiceDetails) return;
@@ -380,14 +386,12 @@ export const useBookingFlow = (
     checkMonthAvailability();
   }, [selectedBarber, selectedServiceDetails]);
 
-  // Fetch existing bookings when date changes
   useEffect(() => {
     if (selectedBarber && selectedDate) {
       fetchExistingBookings(selectedBarber, selectedDate);
     }
   }, [selectedBarber, selectedDate]);
 
-  // Filter time slots when date, barber, or service changes
   useEffect(() => {
     if (selectedDate && selectedBarber && selectedServiceDetails) {
       filterTimeSlots();
@@ -395,7 +399,6 @@ export const useBookingFlow = (
   }, [selectedDate, selectedBarber, selectedServiceDetails, existingBookings]);
 
   return {
-    // State
     step,
     selectedBarber,
     barberServices,
@@ -415,12 +418,10 @@ export const useBookingFlow = (
     maxDate,
     bookingLoading,
 
-    // Setters
     setSelectedDate,
     setSelectedTime,
     setNotes,
 
-    // Functions
     isDateDisabled,
     handleSelectBarber,
     handleSelectService,

@@ -136,8 +136,8 @@ export const isWithinOpeningHours = async (
     console.log(`🔍 End time: ${endTimeInMinutes} minutes from midnight (${Math.floor(endTimeInMinutes/60)}:${String(endTimeInMinutes % 60).padStart(2, '0')})`);
     console.log(`🔍 Opening hours: ${openTimeInMinutes} to ${closeTimeInMinutes} minutes from midnight (${openingHours.open_time}-${openingHours.close_time})`);
     
-    // The service must start after opening time and end before or exactly at closing time
-    // Fix: Changed < to <= for endTimeInMinutes to allow appointments that end exactly at closing time
+    // The service must start after opening time and end AT OR BEFORE closing time
+    // We specifically use <= for end time to allow booking slots that end exactly at closing time
     const isWithinHours = (
       timeInMinutes >= openTimeInMinutes && 
       endTimeInMinutes <= closeTimeInMinutes
