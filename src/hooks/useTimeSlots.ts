@@ -82,12 +82,15 @@ export const useTimeSlots = (
         return;
       }
       
-      // Ensure we pass the correct date to the edge function
-      // Important: Send the full ISO string without manipulating it to preserve the correct day
+      // CRITICAL FIX: Ensure we send the date in a consistent format
+      // Format date to preserve the exact day we want
+      const dateISOString = selectedDate.toISOString();
+      console.log(`Sending date to edge function: ${dateISOString}`);
+      
       const { data, error } = await supabase.functions.invoke('get-available-time-slots', {
         body: {
           barberId: selectedBarberId,
-          date: selectedDate.toISOString(),
+          date: dateISOString,
           serviceDuration: selectedService.duration
         }
       });

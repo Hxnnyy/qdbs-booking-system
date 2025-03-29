@@ -160,6 +160,16 @@ async function isBarberOnHoliday(barberId, date) {
   return data && data.length > 0;
 }
 
+/**
+ * Helper function to format a date as YYYY-MM-DD
+ */
+function formatDateToYYYYMMDD(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
@@ -189,12 +199,17 @@ Deno.serve(async (req) => {
     
     console.log(`Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}, exclude booking: ${excludeBookingId || 'none'}`);
     
-    // Parse the date and get day of week (0 = Sunday, 1 = Monday, etc.)
-    // Fix: Ensure we're working with the exact date provided without timezone offsets
-    const requestDate = new Date(date);
+    // Parse the date - CRITICAL FIX: Ensure we're working with the exact date provided
+    // The issue was that the provided date was getting misinterpreted due to timezone differences
+    const requestDateString = date.split('T')[0]; // Extract YYYY-MM-DD format
+    console.log(`Input date string: ${date}`);
+    console.log(`Extracted date part: ${requestDateString}`);
+    
+    // Create a new date object that preserves the specified day
+    const requestDate = new Date(requestDateString + 'T12:00:00'); // Use noon to avoid timezone issues
     const dayOfWeek = requestDate.getDay();
     
-    console.log(`Date: ${requestDate.toDateString()}, Day of week: ${dayOfWeek}`);
+    console.log(`Parsed date: ${requestDate.toDateString()}, Day of week: ${dayOfWeek}`);
     
     // 1. Check if barber is on holiday
     const isHoliday = await isBarberOnHoliday(barberId, requestDate);
@@ -256,7 +271,7 @@ Deno.serve(async (req) => {
     console.log('Fetched lunch breaks:', lunchBreaks);
     
     // 4. Get existing bookings for this barber and date with service durations
-    const formattedDate = requestDate.toISOString().split('T')[0];
+    const formattedDate = formatDateToYYYYMMDD(requestDate);
     
     // Get bookings with their service durations
     const { data: existingBookings, error: bookingsError } = await supabase
