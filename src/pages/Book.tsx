@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useBarbers } from '@/hooks/useBarbers';
@@ -50,11 +49,12 @@ const Book = () => {
     handleSubmit
   } = useBookingFlow(barbers, services, allEvents);
 
-  // Use the updated hook directly
+  // Use the time slots hook
   const {
     timeSlots: availableTimeSlots,
     isCalculating: isLoadingTimeSlots,
-    error: timeSlotError
+    error: timeSlotError,
+    recalculate
   } = useTimeSlots(
     selectedDate,
     selectedBarber,
@@ -94,6 +94,13 @@ const Book = () => {
       default:
         return '';
     }
+  };
+
+  // Add a retry function for time slot loading
+  const handleRetryTimeSlots = () => {
+    console.log('Retrying time slot calculation...');
+    recalculate();
+    toast.info('Refreshing available time slots...');
   };
 
   return (
@@ -142,7 +149,7 @@ const Book = () => {
                 isCheckingDates={isCheckingDates}
                 isDateDisabled={isDateDisabled}
                 timeSlotError={timeSlotError}
-                onRetry={() => {}} // No need for retry with edge function
+                onRetry={handleRetryTimeSlots}
               />
             )}
             

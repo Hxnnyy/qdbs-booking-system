@@ -2,56 +2,105 @@
 /**
  * Booking Time Utilities
  * 
- * Utility functions for time-based operations related to bookings
+ * Helper functions for time-related operations in the booking flow
  */
 
+import { CalendarEvent } from '@/types/calendar';
+import { format, isToday, isFuture, isSameDay, addDays } from 'date-fns';
+
 /**
- * Determine if a time slot has a conflict with a lunch break
+ * Check if a time slot is in the past
  * 
- * @param timeSlot - Time slot in "HH:MM" format 
+ * @param date - Selected date
+ * @param time - Time slot (HH:MM format)
+ * @returns Boolean indicating if the time is in the past
+ */
+export const isTimeInPast = (date: Date, time: string): boolean => {
+  const now = new Date();
+  const [hours, minutes] = time.split(':').map(Number);
+  
+  const selectedDateTime = new Date(date);
+  selectedDateTime.setHours(hours, minutes, 0, 0);
+  
+  return selectedDateTime <= now;
+};
+
+/**
+ * Get a message for when no time slots are available
+ * 
+ * @param selectedDate - The selected date
+ * @returns A user-friendly message
+ */
+export const getNoTimeSlotsMessage = (selectedDate?: Date): string => {
+  if (!selectedDate) {
+    return 'No available time slots';
+  }
+  
+  if (isToday(selectedDate)) {
+    return 'No available time slots for today';
+  }
+  
+  return `No available time slots on ${format(selectedDate, 'EEEE, MMMM d')}`;
+};
+
+/**
+ * Check if a time slot overlaps with a lunch break
+ * 
+ * @param timeSlot - Time slot in "HH:MM" format
  * @param lunchBreaks - Array of lunch break records
  * @param serviceDuration - Duration of the service in minutes
- * @returns Boolean indicating if there's a conflict
+ * @returns Boolean indicating if the time slot overlaps with a lunch break
  */
 export const hasLunchBreakConflict = (
   timeSlot: string,
   lunchBreaks: any[],
   serviceDuration: number
 ): boolean => {
-  if (!lunchBreaks || lunchBreaks.length === 0 || !timeSlot) {
+  if (!lunchBreaks || lunchBreaks.length === 0) {
     return false;
   }
   
-  const activeLunchBreaks = lunchBreaks.filter(lb => lb.is_active !== false);
+  // Convert time slot to minutes for easier calculation
+  const [slotHours, slotMinutes] = timeSlot.split(':').map(Number);
+  const slotStartMinutes = slotHours * 60 + slotMinutes;
   
-  if (activeLunchBreaks.length === 0) {
-    return false;
-  }
+  // Calculate when this service would end
+  const slotEndMinutes = slotStartMinutes + serviceDuration;
+
+  console.log(`Checking lunch breaks for slot ${timeSlot} (${slotStartMinutes}-${slotEndMinutes} mins)`);
   
-  // Convert time slot to minutes since midnight
-  const [hours, minutes] = timeSlot.split(':').map(Number);
-  const timeInMinutes = hours * 60 + minutes;
-  
-  // Calculate the end time of the service
-  const serviceEndTimeInMinutes = timeInMinutes + serviceDuration;
-  
-  // Check each lunch break for overlap
-  for (const lunchBreak of activeLunchBreaks) {
-    const startTimeStr = lunchBreak.start_time || '12:00';
-    const duration = lunchBreak.duration || 60;
+  // Check each lunch break for conflicts
+  for (const breakItem of lunchBreaks) {
+    if (!breakItem.is_active) continue;
     
-    // Parse the lunch break time
-    const [lbHours, lbMinutes] = startTimeStr.split(':').map(Number);
-    const lunchStartTimeInMinutes = lbHours * 60 + lbMinutes;
-    const lunchEndTimeInMinutes = lunchStartTimeInMinutes + duration;
+    // Only process active lunch breaks
+    // Convert lunch break time to minutes
+    const breakStartTime = breakItem.start_time;
+    const [breakHours, breakMinutes] = breakStartTime.split(':').map(Number);
+    const breakStartMinutes = breakHours * 60 + breakMinutes;
     
-    // Check if there's any overlap between service and lunch break
-    // Service starts during lunch, service ends during lunch, or service completely spans lunch
-    if (
-      (timeInMinutes >= lunchStartTimeInMinutes && timeInMinutes < lunchEndTimeInMinutes) ||
-      (serviceEndTimeInMinutes > lunchStartTimeInMinutes && serviceEndTimeInMinutes <= lunchEndTimeInMinutes) ||
-      (timeInMinutes <= lunchStartTimeInMinutes && serviceEndTimeInMinutes >= lunchEndTimeInMinutes)
-    ) {
+    // Get break duration
+    const breakDuration = breakItem.duration || 60; // Default to 60 if not specified
+    
+    // Calculate when lunch break ends
+    const breakEndMinutes = breakStartMinutes + breakDuration;
+    
+    console.log(`Checking lunch break: ${breakStartTime} (${breakStartMinutes}-${breakEndMinutes} mins), Duration: ${breakDuration} mins`);
+    
+    // Check for overlap
+    // 1. Appointment starts during lunch break
+    // 2. Appointment ends during lunch break
+    // 3. Appointment completely contains lunch break
+    // 4. Lunch break completely contains appointment
+    const hasOverlap = (
+      (slotStartMinutes >= breakStartMinutes && slotStartMinutes < breakEndMinutes) ||
+      (slotEndMinutes > breakStartMinutes && slotEndMinutes <= breakEndMinutes) ||
+      (slotStartMinutes <= breakStartMinutes && slotEndMinutes >= breakEndMinutes) ||
+      (slotStartMinutes >= breakStartMinutes && slotEndMinutes <= breakEndMinutes)
+    );
+    
+    if (hasOverlap) {
+      console.log(`⚠️ Lunch break conflict detected for slot ${timeSlot}`);
       return true;
     }
   }
@@ -60,27 +109,48 @@ export const hasLunchBreakConflict = (
 };
 
 /**
- * Get a user-friendly message when no time slots are available
+ * Find dates with available time slots for a barber
  * 
- * @param date - The selected date or undefined
- * @returns A user-friendly message explaining why no time slots are available
+ * @param barberId - The ID of the barber
+ * @param serviceDuration - Duration of the service in minutes
+ * @param calendarEvents - Array of calendar events to check against
+ * @param daysToCheck - Number of days to check ahead
+ * @returns Array of dates that may have available time slots
  */
-export const getNoTimeSlotsMessage = (date: Date | undefined): string => {
-  if (!date) {
-    return "No available time slots. Please select a date first.";
+export const findDatesWithAvailableSlots = async (
+  barberId: string | null,
+  serviceDuration: number = 60,
+  calendarEvents: CalendarEvent[] = [],
+  daysToCheck: number = 14
+): Promise<Date[]> => {
+  if (!barberId) return [];
+  
+  const availableDates: Date[] = [];
+  const now = new Date();
+  
+  for (let i = 0; i < daysToCheck; i++) {
+    const checkDate = addDays(now, i);
+    
+    // Skip dates where the barber is on holiday
+    const isHoliday = calendarEvents.some(event => 
+      event.barberId === barberId && 
+      event.status === 'holiday' &&
+      isSameDay(event.start, checkDate)
+    );
+    
+    if (isHoliday) continue;
+    
+    const hasSlots = await hasAvailableSlotsOnDay(
+      barberId, 
+      checkDate, 
+      [], // We're just doing a basic check, not accounting for existing bookings
+      serviceDuration
+    );
+    
+    if (hasSlots) {
+      availableDates.push(checkDate);
+    }
   }
   
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const selectedDate = new Date(date);
-  selectedDate.setHours(0, 0, 0, 0);
-  
-  if (selectedDate.getTime() === today.getTime()) {
-    return "No available time slots for today. Please try another day.";
-  }
-  
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayName = dayNames[date.getDay()];
-  
-  return `No available time slots for ${dayName}. Please select another date.`;
+  return availableDates;
 };

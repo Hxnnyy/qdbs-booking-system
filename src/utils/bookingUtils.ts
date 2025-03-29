@@ -25,6 +25,10 @@ export const isTimeSlotBooked = (
   // Calculate the end time of this appointment
   const endTimeInMinutes = timeInMinutes + serviceLength;
 
+  // Debug logging
+  console.log(`Checking if slot ${time} with duration ${serviceLength} minutes is booked`);
+  console.log(`This appointment would end at ${Math.floor(endTimeInMinutes/60)}:${String(endTimeInMinutes % 60).padStart(2, '0')}`);
+
   // Check if any existing booking overlaps with this time slot
   return existingBookings.some(booking => {
     // Parse booking time
@@ -36,9 +40,13 @@ export const isTimeSlotBooked = (
     
     // Calculate the end time of the existing booking
     const bookingEndTimeInMinutes = bookingTimeInMinutes + bookingServiceLength;
+
+    // Debug logging for existing bookings
+    console.log(`Comparing with existing booking at ${booking.booking_time} (duration: ${bookingServiceLength}min)`);
+    console.log(`Existing booking: ${bookingTimeInMinutes}-${bookingEndTimeInMinutes} mins, New booking: ${timeInMinutes}-${endTimeInMinutes} mins`);
     
     // Check if there's an overlap (any part of the new booking overlaps with any part of existing booking)
-    return (
+    const hasOverlap = (
       // New booking starts during an existing booking
       (timeInMinutes >= bookingTimeInMinutes && timeInMinutes < bookingEndTimeInMinutes) ||
       // New booking ends during an existing booking
@@ -48,6 +56,12 @@ export const isTimeSlotBooked = (
       // New booking is completely contained by an existing booking
       (timeInMinutes >= bookingTimeInMinutes && endTimeInMinutes <= bookingEndTimeInMinutes)
     );
+    
+    if (hasOverlap) {
+      console.log(`❌ OVERLAP DETECTED with booking at ${booking.booking_time}`);
+    }
+    
+    return hasOverlap;
   });
 };
 
@@ -116,10 +130,11 @@ export const isWithinOpeningHours = async (
     const [closeHours, closeMinutes] = openingHours.close_time.split(':').map(Number);
     const closeTimeInMinutes = closeHours * 60 + closeMinutes;
     
-    // FIX: Log the calculation details for debugging
-    console.log(`Validating time slot: ${time}, duration: ${serviceDuration}`);
-    console.log(`Start time: ${timeInMinutes} minutes, End time: ${endTimeInMinutes} minutes`);
-    console.log(`Opening hours: ${openTimeInMinutes} to ${closeTimeInMinutes} minutes`);
+    // CRITICAL LOGGING - Print exact times for debugging
+    console.log(`🔍 VALIDATING TIME SLOT: ${time}, duration: ${serviceDuration} minutes`);
+    console.log(`🔍 Start time: ${timeInMinutes} minutes from midnight (${hours}:${String(minutes).padStart(2, '0')})`);
+    console.log(`🔍 End time: ${endTimeInMinutes} minutes from midnight (${Math.floor(endTimeInMinutes/60)}:${String(endTimeInMinutes % 60).padStart(2, '0')})`);
+    console.log(`🔍 Opening hours: ${openTimeInMinutes} to ${closeTimeInMinutes} minutes from midnight (${openingHours.open_time}-${openingHours.close_time})`);
     
     // The service must start after opening time and end before or exactly at closing time
     // Fix: Changed < to <= for endTimeInMinutes to allow appointments that end exactly at closing time
@@ -131,7 +146,7 @@ export const isWithinOpeningHours = async (
     if (!isWithinHours) {
       console.log(`❌ Time slot ${time} is outside opening hours (${openingHours.open_time}-${openingHours.close_time})`);
       if (endTimeInMinutes > closeTimeInMinutes) {
-        console.log(`   Service would end at ${Math.floor(endTimeInMinutes/60)}:${endTimeInMinutes%60}, after closing time!`);
+        console.log(`   Service would end at ${Math.floor(endTimeInMinutes/60)}:${String(endTimeInMinutes % 60).padStart(2, '0')}, after closing time!`);
       }
     } else {
       console.log(`✅ Time slot ${time} is within opening hours`);

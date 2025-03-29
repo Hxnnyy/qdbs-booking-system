@@ -75,7 +75,7 @@ export const useTimeSlots = (
     }
     
     try {
-      console.log(`Calculating time slots for date: ${selectedDate.toISOString()}, barber: ${selectedBarberId}, service: ${selectedService.name}, duration: ${selectedService.duration}min`);
+      console.log(`🔍 Calculating time slots for date: ${selectedDate.toISOString()}, barber: ${selectedBarberId}, service: ${selectedService.name}, duration: ${selectedService.duration}min`);
       
       // Check barber availability for the selected date
       const { isAvailable, errorMessage } = checkBarberAvailability(
@@ -94,66 +94,72 @@ export const useTimeSlots = (
 
       // Get client's day of week (0 = Sunday, 1 = Monday, etc.)
       const clientDayOfWeek = selectedDate.getDay();
-      console.log(`Client day of week for ${selectedDate.toDateString()}: ${clientDayOfWeek}`);
+      console.log(`📅 Client day of week for ${selectedDate.toDateString()}: ${clientDayOfWeek}`);
       
       // Format the date as YYYY-MM-DD
       const dateString = formatDateForAPI(selectedDate);
-      console.log(`Sending to edge function - formatted date: ${dateString}, day of week: ${clientDayOfWeek}, service duration: ${selectedService.duration}`);
+      console.log(`📤 Sending to edge function - formatted date: ${dateString}, day of week: ${clientDayOfWeek}, service duration: ${selectedService.duration}`);
       
-      const { data, error: edgeFunctionError } = await supabase.functions.invoke('get-available-time-slots', {
-        body: {
-          barberId: selectedBarberId,
-          date: dateString,
-          serviceDuration: selectedService.duration,
-          clientDayOfWeek: clientDayOfWeek // Send the client-calculated day of week
-        }
-      });
-      
-      if (edgeFunctionError) {
-        console.error('Error calling get-available-time-slots function:', edgeFunctionError);
-        setError('Failed to load available time slots');
-        setTimeSlots([]);
-        setIsCalculating(false);
-        return;
-      }
-      
-      console.log('Edge function response:', data);
-      
-      // Data should contain the timeSlots array
-      if (data && Array.isArray(data.timeSlots)) {
-        const availableSlots = data.timeSlots;
-        console.log(`Received ${availableSlots.length} time slots from edge function`);
+      try {
+        const { data, error: edgeFunctionError } = await supabase.functions.invoke('get-available-time-slots', {
+          body: {
+            barberId: selectedBarberId,
+            date: dateString,
+            serviceDuration: selectedService.duration,
+            clientDayOfWeek: clientDayOfWeek // Send the client-calculated day of week
+          }
+        });
         
-        // Additional check - log the last slot if it exists
-        if (availableSlots.length > 0) {
-          const lastSlot = availableSlots[availableSlots.length - 1];
-          console.log(`Last available time slot: ${lastSlot}, service duration: ${selectedService.duration}min`);
-          
-          // Parse the last slot time
-          const [hours, minutes] = lastSlot.split(':').map(Number);
-          const lastSlotMinutes = hours * 60 + minutes;
-          const endTimeMinutes = lastSlotMinutes + selectedService.duration;
-          const endTimeHours = Math.floor(endTimeMinutes / 60);
-          const endTimeMinutesRemainder = endTimeMinutes % 60;
-          const formattedEndTime = `${String(endTimeHours).padStart(2, '0')}:${String(endTimeMinutesRemainder).padStart(2, '0')}`;
-          
-          console.log(`Last slot would end at: ${formattedEndTime}`);
+        if (edgeFunctionError) {
+          console.error('❌ Error calling get-available-time-slots function:', edgeFunctionError);
+          setError('Failed to load available time slots');
+          setTimeSlots([]);
+          setIsCalculating(false);
+          return;
         }
         
-        // Cache the result
-        calculationCache.current.set(cacheKey, availableSlots);
-        setTimeSlots(availableSlots);
-      } else if (data && data.error) {
-        console.error('Error from edge function:', data.error);
-        setError(data.error);
-        setTimeSlots([]);
-      } else {
-        console.error('Invalid response from edge function:', data);
-        setError('Failed to load available time slots');
+        console.log('📥 Edge function response:', data);
+        
+        // Data should contain the timeSlots array
+        if (data && Array.isArray(data.timeSlots)) {
+          const availableSlots = data.timeSlots;
+          console.log(`📋 Received ${availableSlots.length} time slots from edge function`);
+          
+          // Additional check - log the last slot if it exists
+          if (availableSlots.length > 0) {
+            const lastSlot = availableSlots[availableSlots.length - 1];
+            console.log(`🕘 Last available time slot: ${lastSlot}, service duration: ${selectedService.duration}min`);
+            
+            // Parse the last slot time
+            const [hours, minutes] = lastSlot.split(':').map(Number);
+            const lastSlotMinutes = hours * 60 + minutes;
+            const endTimeMinutes = lastSlotMinutes + selectedService.duration;
+            const endTimeHours = Math.floor(endTimeMinutes / 60);
+            const endTimeMinutesRemainder = endTimeMinutes % 60;
+            const formattedEndTime = `${String(endTimeHours).padStart(2, '0')}:${String(endTimeMinutesRemainder).padStart(2, '0')}`;
+            
+            console.log(`⏰ Last slot would end at: ${formattedEndTime}`);
+          }
+          
+          // Cache the result
+          calculationCache.current.set(cacheKey, availableSlots);
+          setTimeSlots(availableSlots);
+        } else if (data && data.error) {
+          console.error('❌ Error from edge function:', data.error);
+          setError(data.error);
+          setTimeSlots([]);
+        } else {
+          console.error('❌ Invalid response from edge function:', data);
+          setError('Failed to load available time slots');
+          setTimeSlots([]);
+        }
+      } catch (edgeFunctionError) {
+        console.error('❌ Error calling edge function:', edgeFunctionError);
+        setError('Failed to load available time slots. Please try again later.');
         setTimeSlots([]);
       }
     } catch (err) {
-      console.error('Error calculating time slots:', err);
+      console.error('❌ Error calculating time slots:', err);
       setError('Failed to load available time slots');
       toast.error('Failed to load available time slots');
     } finally {

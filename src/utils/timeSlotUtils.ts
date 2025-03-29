@@ -44,7 +44,10 @@ export const generatePossibleTimeSlots = (
   let [openHours, openMinutes] = openTime.split(':').map(Number);
   const [closeHours, closeMinutes] = closeTime.split(':').map(Number);
   
+  const openTimeInMinutes = openHours * 60 + openMinutes;
   const closeTimeInMinutes = closeHours * 60 + closeMinutes;
+  
+  console.log(`Generating time slots from ${openTime} (${openTimeInMinutes} mins) to ${closeTime} (${closeTimeInMinutes} mins)`);
   
   // Safeguard against infinite loops
   let safetyCounter = 0;
@@ -57,6 +60,7 @@ export const generatePossibleTimeSlots = (
     // This allows slots that start before closing time to be included,
     // even if they end exactly at closing time
     if (timeInMinutes >= closeTimeInMinutes) {
+      console.log(`Time ${timeInMinutes} mins has reached or exceeded closing time ${closeTimeInMinutes} mins, breaking loop`);
       break;
     }
     
@@ -144,9 +148,27 @@ export const filterAvailableTimeSlots = (
       continue;
     }
     
-    // Additional check - log if this is close to closing time
-    if (possibleSlots.indexOf(slot) >= possibleSlots.length - 3) {
-      console.log(`⚠️ Late slot check: ${slot.time} ends at ${slotEndMinutes} minutes`);
+    // Additional check - log time slots close to closing time
+    const lastFewSlots = possibleSlots.slice(-3);
+    const isCloseToClosing = lastFewSlots.some(s => s.time === slot.time);
+    
+    if (isCloseToClosing) {
+      // Convert end time to HH:MM format
+      const endHours = Math.floor(slotEndMinutes / 60);
+      const endMins = slotEndMinutes % 60;
+      const formattedEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      
+      console.log(`⚠️ Late slot check: ${slot.time} ends at ${formattedEndTime} (${slotEndMinutes} minutes)`);
+      
+      // Check if this slot is the last possible one and ends exactly at closing time
+      if (possibleSlots.indexOf(slot) === possibleSlots.length - 1) {
+        const lastPossibleSlot = possibleSlots[possibleSlots.length - 1];
+        const closeTimeMinutes = lastPossibleSlot.minutes + 15; // The next 15-min increment would be closing time
+        
+        if (slotEndMinutes === closeTimeMinutes) {
+          console.log(`✅ Slot ${slot.time} ends exactly at closing time, this is allowed`);
+        }
+      }
     }
     
     availableSlots.push(slot.time);

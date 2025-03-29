@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    console.log(`Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}, exclude booking: ${excludeBookingId || 'none'}`);
+    console.log(`🚀 Processing request for barber: ${barberId}, date: ${date}, duration: ${serviceDuration}, exclude booking: ${excludeBookingId || 'none'}`);
     
     // Parse the date correctly
     const dateString = typeof date === 'string' ? date : String(date);
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     // Generate a stable date object from the YYYY-MM-DD format
     // Make sure we're working with a clean YYYY-MM-DD format
     const cleanDateString = dateString.split('T')[0];
-    console.log(`Clean date string: ${cleanDateString}`);
+    console.log(`🧹 Clean date string: ${cleanDateString}`);
     
     // Create a date object at a fixed time (noon) to avoid timezone issues
     const requestDate = new Date(`${cleanDateString}T12:00:00Z`);
@@ -57,15 +57,15 @@ Deno.serve(async (req) => {
     
     if (clientDayOfWeek !== undefined) {
       dayOfWeek = clientDayOfWeek;
-      console.log(`Using client-provided day of week: ${dayOfWeek}`);
+      console.log(`📅 Using client-provided day of week: ${dayOfWeek}`);
     } else {
       // Calculate the day of week (0 = Sunday, 1 = Monday, etc.)
       dayOfWeek = requestDate.getUTCDay();
-      console.log(`Calculated day of week on server: ${dayOfWeek}`);
+      console.log(`📅 Calculated day of week on server: ${dayOfWeek}`);
     }
     
-    console.log(`Parsed date: ${requestDate.toUTCString()}`);
-    console.log(`Final day of week used: ${dayOfWeek}`);
+    console.log(`📅 Parsed date: ${requestDate.toUTCString()}`);
+    console.log(`📅 Final day of week used: ${dayOfWeek}`);
     
     // 1. Check if barber is on holiday
     const isHoliday = await isBarberOnHoliday(supabase, barberId, cleanDateString);
@@ -88,11 +88,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
     
     if (openingHoursError) {
-      console.error('Error fetching opening hours:', openingHoursError);
+      console.error('❌ Error fetching opening hours:', openingHoursError);
       throw new Error('Failed to fetch barber opening hours');
     }
     
-    console.log('Opening hours for this day:', openingHours);
+    console.log('⏰ Opening hours for this day:', openingHours);
     
     if (!openingHours || openingHours.is_closed) {
       return new Response(
@@ -112,11 +112,11 @@ Deno.serve(async (req) => {
       .eq('is_active', true);
     
     if (lunchBreaksError) {
-      console.error('Error fetching lunch breaks:', lunchBreaksError);
+      console.error('❌ Error fetching lunch breaks:', lunchBreaksError);
       throw new Error('Failed to fetch barber lunch breaks');
     }
     
-    console.log('Fetched lunch breaks:', lunchBreaks);
+    console.log('🍽️ Fetched lunch breaks:', lunchBreaks);
     
     // 4. Get existing bookings for this barber and date with service durations
     const formattedDate = cleanDateString;
@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
     const { data: existingBookings, error: bookingsError } = await supabase
       .from('bookings')
       .select(`
+        id,
         booking_time,
         service:service_id (
           duration
@@ -135,7 +136,7 @@ Deno.serve(async (req) => {
       .eq('status', 'confirmed');
     
     if (bookingsError) {
-      console.error('Error fetching bookings:', bookingsError);
+      console.error('❌ Error fetching bookings:', bookingsError);
       throw new Error('Failed to fetch existing bookings');
     }
     
@@ -145,7 +146,7 @@ Deno.serve(async (req) => {
       filteredBookings = filteredBookings.filter(booking => booking.id !== excludeBookingId);
     }
     
-    console.log('Fetched existing bookings with durations:', filteredBookings);
+    console.log('📋 Fetched existing bookings with durations:', filteredBookings);
     
     // 5. Generate all possible time slots
     const timeSlots = generateAvailableTimeSlots(
@@ -156,25 +157,28 @@ Deno.serve(async (req) => {
       lunchBreaks || []
     );
     
-    console.log(`Found ${timeSlots.length} available time slots using 15-minute intervals`);
+    console.log(`✨ Found ${timeSlots.length} available time slots using 15-minute intervals`);
     
     // Log the last slot info for debugging
     if (timeSlots.length > 0) {
       const lastSlot = timeSlots[timeSlots.length - 1];
-      console.log(`Last available time slot: ${lastSlot}, service duration: ${serviceDuration}min`);
+      console.log(`🔍 Last available time slot: ${lastSlot}, service duration: ${serviceDuration}min`);
       
-      // Parse and calculate end time
+      // Parse the last slot time
       const [hours, minutes] = lastSlot.split(':').map(Number);
       const lastSlotMinutes = hours * 60 + minutes;
       const endTimeMinutes = lastSlotMinutes + serviceDuration;
+      const endTimeHours = Math.floor(endTimeMinutes / 60);
+      const endTimeMinutesRemainder = endTimeMinutes % 60;
+      const formattedEndTime = `${String(endTimeHours).padStart(2, '0')}:${String(endTimeMinutesRemainder).padStart(2, '0')}`;
       
-      console.log(`Last slot starts at ${lastSlotMinutes} minutes from midnight`);
-      console.log(`Last slot would end at ${endTimeMinutes} minutes from midnight`);
+      console.log(`🔍 Last slot starts at ${lastSlotMinutes} minutes from midnight`);
+      console.log(`🔍 Last slot would end at ${endTimeMinutes} minutes from midnight (${formattedEndTime})`);
       
       const closeTimeFrags = openingHours.close_time.split(':');
       const closeMinutes = parseInt(closeTimeFrags[0]) * 60 + parseInt(closeTimeFrags[1]);
-      console.log(`Closing time is ${closeMinutes} minutes from midnight`);
-      console.log(`Difference between end and close: ${closeMinutes - endTimeMinutes} minutes`);
+      console.log(`🔍 Closing time is ${closeMinutes} minutes from midnight (${openingHours.close_time})`);
+      console.log(`🔍 Difference between end and close: ${closeMinutes - endTimeMinutes} minutes`);
     }
     
     return new Response(
@@ -183,7 +187,7 @@ Deno.serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('Edge function error:', error);
+    console.error('❌ Edge function error:', error);
     
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: error.message }),
@@ -212,8 +216,8 @@ function generateAvailableTimeSlots(
   const availableSlots: string[] = [];
   
   // Debug info
-  console.log(`Generating slots from ${openTime} (${openMinutes} mins) to ${closeTime} (${closeMinutes} mins)`);
-  console.log(`Service duration: ${serviceDuration} mins`);
+  console.log(`🕐 Generating slots from ${openTime} (${openMinutes} mins) to ${closeTime} (${closeMinutes} mins)`);
+  console.log(`⏱️ Service duration: ${serviceDuration} mins`);
   
   // Loop through all possible time slots
   for (let minutes = openMinutes; minutes < closeMinutes; minutes += intervalMinutes) {
@@ -224,20 +228,31 @@ function generateAvailableTimeSlots(
     
     // CRITICAL FIX: Allow appointments that end exactly at closing time
     if (serviceEndMinutes > closeMinutes) {
-      console.log(`Skipping slot ${slotTime} because service would end at ${serviceEndMinutes} mins, after close at ${closeMinutes} mins`);
+      console.log(`⏰ Skipping slot ${slotTime} because service would end at ${serviceEndMinutes} mins, after close at ${closeMinutes} mins`);
       continue; // This service would go past closing time
     }
     
     // Check if this slot conflicts with any existing booking
     if (hasBookingConflict(slotTime, serviceDuration, existingBookings)) {
-      console.log(`Skipping slot ${slotTime} due to booking conflict`);
+      console.log(`📅 Skipping slot ${slotTime} due to booking conflict`);
       continue;
     }
     
     // Check if this slot conflicts with any lunch break
     if (hasLunchBreakConflict(slotTime, serviceDuration, lunchBreaks)) {
-      console.log(`Skipping slot ${slotTime} due to lunch break conflict`);
+      console.log(`🍽️ Skipping slot ${slotTime} due to lunch break conflict`);
       continue;
+    }
+    
+    // Double check calculations for slots near closing time
+    if (closeMinutes - serviceEndMinutes < 30) {
+      console.log(`⚠️ Close to closing time slot: ${slotTime}`);
+      console.log(`   Slot end time: ${serviceEndMinutes} mins, Closing time: ${closeMinutes} mins`);
+      console.log(`   Minutes until closing: ${closeMinutes - serviceEndMinutes}`);
+      
+      if (serviceEndMinutes === closeMinutes) {
+        console.log(`✅ This slot ends EXACTLY at closing time, this is allowed`);
+      }
     }
     
     // This slot is available
@@ -248,14 +263,14 @@ function generateAvailableTimeSlots(
   if (availableSlots.length > 0) {
     const lastIndex = availableSlots.length - 1;
     const lastSlot = availableSlots[lastIndex];
-    console.log(`Final check - last slot: ${lastSlot}`);
+    console.log(`🏁 Final check - last slot: ${lastSlot}`);
     
     // Check if the last slot would end at closing time
     const [hours, minutes] = lastSlot.split(':').map(Number);
     const lastSlotMinutes = hours * 60 + minutes;
     const endTimeMinutes = lastSlotMinutes + serviceDuration;
     
-    console.log(`Last slot ends at ${endTimeMinutes} mins, closing time is ${closeMinutes} mins`);
+    console.log(`🏁 Last slot ends at ${endTimeMinutes} mins, closing time is ${closeMinutes} mins`);
     if (endTimeMinutes === closeMinutes) {
       console.log('✅ Confirmed that last slot ends exactly at closing time');
     }
@@ -280,6 +295,9 @@ function hasBookingConflict(
   // Calculate when this service would end
   const slotEndMinutes = slotMinutes + serviceDuration;
   
+  // Debug log
+  console.log(`Checking booking conflicts for slot ${slotTime} (${slotMinutes}-${slotEndMinutes} mins)`);
+  
   // Check each existing booking
   for (const booking of existingBookings) {
     // Skip if booking doesn't have time or service
@@ -288,12 +306,17 @@ function hasBookingConflict(
     const bookingMinutes = timeToMinutes(booking.booking_time);
     const bookingEndMinutes = bookingMinutes + (booking.service.duration || 60);
     
+    console.log(`Comparing with booking at ${booking.booking_time} (${bookingMinutes}-${bookingEndMinutes} mins)`);
+    
     // Check if these time ranges overlap
-    if (
+    const hasOverlap = (
       (slotMinutes >= bookingMinutes && slotMinutes < bookingEndMinutes) ||
       (slotEndMinutes > bookingMinutes && slotEndMinutes <= bookingEndMinutes) ||
       (slotMinutes <= bookingMinutes && slotEndMinutes >= bookingEndMinutes)
-    ) {
+    );
+    
+    if (hasOverlap) {
+      console.log(`❌ Booking conflict detected with booking at ${booking.booking_time}`);
       return true; // Conflict exists
     }
   }
@@ -328,11 +351,13 @@ function hasLunchBreakConflict(
     console.log(`Slot: ${slotTime} (${slotMinutes}-${slotEndMinutes} mins)`);
     
     // Check if these time ranges overlap
-    if (
+    const hasOverlap = (
       (slotMinutes >= lunchMinutes && slotMinutes < lunchEndMinutes) ||
       (slotEndMinutes > lunchMinutes && slotEndMinutes <= lunchEndMinutes) ||
       (slotMinutes <= lunchMinutes && slotEndMinutes >= lunchEndMinutes)
-    ) {
+    );
+    
+    if (hasOverlap) {
       console.log('⚠️ Lunch break conflict detected');
       return true; // Conflict exists
     }
@@ -372,7 +397,7 @@ async function isBarberOnHoliday(supabase, barberId: string, dateStr: string): P
     .gte('end_date', dateStr);
     
   if (error) {
-    console.error('Error checking barber holidays:', error);
+    console.error('❌ Error checking barber holidays:', error);
     throw new Error('Failed to check barber holiday status');
   }
   
