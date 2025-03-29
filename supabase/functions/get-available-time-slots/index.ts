@@ -158,6 +158,25 @@ Deno.serve(async (req) => {
     
     console.log(`Found ${timeSlots.length} available time slots using 15-minute intervals`);
     
+    // Log the last slot info for debugging
+    if (timeSlots.length > 0) {
+      const lastSlot = timeSlots[timeSlots.length - 1];
+      console.log(`Last available time slot: ${lastSlot}, service duration: ${serviceDuration}min`);
+      
+      // Parse and calculate end time
+      const [hours, minutes] = lastSlot.split(':').map(Number);
+      const lastSlotMinutes = hours * 60 + minutes;
+      const endTimeMinutes = lastSlotMinutes + serviceDuration;
+      
+      console.log(`Last slot starts at ${lastSlotMinutes} minutes from midnight`);
+      console.log(`Last slot would end at ${endTimeMinutes} minutes from midnight`);
+      
+      const closeTimeFrags = openingHours.close_time.split(':');
+      const closeMinutes = parseInt(closeTimeFrags[0]) * 60 + parseInt(closeTimeFrags[1]);
+      console.log(`Closing time is ${closeMinutes} minutes from midnight`);
+      console.log(`Difference between end and close: ${closeMinutes - endTimeMinutes} minutes`);
+    }
+    
     return new Response(
       JSON.stringify({ timeSlots }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -203,7 +222,7 @@ function generateAvailableTimeSlots(
     // Check if the service fits within opening hours
     const serviceEndMinutes = minutes + serviceDuration;
     
-    // CRITICAL FIX: Allow appointments that end exactly at closing time (comparing with <=, not <)
+    // CRITICAL FIX: Allow appointments that end exactly at closing time
     if (serviceEndMinutes > closeMinutes) {
       console.log(`Skipping slot ${slotTime} because service would end at ${serviceEndMinutes} mins, after close at ${closeMinutes} mins`);
       continue; // This service would go past closing time
@@ -223,6 +242,25 @@ function generateAvailableTimeSlots(
     
     // This slot is available
     availableSlots.push(slotTime);
+  }
+  
+  // Double-check - log the last few slots if any exist
+  if (availableSlots.length > 0) {
+    const lastIndex = availableSlots.length - 1;
+    const lastSlot = availableSlots[lastIndex];
+    console.log(`Final check - last slot: ${lastSlot}`);
+    
+    // Check if the last slot would end at closing time
+    const [hours, minutes] = lastSlot.split(':').map(Number);
+    const lastSlotMinutes = hours * 60 + minutes;
+    const endTimeMinutes = lastSlotMinutes + serviceDuration;
+    
+    console.log(`Last slot ends at ${endTimeMinutes} mins, closing time is ${closeMinutes} mins`);
+    if (endTimeMinutes === closeMinutes) {
+      console.log('✅ Confirmed that last slot ends exactly at closing time');
+    }
+  } else {
+    console.log('⚠️ No available time slots were found');
   }
   
   return availableSlots;
@@ -284,6 +322,10 @@ function hasLunchBreakConflict(
     
     const lunchMinutes = timeToMinutes(lunch.start_time);
     const lunchEndMinutes = lunchMinutes + lunch.duration;
+
+    // Detailed logging for lunch breaks
+    console.log(`Checking lunch break: ${lunch.start_time} (${lunchMinutes}-${lunchEndMinutes} mins)`);
+    console.log(`Slot: ${slotTime} (${slotMinutes}-${slotEndMinutes} mins)`);
     
     // Check if these time ranges overlap
     if (
@@ -291,6 +333,7 @@ function hasLunchBreakConflict(
       (slotEndMinutes > lunchMinutes && slotEndMinutes <= lunchEndMinutes) ||
       (slotMinutes <= lunchMinutes && slotEndMinutes >= lunchEndMinutes)
     ) {
+      console.log('⚠️ Lunch break conflict detected');
       return true; // Conflict exists
     }
   }

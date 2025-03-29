@@ -79,6 +79,15 @@ export const generatePossibleTimeSlots = (
   }
   
   console.log(`Generated ${slots.length} possible time slots from ${openTime} to ${closeTime}`);
+  
+  // DEBUG: Log the last few entries to verify closing time logic
+  if (slots.length > 0) {
+    const lastSlot = slots[slots.length - 1];
+    console.log(`Last possible time slot: ${lastSlot.time} (${lastSlot.minutes} minutes from midnight)`);
+    console.log(`Closing time is at ${closeTimeInMinutes} minutes from midnight`);
+    console.log(`Difference: ${closeTimeInMinutes - lastSlot.minutes} minutes`);
+  }
+  
   return slots;
 };
 
@@ -108,6 +117,9 @@ export const filterAvailableTimeSlots = (
   }
   
   for (const slot of possibleSlots) {
+    // Calculate end time for this service
+    const slotEndMinutes = slot.minutes + serviceDuration;
+    
     // Create a simplified booking check that treats lunch breaks as bookings
     const isBooked = isTimeSlotBooked(
       slot.time, 
@@ -127,12 +139,35 @@ export const filterAvailableTimeSlots = (
       continue;
     }
     
-    if (!isBooked) {
-      availableSlots.push(slot.time);
+    if (isBooked) {
+      console.log(`❌ Slot ${slot.time} conflicts with existing booking, skipping`);
+      continue;
     }
+    
+    // Additional check - log if this is close to closing time
+    if (possibleSlots.indexOf(slot) >= possibleSlots.length - 3) {
+      console.log(`⚠️ Late slot check: ${slot.time} ends at ${slotEndMinutes} minutes`);
+    }
+    
+    availableSlots.push(slot.time);
   }
   
-  console.log(`Filtered down to ${availableSlots.length} available slots:`, availableSlots);
+  // Log the last slot for debugging
+  if (availableSlots.length > 0) {
+    const lastSlot = availableSlots[availableSlots.length - 1];
+    console.log(`Last available slot after filtering: ${lastSlot}`);
+    
+    // Calculate when this would end
+    const [hours, minutes] = lastSlot.split(':').map(Number);
+    const lastSlotMinutes = hours * 60 + minutes;
+    const endTimeMinutes = lastSlotMinutes + serviceDuration;
+    const endTimeHours = Math.floor(endTimeMinutes / 60);
+    const endTimeMinutesRemainder = endTimeMinutes % 60;
+    
+    console.log(`This slot would end at: ${endTimeHours.toString().padStart(2, '0')}:${endTimeMinutesRemainder.toString().padStart(2, '0')}`);
+  }
+  
+  console.log(`Filtered down to ${availableSlots.length} available slots`);
   
   return availableSlots;
 };

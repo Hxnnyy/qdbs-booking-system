@@ -55,6 +55,7 @@ export const useTimeSlots = (
       setTimeSlots([]);
       setError(null);
       setIsCalculating(false);
+      console.log('Skipping time slot calculation - missing required parameters');
       return;
     }
     
@@ -87,6 +88,7 @@ export const useTimeSlots = (
         setError(errorMessage);
         setTimeSlots([]);
         setIsCalculating(false);
+        console.warn(`Barber not available: ${errorMessage}`);
         return;
       }
 
@@ -98,7 +100,7 @@ export const useTimeSlots = (
       const dateString = formatDateForAPI(selectedDate);
       console.log(`Sending to edge function - formatted date: ${dateString}, day of week: ${clientDayOfWeek}, service duration: ${selectedService.duration}`);
       
-      const { data, error } = await supabase.functions.invoke('get-available-time-slots', {
+      const { data, error: edgeFunctionError } = await supabase.functions.invoke('get-available-time-slots', {
         body: {
           barberId: selectedBarberId,
           date: dateString,
@@ -107,8 +109,8 @@ export const useTimeSlots = (
         }
       });
       
-      if (error) {
-        console.error('Error calling get-available-time-slots function:', error);
+      if (edgeFunctionError) {
+        console.error('Error calling get-available-time-slots function:', edgeFunctionError);
         setError('Failed to load available time slots');
         setTimeSlots([]);
         setIsCalculating(false);
@@ -121,6 +123,22 @@ export const useTimeSlots = (
       if (data && Array.isArray(data.timeSlots)) {
         const availableSlots = data.timeSlots;
         console.log(`Received ${availableSlots.length} time slots from edge function`);
+        
+        // Additional check - log the last slot if it exists
+        if (availableSlots.length > 0) {
+          const lastSlot = availableSlots[availableSlots.length - 1];
+          console.log(`Last available time slot: ${lastSlot}, service duration: ${selectedService.duration}min`);
+          
+          // Parse the last slot time
+          const [hours, minutes] = lastSlot.split(':').map(Number);
+          const lastSlotMinutes = hours * 60 + minutes;
+          const endTimeMinutes = lastSlotMinutes + selectedService.duration;
+          const endTimeHours = Math.floor(endTimeMinutes / 60);
+          const endTimeMinutesRemainder = endTimeMinutes % 60;
+          const formattedEndTime = `${String(endTimeHours).padStart(2, '0')}:${String(endTimeMinutesRemainder).padStart(2, '0')}`;
+          
+          console.log(`Last slot would end at: ${formattedEndTime}`);
+        }
         
         // Cache the result
         calculationCache.current.set(cacheKey, availableSlots);

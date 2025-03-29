@@ -1,4 +1,10 @@
 
+/**
+ * Time Slot Utilities
+ * 
+ * Utility functions for generating and filtering time slots
+ */
+
 import { Service } from '@/supabase-types';
 import { ExistingBooking } from '@/types/booking';
 import { format, parse } from 'date-fns';
@@ -94,6 +100,7 @@ export const isWithinOpeningHours = async (
     
     // If the barber is closed on this day or no opening hours found, return false
     if (!openingHours || openingHours.is_closed) {
+      console.log(`Barber ${barberId} is closed on day ${dayOfWeek}`);
       return false;
     }
     
@@ -116,10 +123,21 @@ export const isWithinOpeningHours = async (
     
     // The service must start after opening time and end before or exactly at closing time
     // Fix: Changed < to <= for endTimeInMinutes to allow appointments that end exactly at closing time
-    return (
+    const isWithinHours = (
       timeInMinutes >= openTimeInMinutes && 
       endTimeInMinutes <= closeTimeInMinutes
     );
+    
+    if (!isWithinHours) {
+      console.log(`❌ Time slot ${time} is outside opening hours (${openingHours.open_time}-${openingHours.close_time})`);
+      if (endTimeInMinutes > closeTimeInMinutes) {
+        console.log(`   Service would end at ${Math.floor(endTimeInMinutes/60)}:${endTimeInMinutes%60}, after closing time!`);
+      }
+    } else {
+      console.log(`✅ Time slot ${time} is within opening hours`);
+    }
+    
+    return isWithinHours;
   } catch (error) {
     console.error('Error checking opening hours:', error);
     return false;
