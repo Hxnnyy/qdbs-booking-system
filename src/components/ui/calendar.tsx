@@ -15,15 +15,25 @@ function Calendar({
   ...props
 }: CalendarProps) {
   // Add state to maintain the current month view
-  const [month, setMonth] = React.useState<Date>(props.selected ? 
-    Array.isArray(props.selected) ? props.selected[0] : props.selected 
-    : new Date());
+  const [month, setMonth] = React.useState<Date>(
+    // Initialize with the selected date if available, otherwise use current date
+    props.selected instanceof Date 
+      ? props.selected 
+      : Array.isArray(props.selected) && props.selected[0] instanceof Date
+        ? props.selected[0]
+        : new Date()
+  );
 
   // Update month when selected date changes
   React.useEffect(() => {
     if (props.selected) {
-      const selectedDate = Array.isArray(props.selected) ? props.selected[0] : props.selected;
-      if (selectedDate) {
+      const selectedDate = Array.isArray(props.selected) 
+        ? props.selected[0] 
+        : props.selected instanceof Date 
+          ? props.selected 
+          : null;
+      
+      if (selectedDate instanceof Date) {
         setMonth(selectedDate);
       }
     }
