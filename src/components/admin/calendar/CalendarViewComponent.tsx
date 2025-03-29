@@ -5,11 +5,12 @@ import { CalendarEvent, ViewMode } from '@/types/calendar';
 import { DayView } from './DayView';
 import { WeekView } from './WeekView';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, addDays, addWeeks, subDays, subWeeks } from 'date-fns';
 import { CalendarSettings } from './CalendarSettings';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CalendarViewComponentProps {
   events: CalendarEvent[];
@@ -33,11 +34,17 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
 
   // Debug events
   useEffect(() => {
-    console.log(`CalendarViewComponent received ${events.length} events`);
-    events.forEach(event => {
-      console.log(`Event: ${event.title}, ${event.barber}, ${event.status}, ${event.start.toISOString()}`);
-    });
-  }, [events]);
+    console.log(`CalendarViewComponent received ${events?.length || 0} events, isLoading: ${isLoading}`);
+    if (events && events.length > 0) {
+      console.log('Sample events:', events.slice(0, 3).map(event => ({
+        id: event.id,
+        title: event.title,
+        barber: event.barber,
+        status: event.status,
+        date: event.start.toISOString()
+      })));
+    }
+  }, [events, isLoading]);
 
   // Update the parent component when date changes
   useEffect(() => {
@@ -88,6 +95,13 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
     // Refresh when switching view modes
     if (refreshCalendar) {
       console.log('Triggering calendar refresh after view mode change');
+      refreshCalendar();
+    }
+  };
+
+  const handleManualRefresh = () => {
+    if (refreshCalendar) {
+      console.log('Manual refresh triggered');
       refreshCalendar();
     }
   };
@@ -147,6 +161,10 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             Today
           </Button>
           
+          <Button variant="outline" size="icon" onClick={handleManualRefresh} title="Refresh calendar">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          
           <CalendarSettings />
         </div>
       </div>
@@ -155,11 +173,11 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
         {isLoading ? (
           <div className="flex h-full items-center justify-center p-8">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading calendar...</p>
+              <Skeleton className="h-8 w-8 rounded-full mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading calendar data...</p>
             </div>
           </div>
-        ) : events.length === 0 ? (
+        ) : events && events.length === 0 ? (
           <div className="flex h-full items-center justify-center p-8">
             <div className="text-center">
               <p className="text-muted-foreground mb-4">No events found for this time period</p>
@@ -173,7 +191,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             key={`day-view-${currentDate.toISOString()}`}
             date={currentDate}
             onDateChange={handleDateChange}
-            events={events}
+            events={events || []}
             onEventDrop={handleEventDropWithRefresh}
             onEventClick={onEventClick}
             refreshCalendar={refreshCalendar}
@@ -183,7 +201,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
             key={`week-view-${currentDate.toISOString()}`}
             date={currentDate}
             onDateChange={handleDateChange}
-            events={events}
+            events={events || []}
             onEventDrop={handleEventDropWithRefresh}
             onEventClick={onEventClick}
             refreshCalendar={refreshCalendar}

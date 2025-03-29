@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useCalendarBookings } from '@/hooks/useCalendarBookings';
@@ -7,6 +7,7 @@ import { CalendarViewComponent } from '@/components/admin/calendar/CalendarViewC
 import { EventDetailsDialog } from '@/components/admin/calendar/EventDetailsDialog';
 import { BarberFilter } from '@/components/admin/calendar/BarberFilter';
 import { CalendarSettingsProvider } from '@/context/CalendarSettingsContext';
+import { toast } from 'sonner';
 
 const CalendarView = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -27,11 +28,23 @@ const CalendarView = () => {
     fetchBookings
   } = useCalendarBookings();
 
+  // Debug to see if data is loading
+  useEffect(() => {
+    console.log('Calendar view render state:', { isLoading, eventsCount: calendarEvents?.length || 0 });
+  }, [isLoading, calendarEvents]);
+
   // Function to trigger a refresh of the calendar events
   const refreshCalendar = () => {
-    console.log('Triggering calendar refresh');
+    console.log('Triggering calendar refresh with explicit fetch call');
     setRefreshTrigger(prev => prev + 1);
-    fetchBookings();
+    
+    try {
+      fetchBookings();
+      toast.success('Calendar refreshed');
+    } catch (error) {
+      console.error('Error refreshing calendar:', error);
+      toast.error('Failed to refresh calendar');
+    }
   };
 
   const handleDateChange = (date: Date) => {
@@ -42,6 +55,12 @@ const CalendarView = () => {
 
   // Enhanced event drop handler that refreshes the calendar
   const handleEnhancedEventDrop = (event, newStart, newEnd) => {
+    console.log('Event drop detected:', { 
+      eventId: event.id, 
+      newStart: newStart.toISOString(), 
+      newEnd: newEnd.toISOString() 
+    });
+    
     handleEventDrop(event, newStart, newEnd);
     // Refresh after a short delay to allow state updates to complete
     setTimeout(() => refreshCalendar(), 100);
@@ -49,6 +68,7 @@ const CalendarView = () => {
 
   // Enhanced barber filter handler
   const handleBarberFilter = (barberId: string | null) => {
+    console.log('Barber filter changed to:', barberId);
     setSelectedBarberId(barberId);
     // Refresh after a short delay to allow state updates to complete
     setTimeout(() => refreshCalendar(), 100);
@@ -64,8 +84,15 @@ const CalendarView = () => {
     booking_time?: string;
     status?: string;
   }) => {
+    console.log('Updating booking:', bookingId, updates);
     // Call the original updateBooking function which returns a Promise<boolean>
     const result = await updateBooking(bookingId, updates);
+    
+    if (result) {
+      // If update was successful, refresh the calendar
+      setTimeout(() => refreshCalendar(), 100);
+    }
+    
     // Return the result to satisfy the Promise<boolean> requirement
     return result;
   };
@@ -88,7 +115,7 @@ const CalendarView = () => {
             
             <CalendarViewComponent
               key={`calendar-view-${refreshTrigger}`}
-              events={calendarEvents}
+              events={calendarEvents || []}
               isLoading={isLoading}
               onEventDrop={handleEnhancedEventDrop}
               onEventClick={handleEventClick}

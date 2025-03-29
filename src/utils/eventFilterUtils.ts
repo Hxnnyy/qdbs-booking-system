@@ -1,9 +1,14 @@
 
-import { isSameDay, startOfWeek, endOfWeek, addDays, isBefore, isAfter, isWithinInterval } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, addDays, isWithinInterval } from 'date-fns';
 import { CalendarEvent } from '@/types/calendar';
 
 // Filter events for calendar view based on date
 export const filterEventsByDate = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
+  if (!events || events.length === 0) {
+    console.log('No events to filter for day view');
+    return [];
+  }
+  
   console.log(`Filtering ${events.length} events for date: ${date.toISOString().split('T')[0]}`);
   
   // Create lunch break events for this specific date
@@ -40,6 +45,11 @@ export const filterEventsByDate = (events: CalendarEvent[], date: Date): Calenda
 
 // Filter events for a week view
 export const filterEventsByWeek = (events: CalendarEvent[], date: Date): CalendarEvent[] => {
+  if (!events || events.length === 0) {
+    console.log('No events to filter for week view');
+    return [];
+  }
+  
   const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Week starts on Monday
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
   
