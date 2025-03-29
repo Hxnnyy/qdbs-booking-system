@@ -53,7 +53,9 @@ export const generatePossibleTimeSlots = (
   while (safetyCounter < maxIterations) {
     const timeInMinutes = openHours * 60 + openMinutes;
     
-    // FIX: Allow time slots that end exactly at closing time
+    // CRITICAL FIX: Only break the loop when we exceed closing time
+    // This allows slots that start before closing time to be included,
+    // even if they end exactly at closing time
     if (timeInMinutes >= closeTimeInMinutes) {
       break;
     }
@@ -67,7 +69,7 @@ export const generatePossibleTimeSlots = (
       minutes: timeInMinutes
     });
     
-    openMinutes += 15; // Changed to 15-minute increments
+    openMinutes += 15; // 15-minute increments
     if (openMinutes >= 60) {
       openHours += 1;
       openMinutes -= 60;

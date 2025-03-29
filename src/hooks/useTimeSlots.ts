@@ -96,7 +96,7 @@ export const useTimeSlots = (
       
       // Format the date as YYYY-MM-DD
       const dateString = formatDateForAPI(selectedDate);
-      console.log(`Sending to edge function - formatted date: ${dateString}, day of week: ${clientDayOfWeek}`);
+      console.log(`Sending to edge function - formatted date: ${dateString}, day of week: ${clientDayOfWeek}, service duration: ${selectedService.duration}`);
       
       const { data, error } = await supabase.functions.invoke('get-available-time-slots', {
         body: {
@@ -125,6 +125,10 @@ export const useTimeSlots = (
         // Cache the result
         calculationCache.current.set(cacheKey, availableSlots);
         setTimeSlots(availableSlots);
+      } else if (data && data.error) {
+        console.error('Error from edge function:', data.error);
+        setError(data.error);
+        setTimeSlots([]);
       } else {
         console.error('Invalid response from edge function:', data);
         setError('Failed to load available time slots');

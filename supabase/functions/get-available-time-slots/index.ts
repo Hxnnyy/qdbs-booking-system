@@ -192,6 +192,10 @@ function generateAvailableTimeSlots(
   const intervalMinutes = 15;
   const availableSlots: string[] = [];
   
+  // Debug info
+  console.log(`Generating slots from ${openTime} (${openMinutes} mins) to ${closeTime} (${closeMinutes} mins)`);
+  console.log(`Service duration: ${serviceDuration} mins`);
+  
   // Loop through all possible time slots
   for (let minutes = openMinutes; minutes < closeMinutes; minutes += intervalMinutes) {
     const slotTime = minutesToTime(minutes);
@@ -199,18 +203,21 @@ function generateAvailableTimeSlots(
     // Check if the service fits within opening hours
     const serviceEndMinutes = minutes + serviceDuration;
     
-    // FIX: Allow appointments that end exactly at closing time
+    // CRITICAL FIX: Allow appointments that end exactly at closing time (comparing with <=, not <)
     if (serviceEndMinutes > closeMinutes) {
+      console.log(`Skipping slot ${slotTime} because service would end at ${serviceEndMinutes} mins, after close at ${closeMinutes} mins`);
       continue; // This service would go past closing time
     }
     
     // Check if this slot conflicts with any existing booking
     if (hasBookingConflict(slotTime, serviceDuration, existingBookings)) {
+      console.log(`Skipping slot ${slotTime} due to booking conflict`);
       continue;
     }
     
     // Check if this slot conflicts with any lunch break
     if (hasLunchBreakConflict(slotTime, serviceDuration, lunchBreaks)) {
+      console.log(`Skipping slot ${slotTime} due to lunch break conflict`);
       continue;
     }
     
