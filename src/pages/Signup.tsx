@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
@@ -29,6 +28,24 @@ const Signup = () => {
     return phoneRegex.test(phoneNumber.replace(/[\s-()]/g, ''));
   };
 
+  const formatPhoneNumber = (phoneNumber: string) => {
+    // Remove all non-digit characters
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    // For UK numbers: if it starts with 0, replace with +44
+    if (digitsOnly.startsWith('0')) {
+      return `+44${digitsOnly.substring(1)}`;
+    }
+    
+    // If no country code (no +), assume UK and add +44
+    if (!phoneNumber.includes('+')) {
+      return digitsOnly.startsWith('44') ? `+${digitsOnly}` : `+44${digitsOnly}`;
+    }
+    
+    // Otherwise return with + prefix
+    return `+${digitsOnly}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -50,7 +67,9 @@ const Signup = () => {
     
     try {
       setIsSubmitting(true);
-      await signUp(email, password, { firstName, lastName, phone });
+      // Format the phone number to E.164 format before saving
+      const formattedPhone = formatPhoneNumber(phone);
+      await signUp(email, password, { firstName, lastName, phone: formattedPhone });
     } catch (error) {
       console.error('Signup error:', error);
     } finally {
@@ -138,6 +157,9 @@ const Signup = () => {
                   {phoneError && (
                     <p className="text-red-500 text-sm mt-1">{phoneError}</p>
                   )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your phone number will be used for booking confirmations and appointment reminders
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password" className="font-playfair">Password</Label>

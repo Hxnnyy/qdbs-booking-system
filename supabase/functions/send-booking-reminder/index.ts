@@ -168,7 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
             // For regular user bookings, get details from profiles table
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
-              .select('first_name, last_name, phone')
+              .select('first_name, last_name, phone, email')
               .eq('id', booking.user_id)
               .single();
               
@@ -177,10 +177,13 @@ const handler = async (req: Request): Promise<Response> => {
               return { booking_id: booking.id, success: false, message: "User profile not found" };
             }
             
-            name = profile.first_name || "Customer";
+            name = profile.first_name 
+              ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+              : profile.email?.split('@')[0] || "Customer";
+            
             phone = profile.phone || "";
             
-            // Generate a simple booking reference (you might want to store this in the DB)
+            // Generate a simple booking reference from booking ID
             bookingCode = booking.id.substring(0, 6);
           }
           

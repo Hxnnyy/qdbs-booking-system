@@ -1,4 +1,3 @@
-
 /**
  * Booking Service
  * 
@@ -172,6 +171,41 @@ export const createBooking = async (
         }
         
         console.log('Booking created successfully via edge function:', data);
+        
+        // Get the user's profile to retrieve their name and phone number for SMS
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, phone')
+          .eq('id', userId)
+          .single();
+          
+        if (!profileError && profile && profile.phone) {
+          // Send confirmation SMS for registered users
+          try {
+            const { error: smsError } = await supabase.functions.invoke('send-booking-sms', {
+              body: {
+                phone: profile.phone,
+                name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+                bookingCode: data.id.substring(0, 6), // Use first 6 chars of booking ID as code
+                bookingId: data.id,
+                bookingDate: bookingData.booking_date,
+                bookingTime: bookingData.booking_time,
+                // Fetch barber and service names for the SMS
+                barberName: (await getBarbersById([bookingData.barber_id]))[0]?.name,
+                serviceName: (await getServicesById([bookingData.service_id]))[0]?.name
+              }
+            });
+            
+            if (smsError) {
+              console.error('Error sending confirmation SMS:', smsError);
+              // Don't throw error here, we want the booking to succeed even if SMS fails
+            }
+          } catch (smsErr) {
+            console.error('Error invoking SMS function:', smsErr);
+            // Don't throw error here, we want the booking to succeed even if SMS fails
+          }
+        }
+        
         return data;
       } catch (edgeFunctionError) {
         console.error('Edge function error details:', edgeFunctionError);
@@ -183,6 +217,56 @@ export const createBooking = async (
     throw error;
   }
 };
+
+/**
+ * Get barbers by ids
+ * 
+ * @param barberIds - Array of barber ids
+ * @returns Array of barber objects with name
+ */
+async function getBarbersById(barberIds: string[]): Promise<{id: string, name: string}[]> {
+  try {
+    const { data, error } = await supabase
+      .from('barbers')
+      .select('id, name')
+      .in('id', barberIds);
+      
+    if (error) {
+      console.error('Error fetching barbers:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.error('Error in getBarbersById:', err);
+    return [];
+  }
+}
+
+/**
+ * Get services by ids
+ * 
+ * @param serviceIds - Array of service ids
+ * @returns Array of service objects with name
+ */
+async function getServicesById(serviceIds: string[]): Promise<{id: string, name: string}[]> {
+  try {
+    const { data, error } = await supabase
+      .from('services')
+      .select('id, name')
+      .in('id', serviceIds);
+      
+    if (error) {
+      console.error('Error fetching services:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.error('Error in getServicesById:', err);
+    return [];
+  }
+}
 
 /**
  * Update an existing booking
