@@ -11,6 +11,8 @@ interface SMSRequestBody {
   bookingId: string;
   bookingDate: string;
   bookingTime: string;
+  barberName?: string;
+  serviceName?: string;
   isUpdate?: boolean;
   isReminder?: boolean;
 }
@@ -67,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { phone, name, bookingCode, bookingId, bookingDate, bookingTime, isUpdate, isReminder } = await req.json() as SMSRequestBody;
+    const { phone, name, bookingCode, bookingId, bookingDate, bookingTime, barberName, serviceName, isUpdate, isReminder } = await req.json() as SMSRequestBody;
 
     // Properly format the phone number for Twilio (E.164 format)
     let formattedPhone = phone;
@@ -82,6 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log(`Formatted phone from ${phone} to ${formattedPhone}`);
+    console.log(`Received barberName: ${barberName}, serviceName: ${serviceName}`);
 
     // Format the date for human-readable display
     const dateObj = new Date(bookingDate);
@@ -127,8 +130,8 @@ const handler = async (req: Request): Promise<Response> => {
       bookingCode,
       bookingDate: formattedDate,
       bookingTime,
-      barberName: '',
-      serviceName: ''
+      barberName: barberName || '',
+      serviceName: serviceName || ''
     };
 
     // Prepare the message
@@ -147,11 +150,11 @@ const handler = async (req: Request): Promise<Response> => {
     } else {
       // Fallback to hardcoded templates
       if (isReminder) {
-        messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
+        messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${bookingTime}${barberName ? ` with ${barberName}` : ''}${serviceName ? ` for ${serviceName}` : ''}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
       } else if (isUpdate) {
-        messageBody = `Hi ${name}, your booking has been rescheduled for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
+        messageBody = `Hi ${name}, your booking has been rescheduled for ${formattedDate} at ${bookingTime}${barberName ? ` with ${barberName}` : ''}${serviceName ? ` for ${serviceName}` : ''}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
       } else {
-        messageBody = `Hi ${name}, your booking is confirmed for ${formattedDate} at ${bookingTime}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
+        messageBody = `Hi ${name}, your booking is confirmed for ${formattedDate} at ${bookingTime}${barberName ? ` with ${barberName}` : ''}${serviceName ? ` for ${serviceName}` : ''}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
       }
     }
 
@@ -159,6 +162,7 @@ const handler = async (req: Request): Promise<Response> => {
     const twilioEndpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     
     console.log(`Sending SMS to ${formattedPhone} from ${twilioPhone} via Twilio...`);
+    console.log(`Message body: ${messageBody}`);
     
     const twilioResponse = await fetch(twilioEndpoint, {
       method: 'POST',

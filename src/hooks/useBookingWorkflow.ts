@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -13,7 +12,6 @@ export const useBookingWorkflow = (
   fetchBarberServices: (barberId: string) => Promise<void>,
   services: Service[]
 ) => {
-  // Initialize step based on form state
   const getInitialStep = (): BookingStep => {
     if (formState.selectedBarber === null) return 'barber';
     if (formState.selectedService === null) return 'service';
@@ -28,11 +26,7 @@ export const useBookingWorkflow = (
   const [bookingResult, setBookingResult] = useState<any>(null);
   const { createGuestBooking, isLoading: bookingLoading } = useGuestBookings();
 
-  // Update step when form state changes
   useEffect(() => {
-    // Only automatically navigate to confirmation step when showSuccess is true
-    // or from earlier steps to later ones when selections are made
-    // Do NOT auto-navigate from guest-info to verify-phone
     if (showSuccess) {
       setStep('confirmation');
       return;
@@ -53,27 +47,22 @@ export const useBookingWorkflow = (
       return;
     }
     
-    // Don't automatically move to verify-phone from guest-info
-    // Let the user click continue instead
     if ((formState.guestName === '' || formState.guestPhone === '') && 
         step !== 'verify-phone' && step !== 'notes' && step !== 'confirmation') {
       setStep('guest-info');
       return;
     }
     
-    // Only stay on verify-phone if we're already there, don't auto-navigate to it
     if (!formState.isPhoneVerified && step === 'verify-phone') {
       return;
     }
     
-    // Only move to notes if we're coming from verify-phone or later steps
     if (formState.isPhoneVerified && 
         (step === 'verify-phone' || step === 'notes' || step === 'confirmation')) {
       setStep('notes');
     }
   }, [formState, showSuccess, step]);
 
-  // Step handlers
   const handleSelectBarber = (barberId: string) => {
     updateFormState({ selectedBarber: barberId, selectedService: null, selectedServiceDetails: null });
     fetchBarberServices(barberId);
@@ -133,21 +122,18 @@ export const useBookingWorkflow = (
       return;
     }
     
-    // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formState.guestEmail)) {
       toast.error('Please enter a valid email address');
       return;
     }
     
-    // Simple phone validation
     const phoneRegex = /^\+?[0-9]{10,15}$/;
     if (!phoneRegex.test(formState.guestPhone.replace(/\s+/g, ''))) {
       toast.error('Please enter a valid phone number');
       return;
     }
     
-    // Go to verification step only when the continue button is clicked
     setStep('verify-phone');
   };
 
@@ -195,7 +181,6 @@ export const useBookingWorkflow = (
       if (result) {
         console.log('Booking created successfully:', result);
         
-        // Get barber and service details for the email
         const { data: barberData } = await supabase
           .from('barbers')
           .select('name')
@@ -208,7 +193,6 @@ export const useBookingWorkflow = (
           .eq('id', selectedService)
           .single();
           
-        // Send confirmation email
         try {
           const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-booking-email', {
             body: {
@@ -233,7 +217,6 @@ export const useBookingWorkflow = (
           console.error('Failed to send confirmation email:', emailError);
         }
         
-        // Send SMS confirmation
         try {
           const { data: smsData, error: smsError } = await supabase.functions.invoke('send-booking-sms', {
             body: {
@@ -242,24 +225,23 @@ export const useBookingWorkflow = (
               bookingCode: result.bookingCode,
               bookingId: result.id,
               bookingDate: formattedDate,
-              bookingTime: selectedTime
+              bookingTime: selectedTime,
+              barberName: barberData?.name || '',
+              serviceName: serviceData?.name || ''
             }
           });
           
           console.log('SMS notification result:', smsData);
           
-          // Create the complete booking result with SMS status
           const bookingDetails = {
             id: result.id,
             bookingCode: result.bookingCode,
             twilioResult: smsData
           };
           
-          // Set the booking result for display on confirmation page
           setBookingResult(bookingDetails);
         } catch (smsError) {
           console.error('Failed to send confirmation SMS:', smsError);
-          // Still set booking result even if SMS fails
           setBookingResult({
             id: result.id,
             bookingCode: result.bookingCode,
@@ -273,7 +255,6 @@ export const useBookingWorkflow = (
       }
     } catch (error) {
       console.error('Booking error:', error);
-      // Error is already handled in useGuestBookings hook
     }
   };
 
