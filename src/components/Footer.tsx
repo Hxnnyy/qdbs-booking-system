@@ -140,12 +140,11 @@ const Footer: React.FC = () => {
                 rel="noopener noreferrer" 
                 className="flex items-center"
               >
-                <img 
+                Made by <img 
                   src={HunnyLogo} 
-                  alt="Made by Hunny" 
-                  className="h-6 w-auto mr-2" 
+                  alt="Hunny" 
+                  className="h-6 w-auto ml-2" 
                 />
-                Made by Hunny
               </a>
             </motion.div>
           </div>
