@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { NotificationTemplatesForm } from '@/components/admin/notification/NotificationTemplatesForm';
@@ -13,6 +14,19 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, For
 import { useForm } from 'react-hook-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+
+// Define types for system settings since they're not in the generated Supabase types
+interface SystemSettings {
+  id: string;
+  setting_type: string;
+  settings: {
+    days_before: number;
+    reminder_time: string;
+    send_reminders: boolean;
+  };
+  created_at?: string;
+  updated_at?: string;
+}
 
 const NotificationSettings = () => {
   const [testEmail, setTestEmail] = useState('');
@@ -39,9 +53,23 @@ const NotificationSettings = () => {
   useEffect(() => {
     const fetchReminderSettings = async () => {
       try {
-        const { data: tableExists } = await supabase.rpc('check_table_exists', { 
-          table_name: 'system_settings' 
-        });
+        // Check if the table exists using raw query instead of RPC
+        const { data: tableExists, error: tableCheckError } = await supabase
+          .from('_system_table_check')
+          .select('exists')
+          .eq('table_name', 'system_settings')
+          .maybeSingle()
+          .then(res => ({ 
+            data: res.data ? true : false, 
+            error: res.error 
+          }))
+          .catch(() => ({ data: false, error: null }));
+        
+        if (tableCheckError) {
+          console.log('Error checking table existence, assuming it does not exist');
+          setIsLoadingSettings(false);
+          return;
+        }
         
         if (!tableExists) {
           console.log('Table system_settings does not exist, using default settings');
@@ -49,11 +77,12 @@ const NotificationSettings = () => {
           return;
         }
         
+        // Fetch settings using a generic query
         const { data, error } = await supabase
           .from('system_settings')
           .select('*')
           .eq('setting_type', 'reminder_settings')
-          .maybeSingle();
+          .maybeSingle() as { data: SystemSettings | null, error: any };
         
         if (error) {
           console.error('Error fetching reminder settings:', error);
@@ -65,7 +94,7 @@ const NotificationSettings = () => {
           setReminderSettings(settings);
           reminderForm.reset(settings);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching reminder settings:', error);
         toast.error('Failed to load reminder settings');
       } finally {
@@ -101,7 +130,7 @@ const NotificationSettings = () => {
 
       if (error) throw error;
       toast.success(`Test email sent to ${testEmail}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending test email:', error);
       toast.error(`Failed to send test email: ${error.message || 'Unknown error'}`);
     } finally {
@@ -132,7 +161,7 @@ const NotificationSettings = () => {
 
       if (error) throw error;
       toast.success(`Test SMS sent to ${testPhone}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending test SMS:', error);
       toast.error(`Failed to send test SMS: ${error.message || 'Unknown error'}`);
     } finally {
@@ -140,42 +169,58 @@ const NotificationSettings = () => {
     }
   };
 
-  const onSubmitReminderSettings = async (values) => {
+  const onSubmitReminderSettings = async (values: typeof reminderSettings) => {
     setIsSavingSettings(true);
     try {
-      const { data: tableExists } = await supabase.rpc('check_table_exists', { 
-        table_name: 'system_settings' 
-      });
+      // Check if table exists using a direct query instead of RPC
+      const { data: tableExists, error: checkError } = await supabase
+        .from('_system_table_check')
+        .select('exists')
+        .eq('table_name', 'system_settings')
+        .maybeSingle()
+        .then(res => ({ 
+          data: res.data ? true : false, 
+          error: res.error 
+        }))
+        .catch(() => ({ data: false, error: null }));
       
-      if (!tableExists) {
-        await supabase.rpc('create_system_settings_table');
+      if (checkError) {
+        console.log('Error checking table existence, trying to create it anyway');
       }
       
-      const { data, error: fetchError } = await supabase
+      if (!tableExists) {
+        // Create the table using a raw SQL query through an edge function
+        await supabase.functions.invoke('create-system-settings-table', {
+          body: {}
+        });
+      }
+      
+      // Check if settings already exist
+      const { data: existingSettings, error: fetchError } = await supabase
         .from('system_settings')
         .select('id')
         .eq('setting_type', 'reminder_settings')
-        .maybeSingle();
+        .maybeSingle() as { data: { id: string } | null, error: any };
       
-      if (fetchError) {
+      if (fetchError && fetchError.code !== 'PGRST116') { // Ignore "no rows returned" error
         throw fetchError;
       }
       
       let result;
       
-      if (data) {
+      if (existingSettings) {
+        // Update existing settings
         result = await supabase
-          .from('system_settings')
-          .update({
-            settings: values
-          })
-          .eq('id', data.id);
+          .rpc('update_system_settings', {
+            p_id: existingSettings.id,
+            p_settings: values
+          });
       } else {
+        // Insert new settings
         result = await supabase
-          .from('system_settings')
-          .insert({
-            setting_type: 'reminder_settings',
-            settings: values
+          .rpc('insert_system_settings', {
+            p_setting_type: 'reminder_settings',
+            p_settings: values
           });
       }
       
@@ -192,7 +237,7 @@ const NotificationSettings = () => {
         console.error('Error updating cron schedule:', cronError);
         toast.warning('Settings saved but scheduler update failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving reminder settings:', error);
       toast.error(`Failed to save settings: ${error.message || 'Unknown error'}`);
     } finally {
@@ -222,7 +267,7 @@ const NotificationSettings = () => {
       if (error) throw error;
       toast.success(`Test reminder SMS sent to ${testReminderPhone}`);
       setShowTestReminderInput(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending test reminder:', error);
       toast.error(`Failed to send test reminder: ${error.message || 'Unknown error'}`);
     } finally {

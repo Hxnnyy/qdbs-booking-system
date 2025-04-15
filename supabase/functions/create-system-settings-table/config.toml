@@ -1,0 +1,3 @@
+
+[functions.create-system-settings-table]
+verify_jwt = true
