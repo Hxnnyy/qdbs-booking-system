@@ -10,6 +10,7 @@ const corsHeaders = {
 interface ReminderRequestBody {
   specificBookingId?: string; // Optional - to send a reminder for a specific booking
   testMode?: boolean; // For testing purposes
+  testPhone?: string; // Phone number for test reminders
   days_before?: number; // Days before the appointment to look for
 }
 
@@ -57,7 +58,46 @@ const handler = async (req: Request): Promise<Response> => {
   }
   
   try {
-    const { specificBookingId, testMode, days_before = 1 } = await req.json() as ReminderRequestBody;
+    const { specificBookingId, testMode, testPhone, days_before = 1 } = await req.json() as ReminderRequestBody;
+    
+    // For test mode with a phone number, send a test reminder with dummy data
+    if (testMode && testPhone) {
+      console.log(`Sending test reminder to: ${testPhone}`);
+      
+      // Create dummy appointment data
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const dummyBookingData = {
+        phone: testPhone,
+        name: "Test Customer",
+        bookingCode: "TEST123",
+        bookingId: "test-booking-id",
+        bookingDate: tomorrow.toISOString().split('T')[0],
+        bookingTime: "14:00",
+        barberName: "Test Barber",
+        serviceName: "Test Haircut",
+        isReminder: true
+      };
+      
+      // Send the test SMS
+      const { error: smsError } = await supabase.functions.invoke('send-booking-sms', {
+        body: dummyBookingData
+      });
+      
+      if (smsError) {
+        throw new Error(`Error sending test SMS: ${smsError.message}`);
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Test reminder SMS sent to ${testPhone}`,
+          results: [{ booking_id: 'test-booking-id', success: true, message: "Test reminder sent" }]
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     // Calculate the target date based on days_before
     const targetDate = new Date();

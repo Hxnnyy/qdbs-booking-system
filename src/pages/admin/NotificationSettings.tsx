@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 const NotificationSettings = () => {
   const [testEmail, setTestEmail] = useState('');
   const [testPhone, setTestPhone] = useState('');
+  const [testReminderPhone, setTestReminderPhone] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [reminderSettings, setReminderSettings] = useState({
     days_before: 1,
@@ -26,6 +27,7 @@ const NotificationSettings = () => {
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [showTestReminderInput, setShowTestReminderInput] = useState(false);
 
   const reminderForm = useForm({
     defaultValues: {
@@ -38,6 +40,17 @@ const NotificationSettings = () => {
   useEffect(() => {
     const fetchReminderSettings = async () => {
       try {
+        // Check for system_settings table first
+        const { data: tableExists } = await supabase
+          .rpc('check_table_exists', { table_name: 'system_settings' });
+        
+        if (!tableExists) {
+          console.log('Table system_settings does not exist, using default settings');
+          setIsLoadingSettings(false);
+          return;
+        }
+        
+        // If table exists, fetch settings
         const { data, error } = await supabase
           .from('system_settings')
           .select('*')
@@ -136,7 +149,16 @@ const NotificationSettings = () => {
   const onSubmitReminderSettings = async (values) => {
     setIsSavingSettings(true);
     try {
-      // First check if settings already exist
+      // First check if system_settings table exists
+      const { data: tableExists } = await supabase
+        .rpc('check_table_exists', { table_name: 'system_settings' });
+      
+      if (!tableExists) {
+        // Create the table if it doesn't exist
+        await supabase.rpc('create_system_settings_table');
+      }
+      
+      // Check if settings already exist
       const { data, error } = await supabase
         .from('system_settings')
         .select('id')
@@ -185,17 +207,28 @@ const NotificationSettings = () => {
     }
   };
 
-  const handleSendTestReminder = async () => {
+  const handleSendTestReminder = () => {
+    setShowTestReminderInput(true);
+  };
+  
+  const submitTestReminder = async () => {
+    if (!testReminderPhone.trim()) {
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+    
     try {
       setIsSendingTest(true);
       const { error } = await supabase.functions.invoke('send-booking-reminder', {
         body: {
-          testMode: true
+          testMode: true,
+          testPhone: testReminderPhone
         }
       });
       
       if (error) throw error;
-      toast.success('Test reminder executed successfully');
+      toast.success(`Test reminder SMS sent to ${testReminderPhone}`);
+      setShowTestReminderInput(false);
     } catch (error) {
       console.error('Error sending test reminder:', error);
       toast.error(`Failed to send test reminder: ${error.message || 'Unknown error'}`);
@@ -305,14 +338,42 @@ const NotificationSettings = () => {
                   </div>
                   
                   <div className="flex justify-between items-center pt-2">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={handleSendTestReminder}
-                      disabled={isSendingTest || isLoadingSettings}
-                    >
-                      {isSendingTest ? 'Sending...' : 'Send Test Reminder'}
-                    </Button>
+                    {!showTestReminderInput ? (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleSendTestReminder}
+                        disabled={isSendingTest || isLoadingSettings}
+                      >
+                        {isSendingTest ? 'Sending...' : 'Send Test Reminder'}
+                      </Button>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-1 max-w-md">
+                        <Input
+                          type="tel"
+                          placeholder="Enter phone number for test"
+                          value={testReminderPhone}
+                          onChange={(e) => setTestReminderPhone(e.target.value)}
+                          disabled={isSendingTest}
+                        />
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={submitTestReminder}
+                          disabled={isSendingTest}
+                        >
+                          {isSendingTest ? 'Sending...' : 'Send'}
+                        </Button>
+                        <Button 
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setShowTestReminderInput(false)}
+                          disabled={isSendingTest}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
                     
                     <Button 
                       type="submit" 
