@@ -15,17 +15,11 @@ import { useForm } from 'react-hook-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
-// Define types for system settings since they're not in the generated Supabase types
-interface SystemSettings {
-  id: string;
-  setting_type: string;
-  settings: {
-    days_before: number;
-    reminder_time: string;
-    send_reminders: boolean;
-  };
-  created_at?: string;
-  updated_at?: string;
+// Define types for system settings 
+interface ReminderSettings {
+  days_before: number;
+  reminder_time: string;
+  send_reminders: boolean;
 }
 
 const NotificationSettings = () => {
@@ -33,7 +27,7 @@ const NotificationSettings = () => {
   const [testPhone, setTestPhone] = useState('');
   const [testReminderPhone, setTestReminderPhone] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
-  const [reminderSettings, setReminderSettings] = useState({
+  const [reminderSettings, setReminderSettings] = useState<ReminderSettings>({
     days_before: 1,
     reminder_time: '10:00',
     send_reminders: true
@@ -42,7 +36,7 @@ const NotificationSettings = () => {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [showTestReminderInput, setShowTestReminderInput] = useState(false);
 
-  const reminderForm = useForm({
+  const reminderForm = useForm<ReminderSettings>({
     defaultValues: {
       days_before: 1,
       reminder_time: '10:00',
@@ -53,44 +47,18 @@ const NotificationSettings = () => {
   useEffect(() => {
     const fetchReminderSettings = async () => {
       try {
-        // Check if the table exists using raw query instead of RPC
-        const { data: tableExists, error: tableCheckError } = await supabase
-          .from('_system_table_check')
-          .select('exists')
-          .eq('table_name', 'system_settings')
-          .maybeSingle()
-          .then(res => ({ 
-            data: res.data ? true : false, 
-            error: res.error 
-          }))
-          .catch(() => ({ data: false, error: null }));
-        
-        if (tableCheckError) {
-          console.log('Error checking table existence, assuming it does not exist');
-          setIsLoadingSettings(false);
-          return;
-        }
-        
-        if (!tableExists) {
-          console.log('Table system_settings does not exist, using default settings');
-          setIsLoadingSettings(false);
-          return;
-        }
-        
-        // Fetch settings using a generic query
-        const { data, error } = await supabase
-          .from('system_settings')
-          .select('*')
-          .eq('setting_type', 'reminder_settings')
-          .maybeSingle() as { data: SystemSettings | null, error: any };
-        
+        // Fetch settings using our edge function instead of direct DB access
+        const { data: settingsData, error } = await supabase.functions.invoke('create-system-settings-table', {
+          body: { action: 'get_settings', setting_type: 'reminder_settings' }
+        });
+
         if (error) {
           console.error('Error fetching reminder settings:', error);
           throw error;
         }
         
-        if (data) {
-          const settings = data.settings;
+        if (settingsData && settingsData.settings) {
+          const settings = settingsData.settings;
           setReminderSettings(settings);
           reminderForm.reset(settings);
         }
@@ -169,66 +137,24 @@ const NotificationSettings = () => {
     }
   };
 
-  const onSubmitReminderSettings = async (values: typeof reminderSettings) => {
+  const onSubmitReminderSettings = async (values: ReminderSettings) => {
     setIsSavingSettings(true);
     try {
-      // Check if table exists using a direct query instead of RPC
-      const { data: tableExists, error: checkError } = await supabase
-        .from('_system_table_check')
-        .select('exists')
-        .eq('table_name', 'system_settings')
-        .maybeSingle()
-        .then(res => ({ 
-          data: res.data ? true : false, 
-          error: res.error 
-        }))
-        .catch(() => ({ data: false, error: null }));
+      // Use our edge function to save settings instead of direct DB access
+      const { data, error } = await supabase.functions.invoke('create-system-settings-table', {
+        body: { 
+          action: 'save_settings', 
+          setting_type: 'reminder_settings',
+          settings: values
+        }
+      });
       
-      if (checkError) {
-        console.log('Error checking table existence, trying to create it anyway');
-      }
-      
-      if (!tableExists) {
-        // Create the table using a raw SQL query through an edge function
-        await supabase.functions.invoke('create-system-settings-table', {
-          body: {}
-        });
-      }
-      
-      // Check if settings already exist
-      const { data: existingSettings, error: fetchError } = await supabase
-        .from('system_settings')
-        .select('id')
-        .eq('setting_type', 'reminder_settings')
-        .maybeSingle() as { data: { id: string } | null, error: any };
-      
-      if (fetchError && fetchError.code !== 'PGRST116') { // Ignore "no rows returned" error
-        throw fetchError;
-      }
-      
-      let result;
-      
-      if (existingSettings) {
-        // Update existing settings
-        result = await supabase
-          .rpc('update_system_settings', {
-            p_id: existingSettings.id,
-            p_settings: values
-          });
-      } else {
-        // Insert new settings
-        result = await supabase
-          .rpc('insert_system_settings', {
-            p_setting_type: 'reminder_settings',
-            p_settings: values
-          });
-      }
-      
-      if (result.error) throw result.error;
+      if (error) throw error;
       
       setReminderSettings(values);
       toast.success('Reminder settings saved successfully');
       
+      // Update the cron schedule
       const { error: cronError } = await supabase.functions.invoke('update-reminder-schedule', {
         body: values
       });
