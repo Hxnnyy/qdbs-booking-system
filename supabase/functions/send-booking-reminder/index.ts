@@ -10,6 +10,7 @@ const corsHeaders = {
 interface ReminderRequestBody {
   specificBookingId?: string; // Optional - to send a reminder for a specific booking
   testMode?: boolean; // For testing purposes
+  days_before?: number; // Days before the appointment to look for
 }
 
 interface BookingWithDetails {
@@ -56,16 +57,16 @@ const handler = async (req: Request): Promise<Response> => {
   }
   
   try {
-    const { specificBookingId, testMode } = await req.json() as ReminderRequestBody;
+    const { specificBookingId, testMode, days_before = 1 } = await req.json() as ReminderRequestBody;
     
-    // Calculate tomorrow's date (for reminders 24 hours in advance)
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowFormatted = tomorrow.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    // Calculate the target date based on days_before
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + days_before);
+    const targetDateFormatted = targetDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
     
-    console.log(`Looking for bookings on: ${tomorrowFormatted}`);
+    console.log(`Looking for bookings on: ${targetDateFormatted} (${days_before} days from now)`);
     
-    // Query to get bookings that are scheduled for tomorrow
+    // Query to get bookings that are scheduled for the target date
     let query = supabase
       .from('bookings')
       .select(`
@@ -75,12 +76,12 @@ const handler = async (req: Request): Promise<Response> => {
       `)
       .eq('status', 'confirmed');
     
-    // If specific booking ID is provided, use that instead of tomorrow's date
+    // If specific booking ID is provided, use that instead of the target date
     if (specificBookingId) {
       query = query.eq('id', specificBookingId);
     } else if (!testMode) {
-      // In normal mode, get bookings for tomorrow
-      query = query.eq('booking_date', tomorrowFormatted);
+      // In normal mode, get bookings for the target date
+      query = query.eq('booking_date', targetDateFormatted);
     }
     
     const { data: bookings, error } = await query;

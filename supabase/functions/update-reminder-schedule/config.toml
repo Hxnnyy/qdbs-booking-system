@@ -1,0 +1,3 @@
+
+[functions.update-reminder-schedule]
+verify_jwt = true
