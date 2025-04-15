@@ -1,7 +1,10 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Facebook, Instagram, Twitter, Scissors, MapPin, Phone, Mail } from 'lucide-react';
+import HunnyLogo from '/lovable-uploads/def3cdf0-f1b0-48d3-887d-4e68135aebd4.png';
+
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   return <footer className="bg-secondary border-t border-border">
@@ -126,21 +129,23 @@ const Footer: React.FC = () => {
             © {currentYear} Queens Dock Barbershop. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0">
-            <motion.div initial={{
-            opacity: 0,
-            y: 10
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.2,
-            duration: 0.5
-          }} className="text-burgundy text-xs px-3 py-1 rounded-full font-playfair bg-slate-50">
-              Traditional Barbering Since 2015
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="flex items-center text-burgundy text-xs px-3 py-1 rounded-full font-playfair bg-slate-50"
+            >
+              <img 
+                src={HunnyLogo} 
+                alt="Made by Hunny" 
+                className="h-6 w-auto mr-2" 
+              />
+              Made by Hunny
             </motion.div>
           </div>
         </div>
       </div>
     </footer>;
 };
+
 export default Footer;
