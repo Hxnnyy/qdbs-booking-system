@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Facebook, Instagram, Twitter, Scissors, MapPin, Phone, Mail } from 'lucide-react';
-import HunnyLogo from '/lovable-uploads/def3cdf0-f1b0-48d3-887d-4e68135aebd4.png';
+import HunnyLogo from '/lovable-uploads/a5f4dd41-7ea5-4424-9f6e-975419a443d2.png';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -135,12 +134,19 @@ const Footer: React.FC = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="flex items-center text-burgundy text-xs px-3 py-1 rounded-full font-playfair bg-slate-50"
             >
-              <img 
-                src={HunnyLogo} 
-                alt="Made by Hunny" 
-                className="h-6 w-auto mr-2" 
-              />
-              Made by Hunny
+              <a 
+                href="https://hunny.agency/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex items-center"
+              >
+                <img 
+                  src={HunnyLogo} 
+                  alt="Made by Hunny" 
+                  className="h-6 w-auto mr-2" 
+                />
+                Made by Hunny
+              </a>
             </motion.div>
           </div>
         </div>
