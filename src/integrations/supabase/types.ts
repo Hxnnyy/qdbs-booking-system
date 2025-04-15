@@ -330,6 +330,14 @@ export type Database = {
         Args: { p_barber_id: string; p_date: string; p_start_time: string }
         Returns: boolean
       }
+      check_table_exists: {
+        Args: { table_name: string }
+        Returns: boolean
+      }
+      create_system_settings_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_user_emails_by_ids: {
         Args: { user_ids: string[] }
         Returns: {

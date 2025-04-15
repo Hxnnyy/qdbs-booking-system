@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { NotificationTemplatesForm } from '@/components/admin/notification/NotificationTemplatesForm';
@@ -40,9 +39,9 @@ const NotificationSettings = () => {
   useEffect(() => {
     const fetchReminderSettings = async () => {
       try {
-        // Check for system_settings table first
-        const { data: tableExists } = await supabase
-          .rpc('check_table_exists', { table_name: 'system_settings' });
+        const { data: tableExists } = await supabase.rpc('check_table_exists', { 
+          table_name: 'system_settings' 
+        });
         
         if (!tableExists) {
           console.log('Table system_settings does not exist, using default settings');
@@ -50,20 +49,15 @@ const NotificationSettings = () => {
           return;
         }
         
-        // If table exists, fetch settings
         const { data, error } = await supabase
           .from('system_settings')
           .select('*')
           .eq('setting_type', 'reminder_settings')
-          .single();
+          .maybeSingle();
         
         if (error) {
-          if (error.code === 'PGRST116') {
-            // No settings found, we'll create default ones later
-            console.log('No reminder settings found, using defaults');
-          } else {
-            throw error;
-          }
+          console.error('Error fetching reminder settings:', error);
+          throw error;
         }
         
         if (data) {
@@ -149,26 +143,27 @@ const NotificationSettings = () => {
   const onSubmitReminderSettings = async (values) => {
     setIsSavingSettings(true);
     try {
-      // First check if system_settings table exists
-      const { data: tableExists } = await supabase
-        .rpc('check_table_exists', { table_name: 'system_settings' });
+      const { data: tableExists } = await supabase.rpc('check_table_exists', { 
+        table_name: 'system_settings' 
+      });
       
       if (!tableExists) {
-        // Create the table if it doesn't exist
         await supabase.rpc('create_system_settings_table');
       }
       
-      // Check if settings already exist
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('system_settings')
         .select('id')
         .eq('setting_type', 'reminder_settings')
-        .single();
+        .maybeSingle();
+      
+      if (fetchError) {
+        throw fetchError;
+      }
       
       let result;
       
       if (data) {
-        // Update existing settings
         result = await supabase
           .from('system_settings')
           .update({
@@ -176,7 +171,6 @@ const NotificationSettings = () => {
           })
           .eq('id', data.id);
       } else {
-        // Insert new settings
         result = await supabase
           .from('system_settings')
           .insert({
@@ -190,7 +184,6 @@ const NotificationSettings = () => {
       setReminderSettings(values);
       toast.success('Reminder settings saved successfully');
       
-      // Trigger the function to update the cron job
       const { error: cronError } = await supabase.functions.invoke('update-reminder-schedule', {
         body: values
       });
@@ -246,7 +239,6 @@ const NotificationSettings = () => {
         </p>
         
         <div className="space-y-8">
-          {/* Reminder Settings Card */}
           <Card className="w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -387,7 +379,6 @@ const NotificationSettings = () => {
             </CardContent>
           </Card>
 
-          {/* Test Notifications Card */}
           <Card className="w-full">
             <CardHeader>
               <CardTitle>Test Notifications</CardTitle>
