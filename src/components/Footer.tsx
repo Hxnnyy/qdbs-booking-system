@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Facebook, Instagram, Twitter, Scissors, MapPin, Phone, Mail } from 'lucide-react';
-import HunnyLogo from '/lovable-uploads/a5f4dd41-7ea5-4424-9f6e-975419a443d2.png';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -140,11 +139,17 @@ const Footer: React.FC = () => {
                 rel="noopener noreferrer" 
                 className="flex items-center"
               >
-                <img 
-                  src={HunnyLogo} 
-                  alt="Made by Hunny" 
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 97 80" 
                   className="h-6 w-auto mr-2" 
-                />
+                  fill="currentColor"
+                >
+                  <path d="M37.6964 0L57.8707 41.1894L30.6666 80H10.4922L37.6964 41.1894L17.5221 0H37.6964Z"/>
+                  <path d="M54.1741 0L67.8288 23.7975L61.5674 34.3943L41.3931 0H54.1741Z"/>
+                  <path d="M77.0307 0L97.0002 38.9559L76.8259 80H57.0732L77.2475 38.9559L57.0732 0H77.0307Z"/>
+                  <path d="M0.999984 38.9559L21.3765 0H34.1575L13.7809 38.9559L33.9552 80H21.1742L0.999984 38.9559Z"/>
+                </svg>
                 Made by Hunny
               </a>
             </motion.div>
