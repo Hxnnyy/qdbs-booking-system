@@ -132,7 +132,7 @@ const Footer: React.FC = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className="flex items-center text-burgundy text-xs px-3 py-1 rounded-full font-playfair bg-slate-50"
+              className="flex items-center justify-center text-burgundy text-xs px-3 py-1 rounded-full font-playfair bg-slate-50"
             >
               <a 
                 href="https://hunny.agency/" 
@@ -140,10 +140,10 @@ const Footer: React.FC = () => {
                 rel="noopener noreferrer" 
                 className="flex items-center"
               >
-                Made by <img 
+                <img 
                   src={HunnyLogo} 
                   alt="Hunny" 
-                  className="h-6 w-auto ml-2" 
+                  className="h-6 w-auto" 
                 />
               </a>
             </motion.div>
