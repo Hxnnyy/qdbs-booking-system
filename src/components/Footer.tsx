@@ -6,7 +6,8 @@ import HunnyLogo from '@/assets/images/hunny-logo.svg';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
-  return <footer className="bg-secondary border-t border-border">
+  return (
+    <footer className="bg-secondary border-t border-border">
       <div className="container mx-auto px-4 md:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <div className="space-y-4">
@@ -143,14 +144,15 @@ const Footer: React.FC = () => {
                 <img 
                   src={HunnyLogo} 
                   alt="Hunny" 
-                  className="h-6 w-auto" 
+                  className="h-10 w-auto" 
                 />
               </a>
             </motion.div>
           </div>
         </div>
       </div>
-    </footer>;
+    </footer>
+  );
 };
 
 export default Footer;
