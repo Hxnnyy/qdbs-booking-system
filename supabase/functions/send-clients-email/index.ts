@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const fromEmail = "Queens Dock Barbershop <onboarding@resend.dev>";
+const fromEmail = "Queens Dock Barbershop <bookings@queensdockbarbershop.co.uk>";
 
 serve(async (req) => {
   // Handle CORS preflight requests

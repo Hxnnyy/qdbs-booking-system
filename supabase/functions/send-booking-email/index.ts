@@ -82,25 +82,6 @@ const handler = async (req: Request): Promise<Response> => {
       subject
     } = await req.json() as EmailRequestBody;
 
-    // Check if this is a test email to an unverified domain
-    const isTestEmail = bookingId === 'test-booking';
-    const verifiedEmail = 'chris@queensdockbarbershop.co.uk';
-    
-    if (isTestEmail && to !== verifiedEmail) {
-      console.log(`Test email attempted to ${to}, but only ${verifiedEmail} is verified`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `Test emails can only be sent to the verified domain email: ${verifiedEmail}. Please verify your domain at resend.com/domains to send emails to other addresses.`,
-          isTestRestriction: true
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400
-        }
-      );
-    }
-
     // Create a nicely formatted date
     const dateObj = new Date(bookingDate);
     const formattedDate = dateObj.toLocaleDateString('en-GB', {
@@ -260,9 +241,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending booking confirmation email to ${to} for booking ${bookingId}`);
     
-    // Send the email using Resend
+    // Send the email using Resend with verified domain
     const { data, error } = await resend.emails.send({
-      from: 'Queens Dock Barbershop <onboarding@resend.dev>',
+      from: 'Queens Dock Barbershop <bookings@queensdockbarbershop.co.uk>',
       to: [to],
       subject: emailSubject,
       html: emailHtml
