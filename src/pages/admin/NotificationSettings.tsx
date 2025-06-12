@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, MessageSquare, Bell, AlarmClock, Settings } from 'lucide-react';
+import { Mail, MessageSquare, Bell, AlarmClock, Settings, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Define types for system settings 
 interface ReminderSettings {
@@ -35,6 +36,7 @@ const NotificationSettings = () => {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [showTestReminderInput, setShowTestReminderInput] = useState(false);
+  const [emailTestError, setEmailTestError] = useState<string | null>(null);
 
   const reminderForm = useForm<ReminderSettings>({
     defaultValues: {
@@ -80,8 +82,10 @@ const NotificationSettings = () => {
     }
 
     setIsSendingTest(true);
+    setEmailTestError(null);
+    
     try {
-      const { error } = await supabase.functions.invoke('send-booking-email', {
+      const { data, error } = await supabase.functions.invoke('send-booking-email', {
         body: {
           to: testEmail,
           name: 'Test Customer',
@@ -97,10 +101,23 @@ const NotificationSettings = () => {
       });
 
       if (error) throw error;
-      toast.success(`Test email sent to ${testEmail}`);
+      
+      if (data && !data.success) {
+        if (data.isTestRestriction) {
+          setEmailTestError(data.message);
+          toast.error(data.message);
+        } else {
+          throw new Error(data.message);
+        }
+      } else {
+        toast.success(`Test email sent to ${testEmail}`);
+        setEmailTestError(null);
+      }
     } catch (error: any) {
       console.error('Error sending test email:', error);
-      toast.error(`Failed to send test email: ${error.message || 'Unknown error'}`);
+      const errorMessage = error.message || 'Unknown error';
+      setEmailTestError(errorMessage);
+      toast.error(`Failed to send test email: ${errorMessage}`);
     } finally {
       setIsSendingTest(false);
     }
@@ -372,6 +389,14 @@ const NotificationSettings = () => {
                 
                 <TabsContent value="email">
                   <div className="flex flex-col gap-4">
+                    {emailTestError && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          {emailTestError}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="test-email" className="text-right">Email Address</Label>
                       <Input

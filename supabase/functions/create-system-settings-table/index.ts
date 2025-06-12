@@ -1,248 +1,154 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Initialize Supabase client with service role key for admin operations
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") || "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
 );
 
-serve(async (req: Request) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+interface SystemSettingsRequest {
+  action: 'get_settings' | 'save_settings';
+  setting_type: string;
+  settings?: any;
+}
 
+const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight request
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+  
   try {
-    // Parse request body
-    const requestData = await req.json();
-    const { action = 'create_table', setting_type = null, settings = null } = requestData;
-    
+    const { action, setting_type, settings }: SystemSettingsRequest = await req.json();
     console.log(`Action: ${action}, Setting type: ${setting_type}`);
     
-    // Different actions based on the request
-    if (action === 'create_table') {
-      return await createSystemSettingsTable();
-    } else if (action === 'get_settings') {
-      return await getSettings(setting_type);
-    } else if (action === 'save_settings') {
-      return await saveSettings(setting_type, settings);
-    } else {
-      throw new Error('Invalid action specified');
+    // First, ensure the system_settings table exists
+    await ensureSystemSettingsTable();
+    
+    if (action === 'get_settings') {
+      console.log(`Fetching settings for type: ${setting_type}`);
+      
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('settings')
+        .eq('setting_type', setting_type)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+        console.error('Error fetching settings:', error);
+        throw error;
+      }
+      
+      // Return default settings if none exist
+      const defaultSettings = getDefaultSettings(setting_type);
+      const settingsData = data?.settings || defaultSettings;
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          settings: settingsData 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+    
+    if (action === 'save_settings') {
+      console.log(`Saving settings for type: ${setting_type}`, settings);
+      
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          setting_type,
+          settings,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'setting_type'
+        });
+      
+      if (error) {
+        console.error('Error saving settings:', error);
+        throw error;
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Settings saved successfully' 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    throw new Error('Invalid action');
+    
   } catch (error) {
-    console.error('Error in create-system-settings-table function:', error);
+    console.error("Error in create-system-settings-table function:", error);
     
     return new Response(
-      JSON.stringify({ success: false, message: error.message || 'An unknown error occurred' }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      JSON.stringify({
+        success: false,
+        message: error.message || "Error processing system settings"
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500
       }
     );
   }
-});
+};
 
-async function createSystemSettingsTable() {
-  console.log('Creating system_settings table if it does not exist');
-  
-  // Check if the table exists using raw query
-  const { data: tableExists, error: checkError } = await supabase
-    .from('pg_tables')
-    .select('tablename')
-    .eq('schemaname', 'public')
-    .eq('tablename', 'system_settings')
-    .maybeSingle();
-  
-  if (checkError) {
-    console.error('Error checking if table exists:', checkError);
-    throw checkError;
-  }
-  
-  if (tableExists) {
-    console.log('Table system_settings already exists');
-    return new Response(
-      JSON.stringify({ success: true, message: 'Table already exists' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-  
-  // Create the table using raw SQL
-  const createTableSQL = `
-    CREATE TABLE IF NOT EXISTS public.system_settings (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      setting_type TEXT NOT NULL,
-      settings JSONB NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-    );
+async function ensureSystemSettingsTable() {
+  try {
+    // Try to create the table if it doesn't exist
+    const { error } = await supabase.rpc('exec_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS public.system_settings (
+          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+          setting_type TEXT UNIQUE NOT NULL,
+          settings JSONB NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        
+        -- Enable RLS
+        ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+        
+        -- Create policy for authenticated users (admins)
+        DROP POLICY IF EXISTS "Allow authenticated users to manage system settings" ON public.system_settings;
+        CREATE POLICY "Allow authenticated users to manage system settings" 
+          ON public.system_settings 
+          FOR ALL 
+          USING (auth.role() = 'authenticated');
+      `
+    });
     
-    ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
-    
-    CREATE POLICY "authenticated_users_can_view_settings" 
-      ON public.system_settings FOR SELECT
-      USING (auth.role() = 'authenticated');
-    
-    CREATE POLICY "admins_can_modify_settings"
-      ON public.system_settings FOR ALL
-      USING (
-        EXISTS (
-          SELECT 1 FROM public.profiles
-          WHERE id = auth.uid() AND (is_admin = true OR is_super_admin = true)
-        )
-      );
-  `;
-  
-  const { error: createError } = await supabase.rpc('exec_sql', { sql: createTableSQL });
-  
-  if (createError) {
-    console.error('Error creating table:', createError);
-    throw createError;
+    if (error) {
+      console.log('Table creation error (might already exist):', error);
+    }
+  } catch (error) {
+    console.log('Error ensuring system_settings table exists:', error);
+    // Don't throw here, table might already exist
   }
-  
-  console.log('Successfully created system_settings table');
-  
-  return new Response(
-    JSON.stringify({ success: true, message: 'Table created successfully' }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
 }
 
-async function getSettings(settingType: string) {
-  if (!settingType) {
-    throw new Error('Setting type is required');
+function getDefaultSettings(setting_type: string) {
+  switch (setting_type) {
+    case 'reminder_settings':
+      return {
+        days_before: 1,
+        reminder_time: '10:00',
+        send_reminders: true
+      };
+    default:
+      return {};
   }
-  
-  console.log(`Fetching settings for type: ${settingType}`);
-  
-  // Check if the table exists
-  const { data: tableExists, error: checkError } = await supabase
-    .from('pg_tables')
-    .select('tablename')
-    .eq('schemaname', 'public')
-    .eq('tablename', 'system_settings')
-    .maybeSingle();
-  
-  if (checkError) {
-    console.error('Error checking if table exists:', checkError);
-    throw checkError;
-  }
-  
-  if (!tableExists) {
-    console.log('Table system_settings does not exist yet');
-    return new Response(
-      JSON.stringify({ success: true, message: 'Settings table does not exist yet', settings: null }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-  
-  // Fetch the settings
-  const { data, error } = await supabase
-    .from('system_settings')
-    .select('*')
-    .eq('setting_type', settingType)
-    .maybeSingle();
-  
-  if (error) {
-    console.error('Error fetching settings:', error);
-    throw error;
-  }
-  
-  console.log('Settings fetched successfully:', data);
-  
-  return new Response(
-    JSON.stringify({ 
-      success: true, 
-      message: data ? 'Settings found' : 'No settings found',
-      settings: data ? data.settings : null,
-      settingId: data?.id || null
-    }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
 }
 
-async function saveSettings(settingType: string, settings: any) {
-  if (!settingType) {
-    throw new Error('Setting type is required');
-  }
-  
-  if (!settings) {
-    throw new Error('Settings data is required');
-  }
-  
-  console.log(`Saving settings for type: ${settingType}`, settings);
-  
-  // Check if the table exists
-  const { data: tableExists, error: checkError } = await supabase
-    .from('pg_tables')
-    .select('tablename')
-    .eq('schemaname', 'public')
-    .eq('tablename', 'system_settings')
-    .maybeSingle();
-  
-  if (checkError) {
-    console.error('Error checking if table exists:', checkError);
-    throw checkError;
-  }
-  
-  if (!tableExists) {
-    // Create the table first
-    await createSystemSettingsTable();
-  }
-  
-  // Check if settings already exist
-  const { data: existingSettings, error: fetchError } = await supabase
-    .from('system_settings')
-    .select('id')
-    .eq('setting_type', settingType)
-    .maybeSingle();
-  
-  if (fetchError) {
-    console.error('Error checking existing settings:', fetchError);
-    throw fetchError;
-  }
-  
-  let result;
-  
-  if (existingSettings) {
-    // Update existing settings
-    console.log(`Updating existing settings with ID: ${existingSettings.id}`);
-    result = await supabase
-      .from('system_settings')
-      .update({ 
-        settings,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', existingSettings.id);
-  } else {
-    // Insert new settings
-    console.log('Inserting new settings');
-    result = await supabase
-      .from('system_settings')
-      .insert({ 
-        setting_type: settingType,
-        settings
-      });
-  }
-  
-  if (result.error) {
-    console.error('Error saving settings:', result.error);
-    throw result.error;
-  }
-  
-  console.log('Settings saved successfully');
-  
-  return new Response(
-    JSON.stringify({ 
-      success: true, 
-      message: existingSettings ? 'Settings updated' : 'Settings created',
-      settingId: existingSettings?.id || null
-    }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
+serve(handler);
