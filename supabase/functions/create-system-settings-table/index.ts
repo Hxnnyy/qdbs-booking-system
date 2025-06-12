@@ -29,9 +29,6 @@ const handler = async (req: Request): Promise<Response> => {
     const { action, setting_type, settings }: SystemSettingsRequest = await req.json();
     console.log(`Action: ${action}, Setting type: ${setting_type}`);
     
-    // First, ensure the system_settings table exists
-    await ensureSystemSettingsTable();
-    
     if (action === 'get_settings') {
       console.log(`Fetching settings for type: ${setting_type}`);
       
@@ -103,40 +100,6 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 };
-
-async function ensureSystemSettingsTable() {
-  try {
-    // Try to create the table if it doesn't exist
-    const { error } = await supabase.rpc('exec_sql', {
-      sql: `
-        CREATE TABLE IF NOT EXISTS public.system_settings (
-          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-          setting_type TEXT UNIQUE NOT NULL,
-          settings JSONB NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        
-        -- Enable RLS
-        ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
-        
-        -- Create policy for authenticated users (admins)
-        DROP POLICY IF EXISTS "Allow authenticated users to manage system settings" ON public.system_settings;
-        CREATE POLICY "Allow authenticated users to manage system settings" 
-          ON public.system_settings 
-          FOR ALL 
-          USING (auth.role() = 'authenticated');
-      `
-    });
-    
-    if (error) {
-      console.log('Table creation error (might already exist):', error);
-    }
-  } catch (error) {
-    console.log('Error ensuring system_settings table exists:', error);
-    // Don't throw here, table might already exist
-  }
-}
 
 function getDefaultSettings(setting_type: string) {
   switch (setting_type) {
