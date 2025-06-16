@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { GuestBookingData, GuestBookingResult } from '@/types/guestBooking';
-import { createGuestBookingInDb, sendBookingSms } from '@/utils/guestBookingUtils';
+import { createGuestBookingInDb, sendBookingEmail } from '@/utils/guestBookingUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useCreateGuestBooking = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,19 +21,27 @@ export const useCreateGuestBooking = () => {
       // Create the booking in the database
       const data = await createGuestBookingInDb(bookingData, bookingCode);
       
-      // Send SMS notification
-      const twilioResult = await sendBookingSms(
-        bookingData.guest_phone,
+      // Get barber and service names for the email
+      const [barberData, serviceData] = await Promise.all([
+        supabase.from('barbers').select('name').eq('id', bookingData.barber_id).single(),
+        supabase.from('services').select('name').eq('id', bookingData.service_id).single()
+      ]);
+
+      // Send email confirmation
+      const emailResult = await sendBookingEmail(
+        bookingData.guest_email || '',
         bookingData.guest_name,
         bookingCode,
         data.id,
         bookingData.booking_date,
-        bookingData.booking_time
+        bookingData.booking_time,
+        barberData.data?.name || 'Your Barber',
+        serviceData.data?.name || 'Your Service'
       );
 
-      if (!twilioResult.success) {
-        console.error('SMS notification error:', twilioResult.message);
-        // Continue despite SMS error, just log it
+      if (!emailResult.success) {
+        console.error('Email notification error:', emailResult.message);
+        // Continue despite email error, just log it
       }
 
       setBookingCode(bookingCode);
@@ -41,7 +50,11 @@ export const useCreateGuestBooking = () => {
       return {
         bookingData: data,
         bookingCode,
-        twilioResult
+        twilioResult: {
+          success: true,
+          message: 'Booking confirmed via email',
+          isTwilioConfigured: false // No SMS for confirmations anymore
+        }
       };
     } catch (err: any) {
       console.error('Error in createGuestBooking:', err);

@@ -37,7 +37,38 @@ export const createGuestBookingInDb = async (bookingData: GuestBookingData, book
   return data[0];
 };
 
-// Send SMS notification for a booking
+// Send email confirmation for a booking
+export const sendBookingEmail = async (
+  email: string,
+  name: string,
+  bookingCode: string,
+  bookingId: string,
+  bookingDate: string,
+  bookingTime: string,
+  barberName: string,
+  serviceName: string
+) => {
+  const { error } = await supabase.functions.invoke('send-booking-email', {
+    body: {
+      to: email,
+      name,
+      bookingCode,
+      bookingId,
+      bookingDate,
+      bookingTime,
+      barberName,
+      serviceName,
+      isGuest: true
+    }
+  });
+
+  return {
+    success: !error,
+    message: error ? 'Email notification failed' : 'Email notification sent'
+  };
+};
+
+// Send SMS notification for a booking (only for reminders now)
 export const sendBookingSms = async (
   phone: string,
   name: string,

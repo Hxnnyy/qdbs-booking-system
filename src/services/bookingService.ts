@@ -1,3 +1,4 @@
+
 /**
  * Booking Service
  * 
@@ -172,37 +173,36 @@ export const createBooking = async (
         
         console.log('Booking created successfully via edge function:', data);
         
-        // Get the user's profile to retrieve their name and phone number for SMS
+        // Get the user's profile to retrieve their email for confirmation
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('first_name, last_name, phone')
+          .select('first_name, last_name, email')
           .eq('id', userId)
           .single();
           
-        if (!profileError && profile && profile.phone) {
-          // Send confirmation SMS for registered users
+        if (!profileError && profile && profile.email) {
+          // Send confirmation email for registered users
           try {
-            const { error: smsError } = await supabase.functions.invoke('send-booking-sms', {
+            const { error: emailError } = await supabase.functions.invoke('send-booking-email', {
               body: {
-                phone: profile.phone,
-                name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
-                bookingCode: data.id.substring(0, 6), // Use first 6 chars of booking ID as code
+                to: profile.email,
+                name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Customer',
                 bookingId: data.id,
                 bookingDate: bookingData.booking_date,
                 bookingTime: bookingData.booking_time,
-                // Fetch barber and service names for the SMS
-                barberName: (await getBarbersById([bookingData.barber_id]))[0]?.name,
-                serviceName: (await getServicesById([bookingData.service_id]))[0]?.name
+                barberName: (await getBarbersById([bookingData.barber_id]))[0]?.name || 'Your Barber',
+                serviceName: (await getServicesById([bookingData.service_id]))[0]?.name || 'Your Service',
+                isGuest: false
               }
             });
             
-            if (smsError) {
-              console.error('Error sending confirmation SMS:', smsError);
-              // Don't throw error here, we want the booking to succeed even if SMS fails
+            if (emailError) {
+              console.error('Error sending confirmation email:', emailError);
+              // Don't throw error here, we want the booking to succeed even if email fails
             }
-          } catch (smsErr) {
-            console.error('Error invoking SMS function:', smsErr);
-            // Don't throw error here, we want the booking to succeed even if SMS fails
+          } catch (emailErr) {
+            console.error('Error invoking email function:', emailErr);
+            // Don't throw error here, we want the booking to succeed even if email fails
           }
         }
         
