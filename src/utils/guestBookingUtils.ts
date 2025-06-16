@@ -68,7 +68,7 @@ export const sendBookingEmail = async (
   };
 };
 
-// Send SMS notification for a booking (only for reminders now)
+// Send SMS notification for a booking (only for reminders now, NOT for confirmations)
 export const sendBookingSms = async (
   phone: string,
   name: string,
@@ -78,6 +78,9 @@ export const sendBookingSms = async (
   bookingTime: string,
   isUpdate = false
 ) => {
+  // Only send SMS for reminders or updates, NOT for initial confirmations
+  console.log('SMS function called - this should only be for reminders, not confirmations');
+  
   const { error } = await supabase.functions.invoke('send-booking-sms', {
     body: {
       phone,

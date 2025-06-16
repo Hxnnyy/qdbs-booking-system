@@ -82,6 +82,8 @@ const handler = async (req: Request): Promise<Response> => {
       subject
     } = await req.json() as EmailRequestBody;
 
+    console.log(`Sending booking confirmation email to ${to} for booking ${bookingId}, isGuest: ${isGuest}`);
+
     // Create a nicely formatted date
     const dateObj = new Date(bookingDate);
     const formattedDate = dateObj.toLocaleDateString('en-GB', {
@@ -95,6 +97,8 @@ const handler = async (req: Request): Promise<Response> => {
     const managementLink = isGuest 
       ? 'https://queensdockbarbershop.co.uk/verify-booking'
       : 'https://queensdockbarbershop.co.uk/login';
+
+    console.log(`Management link for ${isGuest ? 'guest' : 'registered'} user: ${managementLink}`);
 
     // Variables to replace in templates
     const templateVariables = {
@@ -250,8 +254,6 @@ const handler = async (req: Request): Promise<Response> => {
         </body>
       </html>
     `;
-
-    console.log(`Sending booking confirmation email to ${to} for booking ${bookingId}`);
     
     // Send the email using Resend with verified domain
     const { data, error } = await resend.emails.send({
