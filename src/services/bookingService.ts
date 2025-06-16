@@ -181,7 +181,7 @@ export const createBooking = async (
           .single();
           
         if (!profileError && profile && profile.email) {
-          // Send confirmation email for registered users
+          // Send confirmation email for registered users (no SMS)
           try {
             const { error: emailError } = await supabase.functions.invoke('send-booking-email', {
               body: {

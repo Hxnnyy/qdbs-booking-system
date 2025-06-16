@@ -91,6 +91,11 @@ const handler = async (req: Request): Promise<Response> => {
       day: 'numeric'
     });
 
+    // Determine the management link based on user type
+    const managementLink = isGuest 
+      ? 'https://queensdockbarbershop.co.uk/verify-booking'
+      : 'https://queensdockbarbershop.co.uk/login';
+
     // Variables to replace in templates
     const templateVariables = {
       name,
@@ -98,7 +103,8 @@ const handler = async (req: Request): Promise<Response> => {
       bookingDate: formattedDate,
       bookingTime,
       barberName,
-      serviceName
+      serviceName,
+      managementLink
     };
 
     let emailSubject = subject || 'Your Booking Confirmation - Queens Dock Barbershop';
@@ -149,6 +155,12 @@ const handler = async (req: Request): Promise<Response> => {
           <p>Your booking verification code is:</p>
           <div style="background-color: #f0f0f0; padding: 10px; font-family: monospace; text-align: center; font-weight: bold; letter-spacing: 2px; margin: 20px 0; border-radius: 5px;">${bookingCode}</div>
           <p>Keep this code safe. You'll need it to manage or cancel your booking.</p>` : ''}
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${managementLink}" style="background-color: #800020; color: white; text-decoration: none; padding: 12px 24px; border-radius: 5px; display: inline-block; font-weight: bold;">
+              ${isGuest ? 'Manage Your Booking' : 'View Your Bookings'}
+            </a>
+          </div>
           
           <p>We look forward to seeing you at Queens Dock Barbershop!</p>
         `;

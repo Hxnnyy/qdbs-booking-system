@@ -27,7 +27,7 @@ export const useCreateGuestBooking = () => {
         supabase.from('services').select('name').eq('id', bookingData.service_id).single()
       ]);
 
-      // Send email confirmation
+      // Send email confirmation only (no SMS for confirmations)
       const emailResult = await sendBookingEmail(
         bookingData.guest_email || '',
         bookingData.guest_name,
@@ -52,8 +52,8 @@ export const useCreateGuestBooking = () => {
         bookingCode,
         twilioResult: {
           success: true,
-          message: 'Booking confirmed via email',
-          isTwilioConfigured: false // No SMS for confirmations anymore
+          message: 'Booking confirmed via email only',
+          isTwilioConfigured: false // No SMS for confirmations
         }
       };
     } catch (err: any) {
