@@ -75,8 +75,8 @@ export const useBookings = () => {
           service:service_id(name, price, duration)
         `)
         .eq('user_id', user.id)
-        .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true });
+        .order('booking_date', { ascending: false })
+        .order('booking_time', { ascending: false });
 
       if (error) {
         console.error('Supabase error:', error);
@@ -114,8 +114,8 @@ export const useBookings = () => {
           service:service_id(name, price, duration)
         `)
         .eq('user_id', user.id)
-        .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true });
+        .order('booking_date', { ascending: false })
+        .order('booking_time', { ascending: false });
 
       if (error) {
         console.error('Supabase error:', error);
