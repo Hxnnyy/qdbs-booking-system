@@ -66,7 +66,7 @@ export interface BookingStepHandlers {
   handleBackToGuestInfo: () => void;
   handleVerificationComplete: () => void;
   handleBackToVerification: () => void;
-  handleSubmit: (e: React.FormEvent) => void;
+  handleSubmit: () => Promise<void>;
 }
 
 export interface BookingResult {

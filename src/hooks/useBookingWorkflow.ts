@@ -117,7 +117,15 @@ export const useBookingWorkflow = (
       // This should only send email confirmation, no SMS
       const result = await createGuestBooking(bookingData);
       
-      setBookingResult(result);
+      // Transform GuestBookingResult to BookingResult format
+      const transformedResult: BookingResult = {
+        id: result.bookingData.id,
+        bookingCode: result.bookingCode,
+        twilioResult: result.twilioResult,
+        ...result.bookingData
+      };
+      
+      setBookingResult(transformedResult);
       updateFormState({ bookingComplete: true });
       setShowSuccess(true);
       
