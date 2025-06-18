@@ -1,20 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { NotificationTemplatesForm } from '@/components/admin/notification/NotificationTemplatesForm';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, MessageSquare, Bell, AlarmClock, Settings, AlertCircle } from 'lucide-react';
+import { AlarmClock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Define types for system settings 
 interface ReminderSettings {
@@ -23,13 +21,7 @@ interface ReminderSettings {
   send_reminders: boolean;
 }
 
-interface SMSReminderTemplate {
-  content: string;
-}
-
 const NotificationSettings = () => {
-  const [testEmail, setTestEmail] = useState('');
-  const [testPhone, setTestPhone] = useState('');
   const [testReminderPhone, setTestReminderPhone] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [reminderSettings, setReminderSettings] = useState<ReminderSettings>({
@@ -37,13 +29,9 @@ const NotificationSettings = () => {
     reminder_time: '10:00',
     send_reminders: true
   });
-  const [smsReminderTemplate, setSmsReminderTemplate] = useState<SMSReminderTemplate>({
-    content: 'Hi {{name}}, reminder: you have a booking tomorrow ({{bookingDate}}) at {{bookingTime}}{{barberName ? ` with ${barberName}` : ""}}{{serviceName ? ` for ${serviceName}` : ""}}. Your booking code is {{bookingCode}}. To manage your booking, visit: https://queensdockbarbershop.co.uk/verify-booking'
-  });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [showTestReminderInput, setShowTestReminderInput] = useState(false);
-  const [emailTestError, setEmailTestError] = useState<string | null>(null);
 
   const reminderForm = useForm<ReminderSettings>({
     defaultValues: {
@@ -68,17 +56,6 @@ const NotificationSettings = () => {
           setReminderSettings(settings);
           reminderForm.reset(settings);
         }
-
-        // Fetch SMS reminder template
-        const { data: smsData, error: smsError } = await supabase.functions.invoke('create-system-settings-table', {
-          body: { action: 'get_settings', setting_type: 'sms_reminder_template' }
-        });
-
-        if (smsError) {
-          console.error('Error fetching SMS template:', smsError);
-        } else if (smsData && smsData.settings) {
-          setSmsReminderTemplate(smsData.settings);
-        }
       } catch (error: any) {
         console.error('Error fetching settings:', error);
         toast.error('Failed to load settings');
@@ -89,85 +66,6 @@ const NotificationSettings = () => {
     
     fetchSettings();
   }, []);
-
-  const handleTestEmail = async () => {
-    if (!testEmail.trim()) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-
-    setIsSendingTest(true);
-    setEmailTestError(null);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('send-booking-email', {
-        body: {
-          to: testEmail,
-          name: 'Test Customer',
-          bookingId: 'test-booking',
-          bookingCode: 'TEST123',
-          bookingDate: new Date().toISOString(),
-          bookingTime: '14:00',
-          barberName: 'Test Barber',
-          serviceName: 'Haircut',
-          isGuest: false,
-          subject: 'Test Notification Email'
-        }
-      });
-
-      if (error) throw error;
-      
-      if (data && !data.success) {
-        if (data.isTestRestriction) {
-          setEmailTestError(data.message);
-          toast.error(data.message);
-        } else {
-          throw new Error(data.message);
-        }
-      } else {
-        toast.success(`Test email sent to ${testEmail}`);
-        setEmailTestError(null);
-      }
-    } catch (error: any) {
-      console.error('Error sending test email:', error);
-      const errorMessage = error.message || 'Unknown error';
-      setEmailTestError(errorMessage);
-      toast.error(`Failed to send test email: ${errorMessage}`);
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
-
-  const handleTestSMS = async () => {
-    if (!testPhone.trim()) {
-      toast.error('Please enter a valid phone number');
-      return;
-    }
-
-    setIsSendingTest(true);
-    try {
-      const { error } = await supabase.functions.invoke('send-booking-sms', {
-        body: {
-          phone: testPhone,
-          name: 'Test Customer',
-          bookingCode: 'TEST123',
-          bookingId: 'test-booking',
-          bookingDate: new Date().toISOString(),
-          bookingTime: '14:00',
-          barberName: 'Test Barber',
-          serviceName: 'Haircut'
-        }
-      });
-
-      if (error) throw error;
-      toast.success(`Test SMS sent to ${testPhone}`);
-    } catch (error: any) {
-      console.error('Error sending test SMS:', error);
-      toast.error(`Failed to send test SMS: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
 
   const onSubmitReminderSettings = async (values: ReminderSettings) => {
     setIsSavingSettings(true);
@@ -198,28 +96,6 @@ const NotificationSettings = () => {
     } catch (error: any) {
       console.error('Error saving reminder settings:', error);
       toast.error(`Failed to save settings: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsSavingSettings(false);
-    }
-  };
-
-  const handleSaveSMSTemplate = async () => {
-    setIsSavingSettings(true);
-    try {
-      const { error } = await supabase.functions.invoke('create-system-settings-table', {
-        body: { 
-          action: 'save_settings', 
-          setting_type: 'sms_reminder_template',
-          settings: smsReminderTemplate
-        }
-      });
-      
-      if (error) throw error;
-      
-      toast.success('SMS reminder template saved successfully');
-    } catch (error: any) {
-      console.error('Error saving SMS template:', error);
-      toast.error(`Failed to save SMS template: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSavingSettings(false);
     }
@@ -401,121 +277,6 @@ const NotificationSettings = () => {
                   </div>
                 </form>
               </Form>
-            </CardContent>
-          </Card>
-
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                SMS Reminder Template
-              </CardTitle>
-              <CardDescription>
-                Customize the SMS message sent to customers for appointment reminders
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="sms-template">SMS Message Template</Label>
-                <Textarea
-                  id="sms-template"
-                  rows={4}
-                  value={smsReminderTemplate.content}
-                  onChange={(e) => setSmsReminderTemplate({ content: e.target.value })}
-                  disabled={isLoadingSettings}
-                  placeholder="Enter your SMS reminder template..."
-                />
-                <div className="text-sm text-muted-foreground">
-                  Available variables: {`{{name}}, {{bookingCode}}, {{bookingDate}}, {{bookingTime}}, {{barberName}}, {{serviceName}}`}
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={handleSaveSMSTemplate}
-                disabled={isSavingSettings || isLoadingSettings}
-              >
-                {isSavingSettings ? 'Saving...' : 'Save SMS Template'}
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>Test Notifications</CardTitle>
-              <CardDescription>
-                Send test notifications to verify your templates are working correctly
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="email">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="email" className="flex items-center gap-1">
-                    <Mail className="w-4 h-4" />
-                    <span>Test Email</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="sms" className="flex items-center gap-1">
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Test SMS</span>
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="email">
-                  <div className="flex flex-col gap-4">
-                    {emailTestError && (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          {emailTestError}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="test-email" className="text-right">Email Address</Label>
-                      <Input
-                        id="test-email"
-                        type="email"
-                        placeholder="Enter test email address"
-                        value={testEmail}
-                        onChange={(e) => setTestEmail(e.target.value)}
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="flex justify-end">
-                      <Button 
-                        onClick={handleTestEmail} 
-                        disabled={isSendingTest}
-                      >
-                        {isSendingTest ? 'Sending...' : 'Send Test Email'}
-                      </Button>
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="sms">
-                  <div className="flex flex-col gap-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="test-phone" className="text-right">Phone Number</Label>
-                      <Input
-                        id="test-phone"
-                        type="tel"
-                        placeholder="Enter test phone number"
-                        value={testPhone}
-                        onChange={(e) => setTestPhone(e.target.value)}
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="flex justify-end">
-                      <Button 
-                        onClick={handleTestSMS} 
-                        disabled={isSendingTest}
-                      >
-                        {isSendingTest ? 'Sending...' : 'Send Test SMS'}
-                      </Button>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
             </CardContent>
           </Card>
           
