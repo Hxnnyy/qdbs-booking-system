@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { NotificationTemplate, InsertableNotificationTemplate, UpdatableNotificationTemplate } from '@/supabase-types';
+import { getDefaultEmailTemplate } from '@/utils/defaultEmailTemplate';
 
 export const useNotificationTemplates = () => {
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
@@ -14,7 +14,6 @@ export const useNotificationTemplates = () => {
       setIsLoading(true);
       setError(null);
 
-      // Using the any type here because the Supabase types don't include our custom tables yet
       const { data, error } = await supabase
         .from('notification_templates')
         .select('*')
@@ -43,16 +42,21 @@ export const useNotificationTemplates = () => {
     try {
       setIsLoading(true);
       
+      // Use default HTML template for email if content is empty
+      let templateToInsert = { ...template };
+      if (template.type === 'email' && !template.content.trim()) {
+        templateToInsert.content = getDefaultEmailTemplate();
+      }
+      
       // Prepare the template for insertion
-      const templateToInsert = {
-        ...template,
+      templateToInsert = {
+        ...templateToInsert,
         // Convert array to JSONB string if needed
-        variables: Array.isArray(template.variables) 
-          ? JSON.stringify(template.variables) 
-          : template.variables
+        variables: Array.isArray(templateToInsert.variables) 
+          ? JSON.stringify(templateToInsert.variables) 
+          : templateToInsert.variables
       };
 
-      // Using the any type here because the Supabase types don't include our custom tables yet
       const { error } = await supabase
         .from('notification_templates')
         .insert(templateToInsert as any);
@@ -84,7 +88,6 @@ export const useNotificationTemplates = () => {
           : template.variables
       };
 
-      // Using the any type here because the Supabase types don't include our custom tables yet
       const { error } = await supabase
         .from('notification_templates')
         .update(templateToUpdate as any)
@@ -108,7 +111,6 @@ export const useNotificationTemplates = () => {
     try {
       setIsLoading(true);
       
-      // Using the any type here because the Supabase types don't include our custom tables yet
       const { error } = await supabase
         .from('notification_templates')
         .delete()

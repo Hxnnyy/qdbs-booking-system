@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { EmailTemplate } from './EmailTemplate';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -40,9 +39,17 @@ export const EmailPreview = ({ subject, content, previewValues }: EmailPreviewPr
       const { error } = await supabase.functions.invoke('send-booking-email', {
         body: {
           to: testEmail,
-          subject: subject,
+          subject: replaceTemplateVariables(subject, previewValues),
           emailTemplate: content,
-          ...previewValues
+          ...previewValues,
+          name: previewValues.name,
+          bookingCode: previewValues.bookingCode,
+          bookingId: 'test-booking',
+          bookingDate: new Date().toISOString(),
+          bookingTime: previewValues.bookingTime,
+          barberName: previewValues.barberName,
+          serviceName: previewValues.serviceName,
+          isGuest: true
         },
       });
 
@@ -63,7 +70,7 @@ export const EmailPreview = ({ subject, content, previewValues }: EmailPreviewPr
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-3xl h-[80vh]">
+        <DialogContent className="max-w-4xl h-[80vh]">
           <DialogHeader>
             <DialogTitle>Email Preview</DialogTitle>
             <DialogDescription>
@@ -72,7 +79,7 @@ export const EmailPreview = ({ subject, content, previewValues }: EmailPreviewPr
           </DialogHeader>
 
           <div className="flex flex-col space-y-4 mt-4">
-            <div className="flex items-end gap-4">
+            <div className="flex items-end gap-4 p-4 border-b">
               <div className="flex-1">
                 <Label htmlFor="test-email">Send test email to:</Label>
                 <Input
@@ -88,15 +95,13 @@ export const EmailPreview = ({ subject, content, previewValues }: EmailPreviewPr
               </Button>
             </div>
 
-            <div className="border rounded-lg overflow-y-auto flex-1 bg-gray-50">
-              <EmailTemplate>
-                <div 
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ 
-                    __html: replaceTemplateVariables(content, previewValues) 
-                  }} 
-                />
-              </EmailTemplate>
+            <div className="border rounded-lg overflow-y-auto flex-1 bg-white">
+              <div 
+                className="p-4"
+                dangerouslySetInnerHTML={{ 
+                  __html: replaceTemplateVariables(content, previewValues) 
+                }} 
+              />
             </div>
           </div>
         </DialogContent>

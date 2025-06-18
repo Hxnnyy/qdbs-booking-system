@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +7,7 @@ import { NotificationTemplate } from '@/supabase-types';
 import { useNotificationTemplates } from '@/hooks/useNotificationTemplates';
 import { TemplateTabContent } from './TemplateTabContent';
 import { TemplateDialog } from './TemplateDialog';
+import { getDefaultEmailTemplate } from '@/utils/defaultEmailTemplate';
 
 export const NotificationTemplatesForm = () => {
   const { templates, isLoading, createTemplate, updateTemplate, deleteTemplate } = useNotificationTemplates();
@@ -32,7 +32,8 @@ export const NotificationTemplatesForm = () => {
     bookingDate: 'Monday, June 15, 2025',
     bookingTime: '14:00',
     barberName: 'Mike',
-    serviceName: 'Haircut'
+    serviceName: 'Haircut',
+    managementLink: 'https://queensdockbarbershop.co.uk/verify-booking'
   });
 
   const emailTemplates = templates.filter(t => t.type === 'email');
@@ -55,9 +56,9 @@ export const NotificationTemplatesForm = () => {
     setCurrentTemplate({
       type,
       template_name: '',
-      subject: type === 'email' ? '' : undefined,
-      content: '',
-      variables: ['{{name}}', '{{bookingCode}}', '{{bookingDate}}', '{{bookingTime}}', '{{barberName}}', '{{serviceName}}'],
+      subject: type === 'email' ? 'Your Booking Confirmation - Queens Dock Barbershop' : undefined,
+      content: type === 'email' ? getDefaultEmailTemplate() : '',
+      variables: ['{{name}}', '{{bookingCode}}', '{{bookingDate}}', '{{bookingTime}}', '{{barberName}}', '{{serviceName}}', '{{managementLink}}'],
       is_default: false
     });
     setIsEditing(false);
@@ -115,7 +116,7 @@ export const NotificationTemplatesForm = () => {
       <CardHeader>
         <CardTitle>Notification Templates</CardTitle>
         <CardDescription>
-          Manage email and SMS templates for booking notifications
+          Manage email and SMS templates for booking notifications. Email templates support full HTML formatting.
         </CardDescription>
       </CardHeader>
       <CardContent>
