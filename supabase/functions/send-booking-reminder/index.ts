@@ -51,6 +51,50 @@ const formatPhoneNumber = (phone: string): string => {
   return phone;
 };
 
+// Helper function to get SMS reminder template from database
+async function getSMSReminderTemplate(): Promise<string | null> {
+  try {
+    // Try to get the SMS reminder template from system settings
+    const { data: settingsData, error: settingsError } = await supabase.functions.invoke('create-system-settings-table', {
+      body: { action: 'get_settings', setting_type: 'sms_reminder_template' }
+    });
+
+    if (!settingsError && settingsData && settingsData.settings) {
+      console.log('Using custom SMS reminder template from system settings');
+      return settingsData.settings.content;
+    }
+
+    // Fallback to notification templates table
+    const { data, error } = await supabase
+      .from('notification_templates')
+      .select('content')
+      .eq('type', 'sms')
+      .eq('is_default', true)
+      .single();
+
+    if (!error && data) {
+      console.log('Using SMS template from notification_templates table');
+      return data.content;
+    }
+
+    console.log("No custom SMS reminder template found, using fallback");
+    return null;
+  } catch (err) {
+    console.error("Error getting SMS reminder template:", err);
+    return null;
+  }
+}
+
+// Helper function to replace template variables
+function replaceTemplateVariables(template: string, variables: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(variables)) {
+    const placeholder = `{{${key}}}`;
+    result = result.replace(new RegExp(placeholder, 'g'), value || '');
+  }
+  return result;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
@@ -64,29 +108,72 @@ const handler = async (req: Request): Promise<Response> => {
     if (testMode && testPhone) {
       console.log(`Sending test reminder to: ${testPhone}`);
       
+      // Get the SMS reminder template
+      const templateContent = await getSMSReminderTemplate();
+      
       // Create dummy appointment data
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      const dummyBookingData = {
-        phone: testPhone,
-        name: "Test Customer",
-        bookingCode: "TEST123",
-        bookingId: "test-booking-id",
-        bookingDate: tomorrow.toISOString().split('T')[0],
-        bookingTime: "14:00",
-        barberName: "Test Barber",
-        serviceName: "Test Haircut",
-        isReminder: true
-      };
-      
-      // Send the test SMS
-      const { error: smsError } = await supabase.functions.invoke('send-booking-sms', {
-        body: dummyBookingData
+      const formattedDate = tomorrow.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
       
-      if (smsError) {
-        throw new Error(`Error sending test SMS: ${smsError.message}`);
+      const templateVariables = {
+        name: "Test Customer",
+        bookingCode: "TEST123",
+        bookingDate: formattedDate,
+        bookingTime: "14:00",
+        barberName: "Test Barber",
+        serviceName: "Test Haircut"
+      };
+
+      let messageBody;
+      if (templateContent) {
+        messageBody = replaceTemplateVariables(templateContent, templateVariables);
+        console.log('Using custom template for test reminder');
+      } else {
+        // Fallback message
+        messageBody = `Hi ${templateVariables.name}, reminder: you have a booking tomorrow (${templateVariables.bookingDate}) at ${templateVariables.bookingTime} with ${templateVariables.barberName} for ${templateVariables.serviceName}. Your booking code is ${templateVariables.bookingCode}. To manage your booking, visit: https://queensdockbarbershop.co.uk/verify-booking`;
+        console.log('Using fallback template for test reminder');
+      }
+      
+      // Send directly via Twilio for test
+      const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+      const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+      const twilioPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
+
+      if (!accountSid || !authToken || !twilioPhone) {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Test reminder would be sent to ${testPhone} (Twilio not configured)`,
+            results: [{ booking_id: 'test-booking-id', success: true, message: "Test reminder (mock)" }]
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const formattedPhone = formatPhoneNumber(testPhone);
+      const twilioEndpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+      
+      const twilioResponse = await fetch(twilioEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`
+        },
+        body: new URLSearchParams({
+          'To': formattedPhone,
+          'From': twilioPhone,
+          'Body': messageBody
+        })
+      });
+
+      if (!twilioResponse.ok) {
+        throw new Error('Failed to send test SMS via Twilio');
       }
       
       return new Response(

@@ -40,9 +40,10 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
 );
 
-// Helper function to get default SMS template from database
-async function getDefaultSmsTemplate(templateType: string): Promise<string | null> {
+// Helper function to get SMS template from database
+async function getSMSTemplate(templateType: string): Promise<string | null> {
   try {
+    // First try to get custom template from notification_templates table
     const { data, error } = await supabase
       .from('notification_templates')
       .select('content')
@@ -50,14 +51,25 @@ async function getDefaultSmsTemplate(templateType: string): Promise<string | nul
       .eq('is_default', true)
       .single();
 
-    if (error || !data) {
-      console.error("Error fetching default SMS template:", error);
-      return null;
+    if (!error && data) {
+      return data.content;
     }
 
-    return data.content;
+    // If no template found and it's a reminder, try to get from system settings
+    if (templateType === 'reminder') {
+      const { data: settingsData, error: settingsError } = await supabase.functions.invoke('create-system-settings-table', {
+        body: { action: 'get_settings', setting_type: 'sms_reminder_template' }
+      });
+
+      if (!settingsError && settingsData && settingsData.settings) {
+        return settingsData.settings.content;
+      }
+    }
+
+    console.log("No custom SMS template found, using fallback");
+    return null;
   } catch (err) {
-    console.error("Error in getDefaultSmsTemplate:", err);
+    console.error("Error in getSMSTemplate:", err);
     return null;
   }
 }
@@ -122,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Using Twilio: Account ${accountSid}, Phone ${twilioPhone}`);
 
     // Set the correct verification URL
-    const verifyUrl = "https://your-website.com/verify-booking";
+    const verifyUrl = "https://queensdockbarbershop.co.uk/verify-booking";
 
     // Variables to replace in templates
     const templateVariables = {
@@ -137,18 +149,20 @@ const handler = async (req: Request): Promise<Response> => {
     // Prepare the message
     let messageBody;
     
-    // Try to get template from database based on message type
+    // Determine template type and get from database
     let templateType = 'confirmation';
     if (isReminder) templateType = 'reminder';
     if (isUpdate) templateType = 'update';
     
-    const templateContent = await getDefaultSmsTemplate(templateType);
+    const templateContent = await getSMSTemplate(templateType);
     
     if (templateContent) {
       // Use the template from the database
+      console.log(`Using custom SMS template for ${templateType}`);
       messageBody = replaceTemplateVariables(templateContent, templateVariables);
     } else {
       // Fallback to hardcoded templates
+      console.log(`Using fallback SMS template for ${templateType}`);
       if (isReminder) {
         messageBody = `Hi ${name}, reminder: you have a booking tomorrow (${formattedDate}) at ${bookingTime}${barberName ? ` with ${barberName}` : ''}${serviceName ? ` for ${serviceName}` : ''}. Your booking code is ${bookingCode}. To manage your booking, visit: ${verifyUrl}`;
       } else if (isUpdate) {

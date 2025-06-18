@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, MessageSquare, Bell, AlarmClock, Settings, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +24,10 @@ interface ReminderSettings {
   send_reminders: boolean;
 }
 
+interface SMSReminderTemplate {
+  content: string;
+}
+
 const NotificationSettings = () => {
   const [testEmail, setTestEmail] = useState('');
   const [testPhone, setTestPhone] = useState('');
@@ -32,6 +37,9 @@ const NotificationSettings = () => {
     days_before: 1,
     reminder_time: '10:00',
     send_reminders: true
+  });
+  const [smsReminderTemplate, setSmsReminderTemplate] = useState<SMSReminderTemplate>({
+    content: 'Hi {{name}}, reminder: you have a booking tomorrow ({{bookingDate}}) at {{bookingTime}}{{barberName ? ` with ${barberName}` : ""}}{{serviceName ? ` for ${serviceName}` : ""}}. Your booking code is {{bookingCode}}. To manage your booking, visit: https://queensdockbarbershop.co.uk/verify-booking'
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -47,32 +55,40 @@ const NotificationSettings = () => {
   });
 
   useEffect(() => {
-    const fetchReminderSettings = async () => {
+    const fetchSettings = async () => {
       try {
-        // Fetch settings using our edge function instead of direct DB access
-        const { data: settingsData, error } = await supabase.functions.invoke('create-system-settings-table', {
+        // Fetch reminder settings
+        const { data: reminderData, error: reminderError } = await supabase.functions.invoke('create-system-settings-table', {
           body: { action: 'get_settings', setting_type: 'reminder_settings' }
         });
 
-        if (error) {
-          console.error('Error fetching reminder settings:', error);
-          throw error;
-        }
-        
-        if (settingsData && settingsData.settings) {
-          const settings = settingsData.settings;
+        if (reminderError) {
+          console.error('Error fetching reminder settings:', reminderError);
+        } else if (reminderData && reminderData.settings) {
+          const settings = reminderData.settings;
           setReminderSettings(settings);
           reminderForm.reset(settings);
         }
+
+        // Fetch SMS reminder template
+        const { data: smsData, error: smsError } = await supabase.functions.invoke('create-system-settings-table', {
+          body: { action: 'get_settings', setting_type: 'sms_reminder_template' }
+        });
+
+        if (smsError) {
+          console.error('Error fetching SMS template:', smsError);
+        } else if (smsData && smsData.settings) {
+          setSmsReminderTemplate(smsData.settings);
+        }
       } catch (error: any) {
-        console.error('Error fetching reminder settings:', error);
-        toast.error('Failed to load reminder settings');
+        console.error('Error fetching settings:', error);
+        toast.error('Failed to load settings');
       } finally {
         setIsLoadingSettings(false);
       }
     };
     
-    fetchReminderSettings();
+    fetchSettings();
   }, []);
 
   const handleTestEmail = async () => {
@@ -157,7 +173,7 @@ const NotificationSettings = () => {
   const onSubmitReminderSettings = async (values: ReminderSettings) => {
     setIsSavingSettings(true);
     try {
-      // Use our edge function to save settings instead of direct DB access
+      // Save reminder settings
       const { data, error } = await supabase.functions.invoke('create-system-settings-table', {
         body: { 
           action: 'save_settings', 
@@ -183,6 +199,28 @@ const NotificationSettings = () => {
     } catch (error: any) {
       console.error('Error saving reminder settings:', error);
       toast.error(`Failed to save settings: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleSaveSMSTemplate = async () => {
+    setIsSavingSettings(true);
+    try {
+      const { error } = await supabase.functions.invoke('create-system-settings-table', {
+        body: { 
+          action: 'save_settings', 
+          setting_type: 'sms_reminder_template',
+          settings: smsReminderTemplate
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('SMS reminder template saved successfully');
+    } catch (error: any) {
+      console.error('Error saving SMS template:', error);
+      toast.error(`Failed to save SMS template: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSavingSettings(false);
     }
@@ -365,6 +403,42 @@ const NotificationSettings = () => {
                 </form>
               </Form>
             </CardContent>
+          </Card>
+
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                SMS Reminder Template
+              </CardTitle>
+              <CardDescription>
+                Customize the SMS message sent to customers for appointment reminders
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sms-template">SMS Message Template</Label>
+                <Textarea
+                  id="sms-template"
+                  rows={4}
+                  value={smsReminderTemplate.content}
+                  onChange={(e) => setSmsReminderTemplate({ content: e.target.value })}
+                  disabled={isLoadingSettings}
+                  placeholder="Enter your SMS reminder template..."
+                />
+                <div className="text-sm text-muted-foreground">
+                  Available variables: {{name}}, {{bookingCode}}, {{bookingDate}}, {{bookingTime}}, {{barberName}}, {{serviceName}}
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handleSaveSMSTemplate}
+                disabled={isSavingSettings || isLoadingSettings}
+              >
+                {isSavingSettings ? 'Saving...' : 'Save SMS Template'}
+              </Button>
+            </CardFooter>
           </Card>
 
           <Card className="w-full">
