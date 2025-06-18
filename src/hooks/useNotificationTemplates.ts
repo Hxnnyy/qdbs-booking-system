@@ -55,14 +55,14 @@ export const useNotificationTemplates = () => {
         ? templateToInsert.variables 
         : [];
       
-      templateToInsert = {
+      const templateForDB = {
         ...templateToInsert,
         variables: JSON.stringify(variablesToInsert)
       };
 
       const { error } = await supabase
         .from('notification_templates')
-        .insert(templateToInsert as any);
+        .insert(templateForDB as any);
       
       if (error) throw error;
       
@@ -87,14 +87,14 @@ export const useNotificationTemplates = () => {
         ? template.variables 
         : [];
       
-      const templateToUpdate = {
+      const templateForDB = {
         ...template,
         variables: JSON.stringify(variablesToUpdate)
       };
 
       const { error } = await supabase
         .from('notification_templates')
-        .update(templateToUpdate as any)
+        .update(templateForDB as any)
         .eq('id', id);
       
       if (error) throw error;
