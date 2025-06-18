@@ -26,7 +26,9 @@ export const useNotificationTemplates = () => {
         ...template,
         variables: typeof template.variables === 'string' 
           ? JSON.parse(template.variables) 
-          : template.variables
+          : Array.isArray(template.variables) 
+            ? template.variables 
+            : []
       })) || [];
 
       setTemplates(parsedTemplates as NotificationTemplate[]);
@@ -48,13 +50,14 @@ export const useNotificationTemplates = () => {
         templateToInsert.content = getDefaultEmailTemplate();
       }
       
-      // Prepare the template for insertion
+      // Prepare the template for insertion - ensure variables is always an array when converting to JSON
+      const variablesToInsert = Array.isArray(templateToInsert.variables) 
+        ? templateToInsert.variables 
+        : [];
+      
       templateToInsert = {
         ...templateToInsert,
-        // Convert array to JSONB string if needed
-        variables: Array.isArray(templateToInsert.variables) 
-          ? JSON.stringify(templateToInsert.variables) 
-          : templateToInsert.variables
+        variables: JSON.stringify(variablesToInsert)
       };
 
       const { error } = await supabase
@@ -79,13 +82,14 @@ export const useNotificationTemplates = () => {
     try {
       setIsLoading(true);
       
-      // Prepare the template for update
+      // Prepare the template for update - ensure variables is always an array when converting to JSON
+      const variablesToUpdate = Array.isArray(template.variables) 
+        ? template.variables 
+        : [];
+      
       const templateToUpdate = {
         ...template,
-        // Convert array to JSONB string if needed
-        variables: Array.isArray(template.variables) 
-          ? JSON.stringify(template.variables) 
-          : template.variables
+        variables: JSON.stringify(variablesToUpdate)
       };
 
       const { error } = await supabase
