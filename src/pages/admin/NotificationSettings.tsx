@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { NotificationTemplatesForm } from '@/components/admin/notification/NotificationTemplatesForm';
@@ -427,7 +426,7 @@ const NotificationSettings = () => {
                   placeholder="Enter your SMS reminder template..."
                 />
                 <div className="text-sm text-muted-foreground">
-                  Available variables: {{name}}, {{bookingCode}}, {{bookingDate}}, {{bookingTime}}, {{barberName}}, {{serviceName}}
+                  Available variables: {`{{name}}, {{bookingCode}}, {{bookingDate}}, {{bookingTime}}, {{barberName}}, {{serviceName}}`}
                 </div>
               </div>
             </CardContent>
