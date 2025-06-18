@@ -59,31 +59,36 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 >
                   Edit
                 </Button>
-                {!template.is_default && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete the template.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => template.id && onDeleteTemplate(template.id)}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{template.template_name}"? 
+                        {template.is_default && (
+                          <span className="block mt-2 font-medium text-destructive">
+                            This is a default template. Deleting it may affect existing functionality.
+                          </span>
+                        )}
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => template.id && onDeleteTemplate(template.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete Template
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </CardHeader>
@@ -93,7 +98,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 <strong>Subject:</strong> {template.subject}
               </div>
             )}
-            <div className="text-sm border rounded p-3 whitespace-pre-wrap bg-muted/50">
+            <div className="text-sm border rounded p-3 whitespace-pre-wrap bg-muted/50 max-h-32 overflow-y-auto">
               {template.content}
             </div>
           </CardContent>
