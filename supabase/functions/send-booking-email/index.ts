@@ -423,73 +423,10 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (defaultTemplate) {
         emailSubject = replaceTemplateVariables(defaultTemplate.subject, templateVariables);
-        const templateContent = replaceTemplateVariables(defaultTemplate.content, templateVariables);
-        
-        // Wrap the content in our standard email template
-        emailHtml = `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>${emailSubject}</title>
-              <style>
-                body {
-                  font-family: 'Playfair Display', serif;
-                  margin: 0;
-                  padding: 0;
-                  background-color: #f8f8f8;
-                  color: #333;
-                }
-                .email-container {
-                  max-width: 600px;
-                  margin: 0 auto;
-                  padding: 20px;
-                }
-                .email-header {
-                  background-color: #800020;
-                  padding: 24px;
-                  text-align: center;
-                }
-                .email-header h1 {
-                  margin: 0;
-                  color: white;
-                  font-size: 28px;
-                  font-weight: 400;
-                }
-                .email-body {
-                  background-color: white;
-                  padding: 30px;
-                  border: 1px solid #e9e9e9;
-                }
-                .email-footer {
-                  text-align: center;
-                  padding: 20px;
-                  font-size: 14px;
-                  color: #666;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="email-container">
-                <div class="email-header">
-                  <h1>Queens Dock Barbershop</h1>
-                </div>
-                <div class="email-body">
-                  <h2>${emailSubject}</h2>
-                  ${templateContent}
-                </div>
-                <div class="email-footer">
-                  &copy; ${new Date().getFullYear()} Queens Dock Barbershop. All rights reserved.<br>
-                  52 Bank Street, Rossendale, BB4 8DY<br>
-                  Phone: 01706 831878
-                </div>
-              </div>
-            </body>
-          </html>
-        `;
+        // Use the raw template content directly without any additional wrapping
+        emailHtml = replaceTemplateVariables(defaultTemplate.content, templateVariables);
       } else {
-        // Fallback to enhanced template
+        // Fallback to enhanced template if no default template found
         emailHtml = createBookingConfirmationEmail(
           name,
           bookingCode || '',
